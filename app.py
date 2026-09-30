@@ -259,7 +259,7 @@ def _target_parts(hrsz):
     return h, ""
 
 
-def raster_ocr_hrsz(page, hrsz, zoom=3.0):
+def raster_ocr_hrsz(page, hrsz, zoom=1.5):
     """
     A PDF-oldalt képpé rendereli, és Tesseract OCR-rel keresi a hrsz.-t.
     A visszaadott rect már közvetlenül a látható page.rect koordinátája.
@@ -739,7 +739,7 @@ if st.button(
 
     # v1.6: a search_for találat CSAK az oldal azonosítására szolgál.
     # A tényleges helyet a renderelt oldal képén OCR-rel keressük.
-    visual_candidates, ocr_error = raster_ocr_hrsz(page, clean_hrsz, zoom=3.0)
+    visual_candidates, ocr_error = raster_ocr_hrsz(page, clean_hrsz, zoom=1.5)
 
     if visual_candidates:
         visual_rect = visual_candidates[0]["rect"]
