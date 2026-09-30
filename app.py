@@ -7,8 +7,8 @@ import streamlit as st
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v1.2.1
-# DIAGNOSZTIKAI VERZIÓ
+# TELEKELŐÍRÁS AI v1.3
+# VIZUÁLIS HELYMEGHATÁROZÁSI TESZT
 # =========================================================
 
 
@@ -63,6 +63,79 @@ def hrsz_hits(page, hrsz):
             unique.append(r)
 
     return unique
+
+
+# ---------------------------------------------------------
+# SZÖVEGRÉTEG -> LÁTHATÓ OLDAL KOORDINÁTA-KORREKCIÓ
+# ---------------------------------------------------------
+
+def text_coordinate_bounds(page):
+    """
+    A PDF szövegrétegében ténylegesen előforduló koordinátatartomány.
+    Egyes CAD-ből exportált PDF-eknél ez nem azonos a page.rect tartományával.
+    """
+    words = page.get_text("words")
+
+    if not words:
+        return None
+
+    xs0 = [w[0] for w in words]
+    ys0 = [w[1] for w in words]
+    xs1 = [w[2] for w in words]
+    ys1 = [w[3] for w in words]
+
+    return fitz.Rect(
+        min(xs0),
+        min(ys0),
+        max(xs1),
+        max(ys1),
+    )
+
+
+def corrected_rect(page, rect):
+    """
+    Ha a megtalált szöveg koordinátája kilóg a látható page.rect-ből,
+    a teljes szövegréteg koordinátatartományából arányosan visszavetítjük
+    a látható oldalra.
+
+    Ha az eredeti koordináta eleve a látható oldalon van, változatlan marad.
+    """
+    pr = page.rect
+
+    if pr.contains(rect):
+        return fitz.Rect(rect), False, None
+
+    tb = text_coordinate_bounds(page)
+
+    if tb is None or tb.width <= 0 or tb.height <= 0:
+        return fitz.Rect(rect), False, tb
+
+    def map_x(x):
+        return pr.x0 + ((x - tb.x0) / tb.width) * pr.width
+
+    def map_y(y):
+        return pr.y0 + ((y - tb.y0) / tb.height) * pr.height
+
+    mapped = fitz.Rect(
+        map_x(rect.x0),
+        map_y(rect.y0),
+        map_x(rect.x1),
+        map_y(rect.y1),
+    )
+
+    # Biztonsági korlátozás a látható oldalra.
+    mapped = mapped & pr
+
+    return mapped, True, tb
+
+
+def point_rect(x, y, size=8):
+    return fitz.Rect(
+        x - size,
+        y - size,
+        x + size,
+        y + size,
+    )
 
 
 # ---------------------------------------------------------
@@ -268,7 +341,7 @@ def render_crop(
 # ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="TelekElőírás AI v1.2.1",
+    page_title="TelekElőírás AI v1.3",
     page_icon="🏗️",
     layout="wide",
 )
@@ -291,9 +364,9 @@ with st.sidebar:
     )
 
     st.info(
-        "Ez a diagnosztikai verzió megmutatja a teljes "
-        "megtalált tervoldalt és a helyrajzi szám "
-        "környezetének többféle kivágását."
+        "A program megkeresi a helyrajzi számot, ellenőrzi a PDF "
+        "szövegrétegének koordinátáit, és szükség esetén a "
+        "látható tervlap koordinátarendszerére korrigálja azokat."
     )
 
     plan = st.file_uploader(
@@ -331,7 +404,7 @@ hrsz = c2.text_input(
 
 
 if st.button(
-    "Diagnosztikai vizsgálat indítása",
+    "Vizuális helymeghatározás indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -418,6 +491,11 @@ if st.button(
 
     page = doc[pno]
 
+    visual_rect, was_corrected, text_bounds = corrected_rect(
+        page,
+        rect,
+    )
+
 
     st.success(
         f"{clean_hrsz} megtalálva • "
@@ -431,7 +509,7 @@ if st.button(
     # =====================================================
 
     st.subheader(
-        "1. PDF-diagnosztika"
+        "1. Koordináta-ellenőrzés"
     )
 
 
@@ -488,13 +566,47 @@ if st.button(
         f"Y = {(cy / page_height) * 100:.2f}%"
     )
 
+    vcx = (visual_rect.x0 + visual_rect.x1) / 2
+    vcy = (visual_rect.y0 + visual_rect.y1) / 2
+
+    st.write("**Vizuális helyhez használt koordináta:**")
+
+    if was_corrected:
+        st.warning(
+            "A hrsz. eredeti szövegkoordinátája a látható oldal határán "
+            "kívül esik, ezért a program koordináta-korrekciót alkalmaz."
+        )
+    else:
+        st.success(
+            "A hrsz. szövegkoordinátája a látható oldalon belül van; "
+            "korrekció nem szükséges."
+        )
+
+    st.code(
+        f"x0 = {visual_rect.x0:.2f}\n"
+        f"y0 = {visual_rect.y0:.2f}\n"
+        f"x1 = {visual_rect.x1:.2f}\n"
+        f"y1 = {visual_rect.y1:.2f}\n"
+        f"középpont X = {vcx:.2f}\n"
+        f"középpont Y = {vcy:.2f}\n"
+        f"relatív X = {(vcx / page_width) * 100:.2f}%\n"
+        f"relatív Y = {(vcy / page_height) * 100:.2f}%"
+    )
+
+    if text_bounds is not None:
+        st.caption(
+            "Szövegréteg teljes koordinátatartománya: "
+            f"{text_bounds.x0:.1f}, {text_bounds.y0:.1f}, "
+            f"{text_bounds.x1:.1f}, {text_bounds.y1:.1f}"
+        )
+
 
     # =====================================================
     # 2. TELJES OLDAL
     # =====================================================
 
     st.subheader(
-        "2. A teljes 205. tervoldal"
+        "2. Teljes tervoldal"
     )
 
     st.caption(
@@ -534,7 +646,7 @@ if st.button(
     # =====================================================
 
     st.subheader(
-        "3. Nagy környezeti kivágás"
+        "3. Korrigált nagy környezet"
     )
 
 
@@ -542,7 +654,7 @@ if st.button(
 
         img_large, clip_large = render_crop(
             page,
-            rect,
+            visual_rect,
             0.25,
         )
 
@@ -579,7 +691,7 @@ if st.button(
     # =====================================================
 
     st.subheader(
-        "4. Szűk hrsz-környezet"
+        "4. Korrigált szűk hrsz-környezet"
     )
 
 
@@ -587,7 +699,7 @@ if st.button(
 
         img_small, clip_small = render_crop(
             page,
-            rect,
+            visual_rect,
             0.08,
         )
 
@@ -630,7 +742,7 @@ if st.button(
 
     near = nearby_labels(
         page,
-        rect,
+        visual_rect,
         legal,
         radius,
     )
@@ -674,19 +786,19 @@ if st.button(
     # =====================================================
 
     st.subheader(
-        "Diagnosztikai eredmény"
+        "Vizuális helymeghatározás eredménye"
     )
 
     st.warning(
-        "Ebben a verzióban szándékosan nem történik "
-        "automatikus övezeti besorolás."
+        "Ebben a verzióban továbbra sem történik automatikus "
+        "övezeti besorolás. Először a hrsz. valódi térképi "
+        "helyét ellenőrizzük."
     )
 
     st.write(
-        "A három térképi nézetből azt vizsgáljuk, hogy "
-        "a PDF szövegrétegének koordinátái és a látható "
-        "szabályozási terv geometriája azonos "
-        "koordinátarendszerben helyezkednek-e el."
+        "A két kivágás már a korrigált vizuális koordinátát használja. "
+        "A következő döntési pont az, hogy a 2200/8 ténylegesen "
+        "látható-e a szűk kivágásban."
     )
 
 
@@ -703,5 +815,5 @@ if st.button(
 st.divider()
 
 st.caption(
-    "TelekElőírás AI v1.2.1 – diagnosztikai tesztverzió"
+    "TelekElőírás AI v1.3 – vizuális helymeghatározási teszt"
 )
