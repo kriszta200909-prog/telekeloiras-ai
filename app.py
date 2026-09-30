@@ -6,6 +6,10 @@ import pandas as pd
 import streamlit as st
 
 
+# ---------------------------------------------------------
+# ÖVEZETI KÓD FELISMERÉS
+# ---------------------------------------------------------
+
 ZONE_RE = re.compile(
     r"\b(?:Lk|Lke|Ln|Vt|Vi|Gksz|Gip|Ge|Gá|K|Kb|KÖu|KÖk|"
     r"Zkp|Zkk|Z|Ev|Ek|Má|Mk|V|Ve|Lf|Üü)"
@@ -19,44 +23,101 @@ def ncode(s):
     return re.sub(r"\s*([/-])\s*", r"\1", s)
 
 
-def hits(page, hrsz):
-    out = []
+# ---------------------------------------------------------
+# HELYRAJZI SZÁM KERESÉSE
+# ---------------------------------------------------------
 
-    variants = {
+def hrsz_hits(page, hrsz):
+
+    variants = [
         hrsz,
         f"({hrsz})",
         hrsz.replace("/", " / "),
         hrsz.replace("/", "/ "),
-    }
+        hrsz.replace("/", " /"),
+    ]
 
-    for v in variants:
-        out += list(page.search_for(v))
+    results = []
 
-    return out
+    for variant in variants:
+        results.extend(page.search_for(variant))
+
+    # duplikációk kiszűrése
+    unique = []
+
+    for r in results:
+
+        key = (
+            round(r.x0, 1),
+            round(r.y0, 1),
+            round(r.x1, 1),
+            round(r.y1, 1),
+        )
+
+        if key not in [
+            (
+                round(x.x0, 1),
+                round(x.y0, 1),
+                round(x.x1, 1),
+                round(x.y1, 1),
+            )
+            for x in unique
+        ]:
+            unique.append(r)
+
+    return unique
 
 
+# ---------------------------------------------------------
+# HÉSZ-BEN SZEREPLŐ ÖVEZETI KÓDOK
+# ---------------------------------------------------------
+
+@st.cache_data(show_spinner=False)
 def legal_codes(data):
-    doc = fitz.open(stream=data, filetype="pdf")
+
+    doc = fitz.open(
+        stream=data,
+        filetype="pdf",
+    )
+
     codes = set()
 
     for page in doc:
+
         text = page.get_text()
 
         for m in ZONE_RE.finditer(text):
-            codes.add(ncode(m.group(0)))
+            codes.add(
+                ncode(m.group(0))
+            )
+
+    doc.close()
 
     return sorted(codes)
 
 
-def labels(page):
-    out = []
+# ---------------------------------------------------------
+# TERVOLDALON TALÁLHATÓ ÖVEZETI FELIRATOK
+# ---------------------------------------------------------
 
-    for w in page.get_text("words"):
-        raw = w[4].strip("()[]{}.,;:")
+def zone_labels(page):
+
+    words = page.get_text("words")
+
+    labels = []
+
+    # 1. Egyetlen PDF-szóként szereplő kódok
+    for w in words:
+
+        raw = w[4].strip(
+            "()[]{}.,;:"
+        )
+
         code = ncode(raw)
 
         if ZONE_RE.fullmatch(code):
-            out.append(
+
+            labels.append(
                 {
                     "code": code,
                     "x": (w[0] + w[2]) / 2,
@@ -64,71 +125,128 @@ def labels(page):
                 }
             )
 
-    return out
+    return labels
 
 
-def crop(page, r, margin=700):
-    cx = (r.x0 + r.x1) / 2
-    cy = (r.y0 + r.y1) / 2
+# ---------------------------------------------------------
+# TÉRKÉPI KIVÁGÁS
+# ---------------------------------------------------------
+
+def make_map_crop(page, rect):
+
+    cx = (rect.x0 + rect.x1) / 2
+    cy = (rect.y0 + rect.y1) / 2
+
+    # A kivágás méretét az oldal méretéhez igazítjuk.
+    half_width = min(
+        page.rect.width * 0.20,
+        850,
+    )
+
+    half_height = min(
+        page.rect.height * 0.20,
+        650,
+    )
 
     clip = fitz.Rect(
-        max(0, cx - margin),
-        max(0, cy - margin),
-        min(page.rect.width, cx + margin),
-        min(page.rect.height, cy + margin),
+        max(
+            page.rect.x0,
+            cx - half_width,
+        ),
+        max(
+            page.rect.y0,
+            cy - half_height,
+        ),
+        min(
+            page.rect.x1,
+            cx + half_width,
+        ),
+        min(
+            page.rect.y1,
+            cy + half_height,
+        ),
+    )
+
+    # A PDF-részletet PNG-vé rendereljük.
+    matrix = fitz.Matrix(
+        2.0,
+        2.0,
     )
 
     pix = page.get_pixmap(
-        matrix=fitz.Matrix(1.8, 1.8),
+        matrix=matrix,
         clip=clip,
         alpha=False,
     )
 
-    return pix.tobytes("png")
+    png_bytes = pix.tobytes("png")
+
+    return png_bytes, clip
 
 
-def nearby(page, r, codes, radius):
-    cx = (r.x0 + r.x1) / 2
-    cy = (r.y0 + r.y1) / 2
+# ---------------------------------------------------------
+# KÖZELI FELIRATOK – CSAK BIZONYÍTÉKKÉNT
+# ---------------------------------------------------------
 
-    legal = set(codes)
+def nearby_labels(
+    page,
+    rect,
+    legal,
+    radius,
+):
+
+    cx = (rect.x0 + rect.x1) / 2
+    cy = (rect.y0 + rect.y1) / 2
+
+    legal_set = set(legal)
+
     rows = []
 
-    for item in labels(page):
+    for item in zone_labels(page):
+
         distance = math.hypot(
             item["x"] - cx,
             item["y"] - cy,
         )
 
         if distance <= radius:
+
             rows.append(
                 {
                     "code": item["code"],
-                    "distance": round(distance, 1),
-                    "hesz_match": item["code"] in legal,
+                    "distance": round(
+                        distance,
+                        1,
+                    ),
+                    "hesz_match":
+                        item["code"]
+                        in legal_set,
                 }
             )
 
     rows.sort(
-        key=lambda x: (
-            not x["hesz_match"],
-            x["distance"],
-        )
+        key=lambda x: x["distance"]
     )
 
-    seen = set()
     result = []
+    seen = set()
 
     for row in rows:
+
         if row["code"] not in seen:
+
             seen.add(row["code"])
             result.append(row)
 
-    return result[:12]
+    return result[:20]
 
+
+# ---------------------------------------------------------
+# STREAMLIT
+# ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="TelekElőírás AI v1.1",
+    page_title="TelekElőírás AI v1.2",
     page_icon="🏗️",
     layout="wide",
 )
@@ -137,8 +255,8 @@ st.set_page_config(
 st.title("TelekElőírás AI")
 
 st.caption(
-    "v1.1 • térképi bizonyíték + "
-    "HÉSZ-ellenőrzött közeli övezeti jelölt"
+    "v1.2 • helyrajzi szám lokalizálása • "
+    "térképi bizonyíték • biztonságos övezeti előszűrés"
 )
 
 
@@ -147,26 +265,30 @@ with st.sidebar:
     st.header("Tesztforrások")
 
     st.info(
-        "A program megkeresi a helyrajzi számot a szabályozási "
-        "tervben, megjeleníti annak térképi környezetét, majd "
-        "megkeresi a közelben található övezeti jelöléseket."
+        "A program először megkeresi a helyrajzi számot "
+        "a szabályozási tervben. Ezután megjeleníti a "
+        "tényleges térképi környezetét. Az övezeti feliratokat "
+        "egyelőre bizonyítékként mutatja, és nem tekinti "
+        "automatikusan a telek övezeti besorolásának."
     )
 
     plan = st.file_uploader(
         "Szabályozási terv (PDF)",
         type=["pdf"],
+        key="plan",
     )
 
     hesz = st.file_uploader(
         "HÉSZ/TÉSZ vagy övezeti melléklet (PDF)",
         type=["pdf"],
+        key="hesz",
     )
 
     radius = st.slider(
-        "Fallback keresési sugár",
-        200,
+        "Környezeti vizsgálati sugár",
+        100,
         1800,
-        900,
+        600,
         100,
     )
 
@@ -184,72 +306,108 @@ hrsz = c2.text_input(
 )
 
 
-if st.button(
+run = st.button(
     "Vizsgálat indítása",
     type="primary",
     use_container_width=True,
-):
+)
 
-    if not plan or not hesz:
+
+if run:
+
+    if not plan:
+
         st.error(
-            "Töltsd fel mindkét PDF-forrást."
+            "Töltsd fel a szabályozási terv PDF-et."
         )
+
         st.stop()
 
+    if not hesz:
+
+        st.error(
+            "Töltsd fel a HÉSZ/TÉSZ vagy övezeti PDF-et."
+        )
+
+        st.stop()
+
+
+    clean_hrsz = re.sub(
+        r"\s+",
+        "",
+        hrsz,
+    )
+
+
     with st.spinner(
-        "A dokumentum és az övezeti jelölések vizsgálata…"
+        "A helyrajzi szám keresése és a térképi környezet vizsgálata…"
     ):
 
-        codes = legal_codes(
-            hesz.getvalue()
+        plan_bytes = plan.getvalue()
+        hesz_bytes = hesz.getvalue()
+
+        legal = legal_codes(
+            hesz_bytes
         )
 
         doc = fitz.open(
-            stream=plan.getvalue(),
+            stream=plan_bytes,
             filetype="pdf",
         )
 
-        clean_hrsz = re.sub(
-            r"\s+",
-            "",
-            hrsz,
-        )
+        candidates = []
 
-        target = None
+        for pno in range(
+            len(doc)
+        ):
 
-        for pno, page in enumerate(doc):
+            page = doc[pno]
 
-            found = hits(
+            found = hrsz_hits(
                 page,
                 clean_hrsz,
             )
 
-            if found:
-                target = (
-                    pno,
-                    page,
-                    found[0],
+            for rect in found:
+
+                candidates.append(
+                    {
+                        "page_number": pno,
+                        "rect": rect,
+                    }
                 )
-                break
 
 
-    if not target:
+    if not candidates:
 
         st.error(
-            "A helyrajzi szám nem található "
-            "a PDF gépi szövegrétegében."
+            f"A {clean_hrsz} helyrajzi szám nem található "
+            "a PDF kereshető szövegrétegében."
         )
 
         st.warning(
-            "VISION AI SZÜKSÉGES – "
-            "a terv valószínűleg raszteres vagy "
-            "a helyrajzi szám nem kereshető szövegként."
+            "A következő fejlesztési lépésben az ilyen "
+            "esetekhez képi / Vision alapú felismerést kell "
+            "beépíteni."
         )
+
+        doc.close()
 
         st.stop()
 
 
-    pno, page, rect = target
+    # Első találat – jelenleg tesztüzem.
+    target = candidates[0]
+
+    pno = target[
+        "page_number"
+    ]
+
+    rect = target[
+        "rect"
+    ]
+
+    page = doc[pno]
 
 
     st.success(
@@ -258,119 +416,121 @@ if st.button(
     )
 
 
+    if len(candidates) > 1:
+
+        st.info(
+            f"A dokumentumban összesen "
+            f"{len(candidates)} lehetséges találat van. "
+            "A v1.2 jelenleg az első találat térképi "
+            "környezetét mutatja."
+        )
+
+
+    # -----------------------------------------------------
+    # TÉRKÉPI BIZONYÍTÉK
+    # -----------------------------------------------------
+
     st.subheader(
         "Térképi bizonyíték"
     )
 
-    st.image(
-        crop(
+
+    try:
+
+        image_bytes, clip = make_map_crop(
             page,
             rect,
-        ),
-        use_container_width=True,
-    )
+        )
 
-    st.caption(
-        f"A fenti kivágás a {pno + 1}. oldal "
-        f"{clean_hrsz} helyrajzi számának környezetét mutatja."
-    )
+        if image_bytes:
+
+            st.image(
+                image_bytes,
+                caption=(
+                    f"{town} – {clean_hrsz} hrsz. "
+                    f"– szabályozási terv "
+                    f"{pno + 1}. oldal"
+                ),
+                use_container_width=True,
+            )
+
+        else:
+
+            st.error(
+                "A térképi kivágás létrejött, "
+                "de nem tartalmaz képadatot."
+            )
 
 
-    near = nearby(
+    except Exception as e:
+
+        st.error(
+            "A térképi kivágás megjelenítése "
+            "technikai hibába ütközött."
+        )
+
+        st.code(
+            str(e)
+        )
+
+
+    # -----------------------------------------------------
+    # ÖVEZETI FELIRATOK
+    # -----------------------------------------------------
+
+    near = nearby_labels(
         page,
         rect,
-        codes,
+        legal,
         radius,
     )
 
-    exact = [
-        x for x in near
-        if x["hesz_match"]
-    ]
-
 
     st.subheader(
-        "Övezeti előszűrés"
+        "Övezeti vizsgálat"
     )
 
 
-    if exact:
+    a, b, c = st.columns(3)
 
-        top = exact[0]
+    a.metric(
+        "Övezet",
+        "—",
+    )
 
-        a, b, c = st.columns(3)
+    b.metric(
+        "Státusz",
+        "NEM BIZONYÍTOTT",
+    )
 
-        a.metric(
-            "Övezet-jelölt",
-            top["code"],
-        )
-
-        b.metric(
-            "Státusz",
-            "ELLENŐRIZENDŐ",
-        )
-
-        c.metric(
-            "Felirat távolsága",
-            f'{top["distance"]:.0f}',
-        )
-
-        st.warning(
-            "A program a helyrajzi szám közelében olyan "
-            "övezeti feliratot talált, amely a HÉSZ-ben is "
-            "szerepel. Ez jelenleg közelségi jelölt, nem "
-            "geometriailag bizonyított övezeti besorolás."
-        )
+    c.metric(
+        "Közeli övezeti feliratok",
+        len(near),
+    )
 
 
-    elif near:
-
-        top = near[0]
-
-        a, b = st.columns(2)
-
-        a.metric(
-            "Közeli övezeti felirat",
-            top["code"],
-        )
-
-        b.metric(
-            "Státusz",
-            "BIZONYTALAN",
-        )
-
-        st.warning(
-            "A tervoldalon találtunk közeli övezeti feliratot, "
-            "de ahhoz nem találtunk pontos HÉSZ-kódegyezést."
-        )
-
-
-    else:
-
-        st.error(
-            "VISION AI SZÜKSÉGES"
-        )
-
-        st.write(
-            "A helyrajzi szám helye ismert, de a PDF "
-            "szövegrétegéből nem nyerhető megbízható "
-            "övezeti jelölt."
-        )
+    st.warning(
+        "A v1.2 nem azonosítja automatikusan a telek "
+        "övezetét pusztán a legközelebbi felirat alapján. "
+        "Az alábbi feliratok a helyrajzi szám térképi "
+        "környezetében található bizonyítékok."
+    )
 
 
     if near:
 
-        st.subheader(
-            "Közeli övezeti jelölések"
+        df = pd.DataFrame(
+            near
         )
-
-        df = pd.DataFrame(near)
 
         df = df.rename(
             columns={
-                "code": "Övezeti jel",
-                "distance": "Távolság",
-                "hesz_match": "Szerepel a HÉSZ-ben",
+                "code":
+                    "Övezeti jel",
+                "distance":
+                    "Távolság a hrsz. feliratától",
+                "hesz_match":
+                    "Szerepel a HÉSZ-ben",
             }
         )
 
@@ -379,6 +539,34 @@ if st.button(
             use_container_width=True,
             hide_index=True,
         )
+
+    else:
+
+        st.info(
+            "A megadott vizsgálati sugáron belül "
+            "nem találtunk géppel felismerhető "
+            "övezeti feliratot."
+        )
+
+
+    # -----------------------------------------------------
+    # KÖVETKEZTETÉS
+    # -----------------------------------------------------
+
+    st.subheader(
+        "Automatikus következtetés"
+    )
+
+    st.error(
+        "Övezet automatikusan még nem bizonyítható."
+    )
+
+    st.write(
+        "A következő fejlesztési lépés feladata a telek "
+        "geometriájának és az övezethatároknak a vizsgálata. "
+        "Csak ezután engedjük meg a programnak, hogy konkrét "
+        "övezeti besorolást adjon."
+    )
 
 
     st.checkbox(
@@ -389,14 +577,19 @@ if st.button(
     st.caption(
         f"Felhasznált tervoldal: {pno + 1}. oldal • "
         f"HÉSZ-ben felismert egyedi övezeti kódok: "
-        f"{len(codes)}"
+        f"{len(legal)} • "
+        f"Helyrajziszám-találatok: {len(candidates)}"
     )
+
+
+    doc.close()
 
 
 st.divider()
 
 st.caption(
-    "Tesztverzió. Az automatikusan kiválasztott övezeti jelölt "
-    "nem helyettesíti a hatályos szabályozási terv és a HÉSZ/TÉSZ "
+    "Tesztverzió. A program által megjelenített adatok "
+    "nem helyettesítik a hatályos szabályozási terv, "
+    "HÉSZ/TÉSZ és egyéb településrendezési dokumentumok "
     "szakmai ellenőrzését."
 )
