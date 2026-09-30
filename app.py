@@ -7,7 +7,7 @@ import streamlit as st
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v1.3
+# TELEKELŐÍRÁS AI v1.4
 # VIZUÁLIS HELYMEGHATÁROZÁSI TESZT
 # =========================================================
 
@@ -66,76 +66,61 @@ def hrsz_hits(page, hrsz):
 
 
 # ---------------------------------------------------------
-# SZÖVEGRÉTEG -> LÁTHATÓ OLDAL KOORDINÁTA-KORREKCIÓ
+# PDF SZÖVEGKOORDINÁTA -> LÁTHATÓ OLDAL KOORDINÁTA
 # ---------------------------------------------------------
 
-def text_coordinate_bounds(page):
+def visual_rect_from_pdf(page, rect):
     """
-    A PDF szövegrétegében ténylegesen előforduló koordinátatartomány.
-    Egyes CAD-ből exportált PDF-eknél ez nem azonos a page.rect tartományával.
-    """
-    words = page.get_text("words")
+    A keresési találatot a PDF oldal saját transzformációs mátrixával
+    vetíti a látható oldal koordinátarendszerére.
 
-    if not words:
-        return None
-
-    xs0 = [w[0] for w in words]
-    ys0 = [w[1] for w in words]
-    xs1 = [w[2] for w in words]
-    ys1 = [w[3] for w in words]
-
-    return fitz.Rect(
-        min(xs0),
-        min(ys0),
-        max(xs1),
-        max(ys1),
-    )
-
-
-def corrected_rect(page, rect):
-    """
-    Ha a megtalált szöveg koordinátája kilóg a látható page.rect-ből,
-    a teljes szövegréteg koordinátatartományából arányosan visszavetítjük
-    a látható oldalra.
-
-    Ha az eredeti koordináta eleve a látható oldalon van, változatlan marad.
+    Ez nem becsült, teljes szövegréteg-alapú skálázás: a PyMuPDF által
+    megadott page.transformation_matrix kezeli a PDF / MuPDF koordináta-
+    rendszer, a MediaBox/CropBox és az oldalgeometria eltéréseit.
     """
     pr = page.rect
+    r = fitz.Rect(rect)
 
-    if pr.contains(rect):
-        return fitz.Rect(rect), False, None
+    # A search_for() találata normál esetben már MuPDF-oldalkoordináta.
+    # Ha benne van a látható oldalon, nincs szükség transzformációra.
+    if pr.intersects(r):
+        clipped = r & pr
+        if not clipped.is_empty:
+            return clipped, False, "search_for koordináta"
 
-    tb = text_coordinate_bounds(page)
+    # CAD/PDF esetekben a szöveg pozíciója PDF-koordinátaként viselkedhet.
+    # Ilyenkor a dokumentum saját PDF->MuPDF transzformációját használjuk.
+    try:
+        mapped = r * page.transformation_matrix
+        mapped = mapped & pr
+        if not mapped.is_empty:
+            return mapped, True, "page.transformation_matrix"
+    except Exception:
+        pass
 
-    if tb is None or tb.width <= 0 or tb.height <= 0:
-        return fitz.Rect(rect), False, tb
-
-    def map_x(x):
-        return pr.x0 + ((x - tb.x0) / tb.width) * pr.width
-
-    def map_y(y):
-        return pr.y0 + ((y - tb.y0) / tb.height) * pr.height
-
-    mapped = fitz.Rect(
-        map_x(rect.x0),
-        map_y(rect.y0),
-        map_x(rect.x1),
-        map_y(rect.y1),
-    )
-
-    # Biztonsági korlátozás a látható oldalra.
-    mapped = mapped & pr
-
-    return mapped, True, tb
+    return None, False, "nem vetíthető megbízhatóan"
 
 
-def point_rect(x, y, size=8):
-    return fitz.Rect(
-        x - size,
-        y - size,
-        x + size,
-        y + size,
-    )
+def marked_page_image(page, rect=None, zoom=1.0):
+    """
+    Teljes tervoldal renderelése; ha van megbízható vizuális koordináta,
+    piros kerettel megjelöli a hrsz. helyét.
+    """
+    work = fitz.open()
+    work.insert_pdf(page.parent, from_page=page.number, to_page=page.number)
+    p = work[0]
+
+    if rect is not None:
+        r = fitz.Rect(rect)
+        pad = max(18, min(p.rect.width, p.rect.height) * 0.006)
+        mark = fitz.Rect(r.x0-pad, r.y0-pad, r.x1+pad, r.y1+pad) & p.rect
+        if not mark.is_empty:
+            p.draw_rect(mark, color=(1, 0, 0), width=8)
+
+    pix = p.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
+    data = pix.tobytes("png")
+    work.close()
+    return data
 
 
 # ---------------------------------------------------------
@@ -341,7 +326,7 @@ def render_crop(
 # ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="TelekElőírás AI v1.3",
+    page_title="TelekElőírás AI v1.4",
     page_icon="🏗️",
     layout="wide",
 )
@@ -352,8 +337,8 @@ st.title(
 )
 
 st.caption(
-    "v1.2.1 • diagnosztika • "
-    "PDF-oldal és hrsz-koordináta ellenőrzése"
+    "v1.4 • PDF-geometria • "
+    "helyrajzi szám vizuális koordinátájának ellenőrzése"
 )
 
 
@@ -364,9 +349,9 @@ with st.sidebar:
     )
 
     st.info(
-        "A program megkeresi a helyrajzi számot, ellenőrzi a PDF "
-        "szövegrétegének koordinátáit, és szükség esetén a "
-        "látható tervlap koordinátarendszerére korrigálja azokat."
+        "A program megkeresi a helyrajzi számot, majd a PDF saját oldalgeometriája "
+        "alapján ellenőrzi annak vizuális helyét. Nem használ teljes "
+        "szövegréteg-alapú arányos koordináta-korrekciót."
     )
 
     plan = st.file_uploader(
@@ -404,7 +389,7 @@ hrsz = c2.text_input(
 
 
 if st.button(
-    "Vizuális helymeghatározás indítása",
+    "v1.4 helymeghatározás indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -491,7 +476,7 @@ if st.button(
 
     page = doc[pno]
 
-    visual_rect, was_corrected, text_bounds = corrected_rect(
+    visual_rect, was_corrected, coordinate_method = visual_rect_from_pdf(
         page,
         rect,
     )
@@ -566,40 +551,41 @@ if st.button(
         f"Y = {(cy / page_height) * 100:.2f}%"
     )
 
-    vcx = (visual_rect.x0 + visual_rect.x1) / 2
-    vcy = (visual_rect.y0 + visual_rect.y1) / 2
-
     st.write("**Vizuális helyhez használt koordináta:**")
 
-    if was_corrected:
-        st.warning(
-            "A hrsz. eredeti szövegkoordinátája a látható oldal határán "
-            "kívül esik, ezért a program koordináta-korrekciót alkalmaz."
+    if visual_rect is None:
+        st.error(
+            "A PDF-ből kapott hrsz.-koordináta nem vetíthető megbízhatóan "
+            "a látható tervlapra. A program ezért nem készít hrsz-központú "
+            "kivágást és nem von le övezeti következtetést."
         )
+        vcx = vcy = None
     else:
-        st.success(
-            "A hrsz. szövegkoordinátája a látható oldalon belül van; "
-            "korrekció nem szükséges."
+        vcx = (visual_rect.x0 + visual_rect.x1) / 2
+        vcy = (visual_rect.y0 + visual_rect.y1) / 2
+
+        if was_corrected:
+            st.warning(
+                "A keresési koordináta a látható oldalon kívül volt; "
+                "a program a PDF oldal saját transzformációs mátrixát használta."
+            )
+        else:
+            st.success(
+                "A hrsz. keresési koordinátája közvetlenül a látható "
+                "oldal koordinátarendszerében használható."
+            )
+
+        st.code(
+            f"x0 = {visual_rect.x0:.2f}\n"
+            f"y0 = {visual_rect.y0:.2f}\n"
+            f"x1 = {visual_rect.x1:.2f}\n"
+            f"y1 = {visual_rect.y1:.2f}\n"
+            f"középpont X = {vcx:.2f}\n"
+            f"középpont Y = {vcy:.2f}\n"
+            f"relatív X = {(vcx / page_width) * 100:.2f}%\n"
+            f"relatív Y = {(vcy / page_height) * 100:.2f}%\n"
+            f"módszer = {coordinate_method}"
         )
-
-    st.code(
-        f"x0 = {visual_rect.x0:.2f}\n"
-        f"y0 = {visual_rect.y0:.2f}\n"
-        f"x1 = {visual_rect.x1:.2f}\n"
-        f"y1 = {visual_rect.y1:.2f}\n"
-        f"középpont X = {vcx:.2f}\n"
-        f"középpont Y = {vcy:.2f}\n"
-        f"relatív X = {(vcx / page_width) * 100:.2f}%\n"
-        f"relatív Y = {(vcy / page_height) * 100:.2f}%"
-    )
-
-    if text_bounds is not None:
-        st.caption(
-            "Szövegréteg teljes koordinátatartománya: "
-            f"{text_bounds.x0:.1f}, {text_bounds.y0:.1f}, "
-            f"{text_bounds.x1:.1f}, {text_bounds.y1:.1f}"
-        )
-
 
     # =====================================================
     # 2. TELJES OLDAL
@@ -610,15 +596,17 @@ if st.button(
     )
 
     st.caption(
-        "Ezzel ellenőrizzük, hogy a PyMuPDF ugyanazt "
-        "a tervlapot rendereli-e, amelyet a PDF-ben látunk."
+        "A teljes tervlapon piros keret jelöli a hrsz. feltételezett vizuális helyét. "
+        "Ha a keret nem a megadott helyrajzi számnál van, a találat nem tekinthető bizonyítottnak."
     )
 
 
     try:
 
-        full_image = render_full_page(
-            page
+        full_image = marked_page_image(
+            page,
+            visual_rect,
+            zoom=0.7,
         )
 
         st.image(
@@ -651,6 +639,9 @@ if st.button(
 
 
     try:
+
+        if visual_rect is None:
+            raise ValueError("Nincs megbízható vizuális hrsz-koordináta.")
 
         img_large, clip_large = render_crop(
             page,
@@ -697,6 +688,9 @@ if st.button(
 
     try:
 
+        if visual_rect is None:
+            raise ValueError("Nincs megbízható vizuális hrsz-koordináta.")
+
         img_small, clip_small = render_crop(
             page,
             visual_rect,
@@ -740,12 +734,15 @@ if st.button(
     )
 
 
-    near = nearby_labels(
-        page,
-        visual_rect,
-        legal,
-        radius,
-    )
+    if visual_rect is not None:
+        near = nearby_labels(
+            page,
+            visual_rect,
+            legal,
+            radius,
+        )
+    else:
+        near = []
 
 
     if near:
@@ -796,9 +793,9 @@ if st.button(
     )
 
     st.write(
-        "A két kivágás már a korrigált vizuális koordinátát használja. "
-        "A következő döntési pont az, hogy a 2200/8 ténylegesen "
-        "látható-e a szűk kivágásban."
+        f"A v1.4 a PDF saját oldalgeometriáját használja. A döntési pont az, "
+        f"hogy a {clean_hrsz} piros jelölése és a szűk kivágás ténylegesen "
+        "a keresett telekre mutat-e."
     )
 
 
@@ -815,5 +812,5 @@ if st.button(
 st.divider()
 
 st.caption(
-    "TelekElőírás AI v1.3 – vizuális helymeghatározási teszt"
+    "TelekElőírás AI v1.4 – PDF-geometriai helymeghatározási teszt"
 )
