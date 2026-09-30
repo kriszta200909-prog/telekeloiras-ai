@@ -382,6 +382,65 @@ def raster_ocr_hrsz(page, hrsz, zoom=1.5):
     return out, None
 
 
+
+def ocr_debug_tokens(page, hrsz, zoom=1.5):
+    """Diagnosztika: megmutatja, mit olvas ki a Tesseract a keresett hrsz. környezetében."""
+    if not OCR_AVAILABLE:
+        return [], "A pytesseract Python-csomag nem érhető el."
+
+    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
+    img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+
+    try:
+        data = pytesseract.image_to_data(
+            img,
+            config="--psm 11",
+            output_type=pytesseract.Output.DICT,
+        )
+    except Exception as e:
+        return [], f"OCR diagnosztika nem indítható: {e}"
+
+    target = _ocr_norm(hrsz)
+    first, last = _target_parts(target)
+    rows = []
+    n = len(data.get("text", []))
+
+    for i in range(n):
+        raw = (data["text"][i] or "").strip()
+        if not raw:
+            continue
+
+        norm = _ocr_norm(raw)
+        try:
+            conf = float(data["conf"][i])
+        except Exception:
+            conf = -1
+
+        # Olyan tokeneket mutatunk, amelyek a keresett hrsz. valamely részére hasonlítanak.
+        interesting = (
+            (first and (first in norm or norm in first))
+            or (last and norm == last)
+            or (target and (target in norm or norm in target))
+            or "/" in norm
+        )
+
+        if interesting:
+            rows.append({
+                "OCR szöveg": raw,
+                "Normalizált": norm,
+                "Biztonság": round(conf, 1),
+                "X": int(data["left"][i]),
+                "Y": int(data["top"][i]),
+                "Szélesség": int(data["width"][i]),
+                "Magasság": int(data["height"][i]),
+                "Blokk": data.get("block_num", [0] * n)[i],
+                "Sor": data.get("line_num", [0] * n)[i],
+            })
+
+    rows.sort(key=lambda r: (-r["Biztonság"], r["Y"], r["X"]))
+    return rows[:100], None
+
+
 def render_ocr_candidate(page, rect, zoom=3.0, margin_factor=0.045):
     """OCR-találat környezetének nagyítása, piros kerettel."""
     cx=(rect.x0+rect.x1)/2; cy=(rect.y0+rect.y1)/2
@@ -756,6 +815,7 @@ if st.button(
     # v1.6: a search_for találat CSAK az oldal azonosítására szolgál.
     # A tényleges helyet a renderelt oldal képén OCR-rel keressük.
     visual_candidates, ocr_error = raster_ocr_hrsz(page, clean_hrsz, zoom=1.5)
+    ocr_debug, ocr_debug_error = ocr_debug_tokens(page, clean_hrsz, zoom=1.5)
 
     if visual_candidates:
         best_candidate = visual_candidates[0]
@@ -840,6 +900,25 @@ if st.button(
         f"X = {(cx / page_width) * 100:.2f}%\n"
         f"Y = {(cy / page_height) * 100:.2f}%"
     )
+
+    st.write("**OCR diagnosztika – mit lát a Tesseract?**")
+    if ocr_debug_error:
+        st.code(ocr_debug_error)
+    elif ocr_debug:
+        st.dataframe(
+            pd.DataFrame(ocr_debug),
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.caption(
+            "Ez a táblázat azokat az OCR-tokeneket mutatja, amelyek a keresett "
+            "helyrajzi szám egészére vagy valamely részére hasonlítanak."
+        )
+    else:
+        st.warning(
+            "A Tesseract ezen a renderelt oldalon még a 2200/8 részleteire "
+            "hasonlító OCR-tokeneket sem talált."
+        )
 
     st.write("**Képi/OCR hrsz.-keresés eredménye:**")
 
