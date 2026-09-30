@@ -260,26 +260,40 @@ def _target_parts(hrsz):
 
 
 def _ocr_variants(img):
-    """Néhány célzott előfeldolgozás apró CAD-számokhoz."""
+    """v2.2: több előfeldolgozás apró, vékony CAD helyrajzi számokhoz."""
     gray = ImageOps.grayscale(img)
     gray = ImageOps.autocontrast(gray)
-    # Az eredeti szürke + két binarizált változat elég jó kompromisszum.
-    variants = [("gray", gray)]
-    for thr in (170, 205):
-        bw = gray.point(lambda p, t=thr: 255 if p > t else 0)
+    sharp = gray.filter(ImageFilter.SHARPEN).filter(ImageFilter.SHARPEN)
+    variants = [("gray", gray), ("sharp", sharp)]
+    for thr in (145, 175, 205, 225):
+        bw = sharp.point(lambda p, t=thr: 255 if p > t else 0)
         variants.append((f"bw{thr}", bw))
     return variants
 
 
-def _token_matches_target(text, target):
-    t = _ocr_norm(text)
-    if not t:
-        return False
-    return t == target or target in t
+def _levenshtein(a, b):
+    if a == b:
+        return 0
+    if not a:
+        return len(b)
+    if not b:
+        return len(a)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(cur[-1] + 1, prev[j] + 1, prev[j-1] + (ca != cb)))
+        prev = cur
+    return prev[-1]
+
+
+def _close_numeric(a, b, max_dist=1):
+    a = _ocr_norm(a); b = _ocr_norm(b)
+    return bool(a and b and _levenshtein(a, b) <= max_dist)
 
 
 def _find_target_in_ocr_data(data, hrsz, tile_rect, zoom, source_prefix):
-    """Tesseract tokenekből közvetlen vagy szomszédos hrsz-találatot épít."""
+    """v2.2: teljes és részleges OCR-találatok pontozása, geometriai összerakással."""
     target = _ocr_norm(hrsz)
     a, b = _target_parts(target)
     rows = []
@@ -289,12 +303,10 @@ def _find_target_in_ocr_data(data, hrsz, tile_rect, zoom, source_prefix):
         norm = _ocr_norm(txt)
         if not norm:
             continue
-        try:
-            conf = float(data["conf"][i])
-        except Exception:
-            conf = -1
+        try: conf = float(data["conf"][i])
+        except Exception: conf = -1
         rows.append({
-            "i": i, "text": txt, "norm": norm, "conf": conf,
+            "text": txt, "norm": norm, "conf": conf,
             "left": int(data["left"][i]), "top": int(data["top"][i]),
             "width": int(data["width"][i]), "height": int(data["height"][i]),
             "block": int(data.get("block_num", [0]*n)[i]),
@@ -303,176 +315,142 @@ def _find_target_in_ocr_data(data, hrsz, tile_rect, zoom, source_prefix):
         })
 
     def make_rect(items):
-        x0 = min(r["left"] for r in items) / zoom + tile_rect.x0
-        y0 = min(r["top"] for r in items) / zoom + tile_rect.y0
-        x1 = max(r["left"] + r["width"] for r in items) / zoom + tile_rect.x0
-        y1 = max(r["top"] + r["height"] for r in items) / zoom + tile_rect.y0
-        return fitz.Rect(x0, y0, x1, y1)
+        x0=min(r["left"] for r in items)/zoom+tile_rect.x0
+        y0=min(r["top"] for r in items)/zoom+tile_rect.y0
+        x1=max(r["left"]+r["width"] for r in items)/zoom+tile_rect.x0
+        y1=max(r["top"]+r["height"] for r in items)/zoom+tile_rect.y0
+        return fitz.Rect(x0,y0,x1,y1)
 
-    hits = []
-    # 1) Egy tokenben benne van a teljes hrsz.
+    hits=[]
+    # A) teljes token: exact vagy legfeljebb 1 OCR-karakterhiba
     for r in rows:
-        if _token_matches_target(r["text"], target):
-            hits.append({
-                "rect": make_rect([r]), "text": r["text"],
-                "source": source_prefix + " / teljes token",
-                "confidence": r["conf"],
-            })
+        if r["norm"] == target or target in r["norm"]:
+            hits.append({"rect":make_rect([r]),"text":r["text"],"source":source_prefix+" / teljes","confidence":r["conf"],"score":100})
+        elif len(r["norm"]) >= max(4, len(target)-1) and _close_numeric(r["norm"], target, 1):
+            hits.append({"rect":make_rect([r]),"text":r["text"],"source":source_prefix+" / fuzzy teljes","confidence":r["conf"],"score":88})
 
-    # 2) CAD PDF-eknél gyakori, hogy 2200 / 8 három külön token.
-    # Azonos OCR-soron, balról jobbra összefűzve 2..5 tokent próbálunk.
-    grouped = {}
+    # B) azonos soron 2..6 token összefűzése
+    grouped={}
     for r in rows:
-        grouped.setdefault((r["block"], r["par"], r["line"]), []).append(r)
+        grouped.setdefault((r["block"],r["par"],r["line"]),[]).append(r)
     for group in grouped.values():
-        group.sort(key=lambda r: r["left"])
+        group.sort(key=lambda r:r["left"])
         for i in range(len(group)):
-            for j in range(i + 1, min(len(group), i + 5)):
-                items = group[i:j+1]
-                joined = "".join(r["norm"] for r in items)
+            for j in range(i+1,min(len(group),i+6)):
+                items=group[i:j+1]
+                joined="".join(r["norm"] for r in items)
                 if joined == target or target in joined:
-                    hits.append({
-                        "rect": make_rect(items),
-                        "text": " ".join(r["text"] for r in items),
-                        "source": source_prefix + " / összefűzött tokenek",
-                        "confidence": min(r["conf"] for r in items),
-                    })
+                    hits.append({"rect":make_rect(items),"text":" ".join(r["text"] for r in items),"source":source_prefix+" / összefűzött","confidence":min(r["conf"] for r in items),"score":96})
+                elif len(joined) >= max(4,len(target)-1) and _close_numeric(joined,target,1):
+                    hits.append({"rect":make_rect(items),"text":" ".join(r["text"] for r in items),"source":source_prefix+" / fuzzy összefűzött","confidence":min(r["conf"] for r in items),"score":82})
 
-    # 3) Ha a perjelet a Tesseract elveszíti, 2200 és 8 közeli tokenpárt is elfogadunk.
+    # C) 2200 és 8 (vagy nagyon közeli OCR-változataik) geometriai párként
     if a and b:
-        for r1 in rows:
-            if r1["norm"] != a:
-                continue
-            cy1 = r1["top"] + r1["height"] / 2
-            for r2 in rows:
-                if r2["norm"] != b or r1 is r2:
-                    continue
-                cy2 = r2["top"] + r2["height"] / 2
-                gap = r2["left"] - (r1["left"] + r1["width"])
-                max_h = max(r1["height"], r2["height"], 1)
-                if abs(cy1 - cy2) <= 0.9 * max_h and -0.5 * max_h <= gap <= 3.5 * max_h:
-                    hits.append({
-                        "rect": make_rect([r1, r2]),
-                        "text": f'{r1["text"]} / {r2["text"]}',
-                        "source": source_prefix + " / közeli számpár",
-                        "confidence": min(r1["conf"], r2["conf"]),
-                    })
+        lefts=[r for r in rows if r["norm"]==a or (len(a)>=3 and _close_numeric(r["norm"],a,1))]
+        rights=[r for r in rows if r["norm"]==b]
+        for r1 in lefts:
+            cy1=r1["top"]+r1["height"]/2
+            for r2 in rights:
+                if r1 is r2: continue
+                cy2=r2["top"]+r2["height"]/2
+                gap=r2["left"]-(r1["left"]+r1["width"])
+                mh=max(r1["height"],r2["height"],1)
+                if abs(cy1-cy2)<=1.2*mh and -0.8*mh<=gap<=5.0*mh:
+                    exact_left=(r1["norm"]==a)
+                    hits.append({"rect":make_rect([r1,r2]),"text":f'{r1["text"]} / {r2["text"]}',"source":source_prefix+" / rész-találatok összerakva","confidence":min(r1["conf"],r2["conf"]),"score":90 if exact_left else 76})
     return hits
 
 
 def raster_ocr_hrsz(page, hrsz, pdf_rect=None, progress_cb=None):
-    """
-    v2.1 – hibrid lokalizáció.
-
-    A PDF kereshető szövegrétege CSAK a megfelelő tervoldal kiválasztására szolgál.
-    A hrsz tényleges helyét a renderelt oldal képi tartalmán keressük, ezért a
-    hibás CAD/PDF szövegkoordinátát szándékosan nem használjuk.
-    """
+    """v2.2 – progresszív, koordinátafüggetlen képi hrsz.-keresés."""
     if not OCR_AVAILABLE:
         return [], "A Tesseract OCR nem érhető el a futtatási környezetben."
 
-    # A teljes oldalt átfedő csempékre bontjuk. A 3.2x render általában már
-    # olvashatóvá teszi az apró helyrajzi számokat, miközben a memóriaigény kezelhető.
-    zoom = 3.2
-    tile_w = min(900.0, page.rect.width)
-    tile_h = min(700.0, page.rect.height)
-    overlap = 90.0
-    step_x = max(200.0, tile_w - overlap)
-    step_y = max(200.0, tile_h - overlap)
+    # Két menet: előbb gyorsabb, majd csak sikertelenség esetén nagyobb nagyítás.
+    passes=[
+        {"zoom":3.8,"tile_w":720.0,"tile_h":560.0,"overlap":100.0,"variants":3,"psms":[11]},
+        {"zoom":5.2,"tile_w":520.0,"tile_h":400.0,"overlap":90.0,"variants":6,"psms":[11,12,6]},
+    ]
+    all_hits=[]; checked=0
 
-    xs = []
-    x = page.rect.x0
-    while True:
-        x0 = min(x, max(page.rect.x0, page.rect.x1 - tile_w))
-        if not xs or abs(x0 - xs[-1]) > 1:
-            xs.append(x0)
-        if x0 + tile_w >= page.rect.x1 - 1:
+    def make_tiles(tile_w,tile_h,overlap):
+        step_x=max(120.0,tile_w-overlap); step_y=max(120.0,tile_h-overlap)
+        xs=[]; x=page.rect.x0
+        while True:
+            x0=min(x,max(page.rect.x0,page.rect.x1-tile_w))
+            if not xs or abs(x0-xs[-1])>1: xs.append(x0)
+            if x0+tile_w>=page.rect.x1-1: break
+            x+=step_x
+        ys=[]; y=page.rect.y0
+        while True:
+            y0=min(y,max(page.rect.y0,page.rect.y1-tile_h))
+            if not ys or abs(y0-ys[-1])>1: ys.append(y0)
+            if y0+tile_h>=page.rect.y1-1: break
+            y+=step_y
+        return [(x0,y0) for y0 in ys for x0 in xs]
+
+    pass_tiles=[make_tiles(p["tile_w"],p["tile_h"],p["overlap"]) for p in passes]
+    total=sum(len(t) for t in pass_tiles)
+
+    for pass_no,(spec,tiles) in enumerate(zip(passes,pass_tiles),1):
+        zoom=spec["zoom"]
+        for x0,y0 in tiles:
+            if progress_cb: progress_cb(checked,total,f"v2.2 OCR {pass_no}. menet")
+            clip=fitz.Rect(x0,y0,min(x0+spec["tile_w"],page.rect.x1),min(y0+spec["tile_h"],page.rect.y1))
+            pix=page.get_pixmap(matrix=fitz.Matrix(zoom,zoom),clip=clip,alpha=False)
+            img=Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+            variants=_ocr_variants(img)[:spec["variants"]]
+            for variant_name,prepared in variants:
+                for psm in spec["psms"]:
+                    config=f"--oem 3 --psm {psm} -c tessedit_char_whitelist=0123456789/"
+                    try:
+                        data=pytesseract.image_to_data(prepared,config=config,output_type=pytesseract.Output.DICT)
+                    except Exception as exc:
+                        return [],f"Tesseract OCR hiba: {exc!r}"
+                    all_hits.extend(_find_target_in_ocr_data(data,hrsz,clip,zoom,f"v2.2 {variant_name} psm{psm}"))
+            checked+=1
+
+        # Erős, többféleképp visszaigazolt találat esetén nem kell a drága második menet.
+        strong=[h for h in all_hits if h.get("score",0)>=90]
+        if pass_no==1 and len(strong)>=2:
             break
-        x += step_x
 
-    ys = []
-    y = page.rect.y0
-    while True:
-        y0 = min(y, max(page.rect.y0, page.rect.y1 - tile_h))
-        if not ys or abs(y0 - ys[-1]) > 1:
-            ys.append(y0)
-        if y0 + tile_h >= page.rect.y1 - 1:
-            break
-        y += step_y
-
-    tiles = [(x0, y0) for y0 in ys for x0 in xs]
-    total = len(tiles)
-    all_hits = []
-
-    config = "--oem 3 --psm 11 -c tessedit_char_whitelist=0123456789/"
-    for idx, (x0, y0) in enumerate(tiles):
-        clip = fitz.Rect(x0, y0, min(x0 + tile_w, page.rect.x1), min(y0 + tile_h, page.rect.y1))
-        if progress_cb:
-            progress_cb(idx, total, "renderelt tervlap képi keresése")
-        pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), clip=clip, alpha=False)
-        img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
-
-        for variant_name, prepared in _ocr_variants(img):
-            try:
-                data = pytesseract.image_to_data(
-                    prepared,
-                    config=config,
-                    output_type=pytesseract.Output.DICT,
-                )
-            except Exception as exc:
-                return [], f"Tesseract OCR hiba: {exc!r}"
-            hits = _find_target_in_ocr_data(
-                data, hrsz, clip, zoom,
-                f"v2.1 képi OCR ({variant_name})"
-            )
-            if hits:
-                all_hits.extend(hits)
-
-        # Nem állunk meg az első gyenge találatnál: az átfedés és több előfeldolgozás
-        # miatt ugyanaz a valódi felirat többször is előkerülhet, ez növeli a bizonyosságot.
-
-    # Közeli/azonos találatok összevonása. A legtöbbször visszaigazolt klaszter nyer.
-    clusters = []
+    clusters=[]
     for hit in all_hits:
-        r = hit["rect"]
-        cx, cy = (r.x0+r.x1)/2, (r.y0+r.y1)/2
-        placed = False
+        r=hit["rect"]; cx=(r.x0+r.x1)/2; cy=(r.y0+r.y1)/2
+        placed=False
         for c in clusters:
-            cr = c["rect"]
-            ccx, ccy = (cr.x0+cr.x1)/2, (cr.y0+cr.y1)/2
-            tol = max(18.0, 2.5 * max(r.height, cr.height))
-            if math.hypot(cx-ccx, cy-ccy) <= tol:
-                c["members"].append(hit)
-                c["rect"] |= r
-                placed = True
-                break
-        if not placed:
-            clusters.append({"rect": fitz.Rect(r), "members": [hit]})
+            cr=c["rect"]; ccx=(cr.x0+cr.x1)/2; ccy=(cr.y0+cr.y1)/2
+            tol=max(12.0,2.2*max(r.height,cr.height))
+            if math.hypot(cx-ccx,cy-ccy)<=tol:
+                c["members"].append(hit); c["rect"] |= r; placed=True; break
+        if not placed: clusters.append({"rect":fitz.Rect(r),"members":[hit]})
 
-    if not clusters:
-        if progress_cb:
-            progress_cb(total, total, "kész")
-        return [], f"A v2.1 képi OCR {total} csempét vizsgált meg, de nem találta biztosan a {hrsz} feliratot."
-
-    clusters.sort(key=lambda c: (len(c["members"]), max((m.get("confidence") or -1) for m in c["members"])), reverse=True)
-    results = []
+    scored=[]
     for c in clusters:
-        members = c["members"]
-        best = max(members, key=lambda m: m.get("confidence") if m.get("confidence") is not None else -1)
+        members=c["members"]
+        methods=len(set(m["source"] for m in members))
+        best=max(members,key=lambda m:(m.get("score",0),m.get("confidence",-1)))
+        cluster_score=best.get("score",0)+min(18,4*(len(members)-1))+min(12,3*(methods-1))
+        scored.append((cluster_score,c,best))
+    scored.sort(key=lambda x:x[0],reverse=True)
+
+    # Csak valóban erős találatot fogadunk el. Egyetlen fuzzy rész-találat nem elég.
+    results=[]
+    for cluster_score,c,best in scored:
+        if cluster_score < 94:
+            continue
         results.append({
-            "rect": c["rect"],
-            "text": best.get("text", hrsz),
-            "source": best.get("source", "v2.1 képi OCR"),
-            "confidence": best.get("confidence"),
-            "confirmations": len(members),
-            "tiles_checked": total,
-            "tiles_total": total,
-            "was_corrected": False,
+            "rect":c["rect"],"text":best.get("text",hrsz),"source":best.get("source","v2.2 OCR"),
+            "confidence":best.get("confidence"),"confirmations":len(c["members"]),"score":cluster_score,
+            "tiles_checked":checked,"tiles_total":total,"was_corrected":False,
         })
 
-    if progress_cb:
-        progress_cb(total, total, "találat")
-    return results, None
+    if not results:
+        if progress_cb: progress_cb(checked,total,"kész")
+        return [],f"A v2.2 képi OCR {checked} csempét vizsgált meg több nagyításban és előfeldolgozással, de nem talált elég biztos vizuális egyezést a {hrsz} feliratra."
+    if progress_cb: progress_cb(checked,total,"találat")
+    return results,None
 
 def ocr_debug_tokens(page, hrsz, zoom=1.5):
     """v1.8: a memóriaigényes teljes oldalas OCR-diagnosztika kikapcsolva."""
@@ -700,7 +678,7 @@ def render_crop(
 # ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="TelekElőírás AI v2.1",
+    page_title="TelekElőírás AI v2.2",
     page_icon="🏗️",
     layout="wide",
 )
@@ -711,7 +689,7 @@ st.title(
 )
 
 st.caption(
-    "v2.1 • PDF-szöveg csak oldalkiválasztásra • célzott képi OCR a hrsz. valódi helyéhez"
+    "v2.2 • progresszív többnagyításos tile-OCR • rész-találatok geometriai összerakása"
 )
 
 
@@ -761,7 +739,7 @@ hrsz = c2.text_input(
 
 
 if st.button(
-    "v2.1 képi telekhely keresés indítása",
+    "v2.2 robusztus képi telekhely keresés indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -857,8 +835,7 @@ if st.button(
 
     page = doc[pno]
 
-    # v2.0: a PDF-szövegkoordináta a helymeghatározás alapja.
-    # A koordinátát a látható oldal geometriájában ellenőrizzük.
+    # v2.2: a PDF-szöveg csak a tervoldalt választja ki; a helyet képi OCR adja.
     st.markdown("### Képi helymeghatározás")
     ocr_status = st.empty()
     ocr_progress = st.progress(0)
@@ -923,7 +900,7 @@ if st.button(
     d2.metric("PDF-szöveges oldaltalálatok", len(candidates))
 
     st.info(
-        "v2.1-ben a PDF kereshető szövegrétege kizárólag a megfelelő tervoldalt választja ki. "
+        "v2.2-ben a PDF kereshető szövegrétege kizárólag a megfelelő tervoldalt választja ki. "
         "A helyrajzi szám tényleges helyét a program a renderelt tervlapon, képi OCR-rel keresi meg; "
         "a PDF-szöveg hibás CAD-koordinátáját nem használja."
     )
@@ -943,7 +920,7 @@ if st.button(
         )
     else:
         st.warning(
-            "v2.1-ben nincs memóriaigényes teljes-oldalas OCR-tokenlista; a keresés csempénként, célzottan fut."
+            "v2.2-ben nincs memóriaigényes teljes-oldalas OCR-tokenlista; a keresés csempénként, több nagyításban és több előfeldolgozással fut."
         )
 
     st.write("**Képi/OCR hrsz.-keresés eredménye:**")
@@ -1007,7 +984,7 @@ if st.button(
     )
 
     st.caption(
-        "A képi OCR-rel meghatározott helyrajzi számot a teljes tervlapon piros keret jelöli. "
+        "Ha a képi OCR bizonyított helyrajziszám-találatot ad, azt a teljes tervlapon piros keret jelöli. "
         "A jelölést a nagyított kivágással együtt kell ellenőrizni."
     )
 
@@ -1213,7 +1190,7 @@ if st.button(
     )
 
     st.write(
-        f"A v2.1 a PDF-szöveget csak a tervoldal kiválasztására használja; a {clean_hrsz} helyét képi OCR-rel keresi. "
+        f"A v2.2 a PDF-szöveget csak a tervoldal kiválasztására használja; a {clean_hrsz} helyét képi OCR-rel keresi. "
         "A döntési pont az, hogy a piros keret valóban közvetlenül "
         "a terven látható helyrajzi számot jelöli-e."
     )
@@ -1232,5 +1209,5 @@ if st.button(
 st.divider()
 
 st.caption(
-    "TelekElőírás AI v2.1 – hibrid oldalkiválasztás + képi hrsz.-helymeghatározási teszt"
+    "TelekElőírás AI v2.2 – hibrid oldalkiválasztás + képi hrsz.-helymeghatározási teszt"
 )
