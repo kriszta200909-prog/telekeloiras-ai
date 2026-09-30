@@ -757,14 +757,14 @@ if st.button(
     # A tényleges helyet a renderelt oldal képén OCR-rel keressük.
     visual_candidates, ocr_error = raster_ocr_hrsz(page, clean_hrsz, zoom=1.5)
 
-if visual_candidates:
-    best_candidate = visual_candidates[0]
-    visual_rect = best_candidate["rect"]
-    was_corrected = False
-    coordinate_method = best_candidate["source"]
-    ocr_confidence = best_candidate.get("confidence")
-    ocr_text = best_candidate.get("text", "")
-else:
+    if visual_candidates:
+        best_candidate = visual_candidates[0]
+        visual_rect = best_candidate["rect"]
+        was_corrected = False
+        coordinate_method = best_candidate["source"]
+        ocr_confidence = best_candidate.get("confidence")
+        ocr_text = best_candidate.get("text", "")
+    else:
         visual_rect = None
         was_corrected = False
         coordinate_method = "nincs megbízható OCR-találat"
