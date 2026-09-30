@@ -764,7 +764,7 @@ if visual_candidates:
     coordinate_method = best_candidate["source"]
     ocr_confidence = best_candidate.get("confidence")
     ocr_text = best_candidate.get("text", "")
-    else:
+else:
         visual_rect = None
         was_corrected = False
         coordinate_method = "nincs megbízható OCR-találat"
