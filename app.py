@@ -6,9 +6,11 @@ import pandas as pd
 import streamlit as st
 
 
-# ---------------------------------------------------------
-# ÖVEZETI KÓD FELISMERÉS
-# ---------------------------------------------------------
+# =========================================================
+# TELEKELŐÍRÁS AI v1.2.1
+# DIAGNOSZTIKAI VERZIÓ
+# =========================================================
+
 
 ZONE_RE = re.compile(
     r"\b(?:Lk|Lke|Ln|Vt|Vi|Gksz|Gip|Ge|Gá|K|Kb|KÖu|KÖk|"
@@ -40,10 +42,12 @@ def hrsz_hits(page, hrsz):
     results = []
 
     for variant in variants:
-        results.extend(page.search_for(variant))
+        results.extend(
+            page.search_for(variant)
+        )
 
-    # duplikációk kiszűrése
     unique = []
+    seen = set()
 
     for r in results:
 
@@ -54,22 +58,15 @@ def hrsz_hits(page, hrsz):
             round(r.y1, 1),
         )
 
-        if key not in [
-            (
-                round(x.x0, 1),
-                round(x.y0, 1),
-                round(x.x1, 1),
-                round(x.y1, 1),
-            )
-            for x in unique
-        ]:
+        if key not in seen:
+            seen.add(key)
             unique.append(r)
 
     return unique
 
 
 # ---------------------------------------------------------
-# HÉSZ-BEN SZEREPLŐ ÖVEZETI KÓDOK
+# HÉSZ KÓDOK
 # ---------------------------------------------------------
 
 @st.cache_data(show_spinner=False)
@@ -97,17 +94,14 @@ def legal_codes(data):
 
 
 # ---------------------------------------------------------
-# TERVOLDALON TALÁLHATÓ ÖVEZETI FELIRATOK
+# ÖVEZETI FELIRATOK
 # ---------------------------------------------------------
 
 def zone_labels(page):
 
-    words = page.get_text("words")
+    result = []
 
-    labels = []
-
-    # 1. Egyetlen PDF-szóként szereplő kódok
-    for w in words:
+    for w in page.get_text("words"):
 
         raw = w[4].strip(
             "()[]{}.,;:"
@@ -117,7 +111,7 @@ def zone_labels(page):
 
         if ZONE_RE.fullmatch(code):
 
-            labels.append(
+            result.append(
                 {
                     "code": code,
                     "x": (w[0] + w[2]) / 2,
@@ -125,27 +119,114 @@ def zone_labels(page):
                 }
             )
 
-    return labels
+    return result
 
 
-# ---------------------------------------------------------
-# TÉRKÉPI KIVÁGÁS
-# ---------------------------------------------------------
+def nearby_labels(
+    page,
+    rect,
+    legal,
+    radius,
+):
 
-def make_map_crop(page, rect):
+    cx = (
+        rect.x0 + rect.x1
+    ) / 2
 
-    cx = (rect.x0 + rect.x1) / 2
-    cy = (rect.y0 + rect.y1) / 2
+    cy = (
+        rect.y0 + rect.y1
+    ) / 2
 
-    # A kivágás méretét az oldal méretéhez igazítjuk.
-    half_width = min(
-        page.rect.width * 0.20,
-        850,
+    legal_set = set(legal)
+
+    rows = []
+
+    for item in zone_labels(page):
+
+        distance = math.hypot(
+            item["x"] - cx,
+            item["y"] - cy,
+        )
+
+        if distance <= radius:
+
+            rows.append(
+                {
+                    "code":
+                        item["code"],
+
+                    "distance":
+                        round(distance, 1),
+
+                    "hesz_match":
+                        item["code"]
+                        in legal_set,
+                }
+            )
+
+    rows.sort(
+        key=lambda x: x["distance"]
     )
 
-    half_height = min(
-        page.rect.height * 0.20,
-        650,
+    result = []
+    seen = set()
+
+    for row in rows:
+
+        if row["code"] not in seen:
+            seen.add(row["code"])
+            result.append(row)
+
+    return result[:20]
+
+
+# ---------------------------------------------------------
+# TELJES OLDAL RENDER
+# ---------------------------------------------------------
+
+def render_full_page(page):
+
+    # Kis felbontás elég a diagnosztikához.
+    matrix = fitz.Matrix(
+        0.7,
+        0.7,
+    )
+
+    pix = page.get_pixmap(
+        matrix=matrix,
+        alpha=False,
+    )
+
+    return pix.tobytes("png")
+
+
+# ---------------------------------------------------------
+# KIVÁGÁS A HRSZ KÖRÜL
+# ---------------------------------------------------------
+
+def render_crop(
+    page,
+    rect,
+    scale_factor,
+):
+
+    cx = (
+        rect.x0 + rect.x1
+    ) / 2
+
+    cy = (
+        rect.y0 + rect.y1
+    ) / 2
+
+    # Az oldal méretének arányában dolgozunk.
+    half_width = (
+        page.rect.width
+        * scale_factor
+    )
+
+    half_height = (
+        page.rect.height
+        * scale_factor
     )
 
     clip = fitz.Rect(
@@ -167,78 +248,19 @@ def make_map_crop(page, rect):
         ),
     )
 
-    # A PDF-részletet PNG-vé rendereljük.
-    matrix = fitz.Matrix(
-        2.0,
-        2.0,
-    )
-
     pix = page.get_pixmap(
-        matrix=matrix,
+        matrix=fitz.Matrix(
+            1.5,
+            1.5,
+        ),
         clip=clip,
         alpha=False,
     )
 
-    png_bytes = pix.tobytes("png")
-
-    return png_bytes, clip
-
-
-# ---------------------------------------------------------
-# KÖZELI FELIRATOK – CSAK BIZONYÍTÉKKÉNT
-# ---------------------------------------------------------
-
-def nearby_labels(
-    page,
-    rect,
-    legal,
-    radius,
-):
-
-    cx = (rect.x0 + rect.x1) / 2
-    cy = (rect.y0 + rect.y1) / 2
-
-    legal_set = set(legal)
-
-    rows = []
-
-    for item in zone_labels(page):
-
-        distance = math.hypot(
-            item["x"] - cx,
-            item["y"] - cy,
-        )
-
-        if distance <= radius:
-
-            rows.append(
-                {
-                    "code": item["code"],
-                    "distance": round(
-                        distance,
-                        1,
-                    ),
-                    "hesz_match":
-                        item["code"]
-                        in legal_set,
-                }
-            )
-
-    rows.sort(
-        key=lambda x: x["distance"]
+    return (
+        pix.tobytes("png"),
+        clip,
     )
-
-    result = []
-    seen = set()
-
-    for row in rows:
-
-        if row["code"] not in seen:
-
-            seen.add(row["code"])
-            result.append(row)
-
-    return result[:20]
 
 
 # ---------------------------------------------------------
@@ -246,30 +268,32 @@ def nearby_labels(
 # ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="TelekElőírás AI v1.2",
+    page_title="TelekElőírás AI v1.2.1",
     page_icon="🏗️",
     layout="wide",
 )
 
 
-st.title("TelekElőírás AI")
+st.title(
+    "TelekElőírás AI"
+)
 
 st.caption(
-    "v1.2 • helyrajzi szám lokalizálása • "
-    "térképi bizonyíték • biztonságos övezeti előszűrés"
+    "v1.2.1 • diagnosztika • "
+    "PDF-oldal és hrsz-koordináta ellenőrzése"
 )
 
 
 with st.sidebar:
 
-    st.header("Tesztforrások")
+    st.header(
+        "Tesztforrások"
+    )
 
     st.info(
-        "A program először megkeresi a helyrajzi számot "
-        "a szabályozási tervben. Ezután megjeleníti a "
-        "tényleges térképi környezetét. Az övezeti feliratokat "
-        "egyelőre bizonyítékként mutatja, és nem tekinti "
-        "automatikusan a telek övezeti besorolásának."
+        "Ez a diagnosztikai verzió megmutatja a teljes "
+        "megtalált tervoldalt és a helyrajzi szám "
+        "környezetének többféle kivágását."
     )
 
     plan = st.file_uploader(
@@ -306,27 +330,16 @@ hrsz = c2.text_input(
 )
 
 
-run = st.button(
-    "Vizsgálat indítása",
+if st.button(
+    "Diagnosztikai vizsgálat indítása",
     type="primary",
     use_container_width=True,
-)
+):
 
-
-if run:
-
-    if not plan:
+    if not plan or not hesz:
 
         st.error(
-            "Töltsd fel a szabályozási terv PDF-et."
-        )
-
-        st.stop()
-
-    if not hesz:
-
-        st.error(
-            "Töltsd fel a HÉSZ/TÉSZ vagy övezeti PDF-et."
+            "Töltsd fel mindkét PDF-et."
         )
 
         st.stop()
@@ -340,7 +353,7 @@ if run:
 
 
     with st.spinner(
-        "A helyrajzi szám keresése és a térképi környezet vizsgálata…"
+        "PDF vizsgálata…"
     ):
 
         plan_bytes = plan.getvalue()
@@ -372,8 +385,11 @@ if run:
 
                 candidates.append(
                     {
-                        "page_number": pno,
-                        "rect": rect,
+                        "page_number":
+                            pno,
+
+                        "rect":
+                            rect,
                     }
                 )
 
@@ -381,14 +397,8 @@ if run:
     if not candidates:
 
         st.error(
-            f"A {clean_hrsz} helyrajzi szám nem található "
-            "a PDF kereshető szövegrétegében."
-        )
-
-        st.warning(
-            "A következő fejlesztési lépésben az ilyen "
-            "esetekhez képi / Vision alapú felismerést kell "
-            "beépíteni."
+            f"A {clean_hrsz} helyrajzi szám "
+            "nem található."
         )
 
         doc.close()
@@ -396,7 +406,6 @@ if run:
         st.stop()
 
 
-    # Első találat – jelenleg tesztüzem.
     target = candidates[0]
 
     pno = target[
@@ -411,109 +420,219 @@ if run:
 
 
     st.success(
-        f"A {clean_hrsz} helyrajzi szám megtalálva: "
-        f"{pno + 1}. oldal."
+        f"{clean_hrsz} megtalálva • "
+        f"{pno + 1}. oldal • "
+        f"találatok száma: {len(candidates)}"
     )
 
 
-    if len(candidates) > 1:
-
-        st.info(
-            f"A dokumentumban összesen "
-            f"{len(candidates)} lehetséges találat van. "
-            "A v1.2 jelenleg az első találat térképi "
-            "környezetét mutatja."
-        )
-
-
-    # -----------------------------------------------------
-    # TÉRKÉPI BIZONYÍTÉK
-    # -----------------------------------------------------
+    # =====================================================
+    # 1. DIAGNOSZTIKAI ADATOK
+    # =====================================================
 
     st.subheader(
-        "Térképi bizonyíték"
+        "1. PDF-diagnosztika"
+    )
+
+
+    page_width = page.rect.width
+    page_height = page.rect.height
+
+    cx = (
+        rect.x0 + rect.x1
+    ) / 2
+
+    cy = (
+        rect.y0 + rect.y1
+    ) / 2
+
+
+    d1, d2, d3 = st.columns(3)
+
+    d1.metric(
+        "PDF-oldal szélessége",
+        f"{page_width:.1f}"
+    )
+
+    d2.metric(
+        "PDF-oldal magassága",
+        f"{page_height:.1f}"
+    )
+
+    d3.metric(
+        "Oldalszám",
+        pno + 1,
+    )
+
+
+    st.write(
+        "**A megtalált hrsz. koordinátái:**"
+    )
+
+    st.code(
+        f"x0 = {rect.x0:.2f}\n"
+        f"y0 = {rect.y0:.2f}\n"
+        f"x1 = {rect.x1:.2f}\n"
+        f"y1 = {rect.y1:.2f}\n"
+        f"középpont X = {cx:.2f}\n"
+        f"középpont Y = {cy:.2f}"
+    )
+
+
+    st.write(
+        "**Relatív hely az oldalon:**"
+    )
+
+    st.code(
+        f"X = {(cx / page_width) * 100:.2f}%\n"
+        f"Y = {(cy / page_height) * 100:.2f}%"
+    )
+
+
+    # =====================================================
+    # 2. TELJES OLDAL
+    # =====================================================
+
+    st.subheader(
+        "2. A teljes 205. tervoldal"
+    )
+
+    st.caption(
+        "Ezzel ellenőrizzük, hogy a PyMuPDF ugyanazt "
+        "a tervlapot rendereli-e, amelyet a PDF-ben látunk."
     )
 
 
     try:
 
-        image_bytes, clip = make_map_crop(
-            page,
-            rect,
+        full_image = render_full_page(
+            page
         )
 
-        if image_bytes:
-
-            st.image(
-                image_bytes,
-                caption=(
-                    f"{town} – {clean_hrsz} hrsz. "
-                    f"– szabályozási terv "
-                    f"{pno + 1}. oldal"
-                ),
-                use_container_width=True,
-            )
-
-        else:
-
-            st.error(
-                "A térképi kivágás létrejött, "
-                "de nem tartalmaz képadatot."
-            )
-
+        st.image(
+            full_image,
+            caption=(
+                f"{town} – szabályozási terv – "
+                f"{pno + 1}. oldal"
+            ),
+            use_container_width=True,
+        )
 
     except Exception as e:
 
         st.error(
-            "A térképi kivágás megjelenítése "
-            "technikai hibába ütközött."
+            "A teljes oldal renderelése sikertelen."
         )
 
         st.code(
-            str(e)
+            repr(e)
         )
 
 
-    # -----------------------------------------------------
-    # ÖVEZETI FELIRATOK
-    # -----------------------------------------------------
+    # =====================================================
+    # 3. NAGY KIVÁGÁS
+    # =====================================================
+
+    st.subheader(
+        "3. Nagy környezeti kivágás"
+    )
+
+
+    try:
+
+        img_large, clip_large = render_crop(
+            page,
+            rect,
+            0.25,
+        )
+
+        st.image(
+            img_large,
+            caption=(
+                f"{clean_hrsz} környezete – "
+                "nagy kivágás"
+            ),
+            use_container_width=True,
+        )
+
+        st.caption(
+            "Kivágási koordináták: "
+            f"{clip_large.x0:.1f}, "
+            f"{clip_large.y0:.1f}, "
+            f"{clip_large.x1:.1f}, "
+            f"{clip_large.y1:.1f}"
+        )
+
+    except Exception as e:
+
+        st.error(
+            "A nagy kivágás renderelése sikertelen."
+        )
+
+        st.code(
+            repr(e)
+        )
+
+
+    # =====================================================
+    # 4. SZŰK KIVÁGÁS
+    # =====================================================
+
+    st.subheader(
+        "4. Szűk hrsz-környezet"
+    )
+
+
+    try:
+
+        img_small, clip_small = render_crop(
+            page,
+            rect,
+            0.08,
+        )
+
+        st.image(
+            img_small,
+            caption=(
+                f"{clean_hrsz} – "
+                "szűk környezet"
+            ),
+            use_container_width=True,
+        )
+
+        st.caption(
+            "Kivágási koordináták: "
+            f"{clip_small.x0:.1f}, "
+            f"{clip_small.y0:.1f}, "
+            f"{clip_small.x1:.1f}, "
+            f"{clip_small.y1:.1f}"
+        )
+
+    except Exception as e:
+
+        st.error(
+            "A szűk kivágás renderelése sikertelen."
+        )
+
+        st.code(
+            repr(e)
+        )
+
+
+    # =====================================================
+    # 5. ÖVEZETI FELIRATOK
+    # =====================================================
+
+    st.subheader(
+        "5. Felismert közeli övezeti feliratok"
+    )
+
 
     near = nearby_labels(
         page,
         rect,
         legal,
         radius,
-    )
-
-
-    st.subheader(
-        "Övezeti vizsgálat"
-    )
-
-
-    a, b, c = st.columns(3)
-
-    a.metric(
-        "Övezet",
-        "—",
-    )
-
-    b.metric(
-        "Státusz",
-        "NEM BIZONYÍTOTT",
-    )
-
-    c.metric(
-        "Közeli övezeti feliratok",
-        len(near),
-    )
-
-
-    st.warning(
-        "A v1.2 nem azonosítja automatikusan a telek "
-        "övezetét pusztán a legközelebbi felirat alapján. "
-        "Az alábbi feliratok a helyrajzi szám térképi "
-        "környezetében található bizonyítékok."
     )
 
 
@@ -527,8 +646,10 @@ if run:
             columns={
                 "code":
                     "Övezeti jel",
+
                 "distance":
-                    "Távolság a hrsz. feliratától",
+                    "PDF-távolság",
+
                 "hesz_match":
                     "Szerepel a HÉSZ-ben",
             }
@@ -543,42 +664,36 @@ if run:
     else:
 
         st.info(
-            "A megadott vizsgálati sugáron belül "
-            "nem találtunk géppel felismerhető "
-            "övezeti feliratot."
+            "Nincs felismert övezeti jel "
+            "a megadott környezetben."
         )
 
 
-    # -----------------------------------------------------
-    # KÖVETKEZTETÉS
-    # -----------------------------------------------------
+    # =====================================================
+    # EREDMÉNY
+    # =====================================================
 
     st.subheader(
-        "Automatikus következtetés"
+        "Diagnosztikai eredmény"
     )
 
-    st.error(
-        "Övezet automatikusan még nem bizonyítható."
+    st.warning(
+        "Ebben a verzióban szándékosan nem történik "
+        "automatikus övezeti besorolás."
     )
 
     st.write(
-        "A következő fejlesztési lépés feladata a telek "
-        "geometriájának és az övezethatároknak a vizsgálata. "
-        "Csak ezután engedjük meg a programnak, hogy konkrét "
-        "övezeti besorolást adjon."
-    )
-
-
-    st.checkbox(
-        "Szakmailag visszaellenőriztem az eredményt"
+        "A három térképi nézetből azt vizsgáljuk, hogy "
+        "a PDF szövegrétegének koordinátái és a látható "
+        "szabályozási terv geometriája azonos "
+        "koordinátarendszerben helyezkednek-e el."
     )
 
 
     st.caption(
-        f"Felhasznált tervoldal: {pno + 1}. oldal • "
-        f"HÉSZ-ben felismert egyedi övezeti kódok: "
-        f"{len(legal)} • "
-        f"Helyrajziszám-találatok: {len(candidates)}"
+        f"Oldal: {pno + 1} • "
+        f"Hrsz-találatok: {len(candidates)} • "
+        f"HÉSZ-ben felismert övezeti kódok: {len(legal)}"
     )
 
 
@@ -588,8 +703,5 @@ if run:
 st.divider()
 
 st.caption(
-    "Tesztverzió. A program által megjelenített adatok "
-    "nem helyettesítik a hatályos szabályozási terv, "
-    "HÉSZ/TÉSZ és egyéb településrendezési dokumentumok "
-    "szakmai ellenőrzését."
+    "TelekElőírás AI v1.2.1 – diagnosztikai tesztverzió"
 )
