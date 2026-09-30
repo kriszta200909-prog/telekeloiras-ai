@@ -7,8 +7,8 @@ import streamlit as st
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v1.4
-# VIZUÁLIS HELYMEGHATÁROZÁSI TESZT
+# TELEKELŐÍRÁS AI v1.5
+# VIZUÁLIS HRSZ-KERESÉSI TESZT
 # =========================================================
 
 
@@ -121,6 +121,111 @@ def marked_page_image(page, rect=None, zoom=1.0):
     data = pix.tobytes("png")
     work.close()
     return data
+
+
+
+# ---------------------------------------------------------
+# v1.5: VIZUÁLIS HRSZ-HELY KERESÉSE RENDERELT OLDALON
+# ---------------------------------------------------------
+
+def normalized_hrsz_text(s):
+    """Hrsz összehasonlításhoz szóközök és zárójelek eltávolítása."""
+    s = (s or "").strip()
+    s = s.replace("(", "").replace(")", "")
+    s = re.sub(r"\s+", "", s)
+    return s
+
+
+def visual_hrsz_candidates(page, hrsz):
+    """
+    A teljes szövegstruktúrából gyűjt hrsz-jelölteket, majd csak olyan
+    bboxot fogad el, amely ténylegesen a látható page.rect területére esik.
+
+    Fontos: itt nem a search_for() hibásan kívülre kerülő koordinátáját
+    transzformáljuk tovább. A page.get_text('dict') látható span-jeiből
+    indulunk, ezért ez külön ellenőrzési útvonal.
+    """
+    target = normalized_hrsz_text(hrsz)
+    pr = page.rect
+    candidates = []
+
+    data = page.get_text("dict", flags=fitz.TEXT_PRESERVE_LIGATURES | fitz.TEXT_PRESERVE_WHITESPACE)
+
+    for block in data.get("blocks", []):
+        if block.get("type") != 0:
+            continue
+        for line in block.get("lines", []):
+            spans = line.get("spans", [])
+            # Egy span önmagában
+            for span in spans:
+                txt = normalized_hrsz_text(span.get("text", ""))
+                if target and target in txt:
+                    r = fitz.Rect(span["bbox"])
+                    if pr.intersects(r):
+                        r = r & pr
+                        if not r.is_empty:
+                            candidates.append({
+                                "rect": r,
+                                "text": span.get("text", ""),
+                                "source": "text-span"
+                            })
+
+            # Több spanból összerakott sor (pl. 2200 / 8)
+            if spans:
+                joined = "".join(s.get("text", "") for s in spans)
+                if target and target in normalized_hrsz_text(joined):
+                    rects = [fitz.Rect(s["bbox"]) for s in spans]
+                    r = rects[0]
+                    for rr in rects[1:]:
+                        r |= rr
+                    if pr.intersects(r):
+                        r = r & pr
+                        if not r.is_empty:
+                            candidates.append({
+                                "rect": r,
+                                "text": joined,
+                                "source": "text-line"
+                            })
+
+    # Duplikátumok kiszűrése
+    unique = []
+    seen = set()
+    for item in candidates:
+        r = item["rect"]
+        key = (round(r.x0, 1), round(r.y0, 1), round(r.x1, 1), round(r.y1, 1))
+        if key not in seen:
+            seen.add(key)
+            unique.append(item)
+
+    return unique
+
+
+def render_visual_candidate(page, rect, scale_factor=0.055, zoom=2.4):
+    """Nagyított kivágás egy vizuális jelölt körül, piros kerettel."""
+    cx = (rect.x0 + rect.x1) / 2
+    cy = (rect.y0 + rect.y1) / 2
+    hw = page.rect.width * scale_factor
+    hh = page.rect.height * scale_factor
+
+    clip = fitz.Rect(
+        max(page.rect.x0, cx - hw),
+        max(page.rect.y0, cy - hh),
+        min(page.rect.x1, cx + hw),
+        min(page.rect.y1, cy + hh),
+    )
+
+    work = fitz.open()
+    work.insert_pdf(page.parent, from_page=page.number, to_page=page.number)
+    p = work[0]
+    mark = fitz.Rect(rect)
+    pad = max(5, min(p.rect.width, p.rect.height) * 0.0015)
+    mark = fitz.Rect(mark.x0-pad, mark.y0-pad, mark.x1+pad, mark.y1+pad) & p.rect
+    p.draw_rect(mark, color=(1, 0, 0), width=5)
+
+    pix = p.get_pixmap(matrix=fitz.Matrix(zoom, zoom), clip=clip, alpha=False)
+    out = pix.tobytes("png")
+    work.close()
+    return out, clip
 
 
 # ---------------------------------------------------------
@@ -326,7 +431,7 @@ def render_crop(
 # ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="TelekElőírás AI v1.4",
+    page_title="TelekElőírás AI v1.5",
     page_icon="🏗️",
     layout="wide",
 )
@@ -337,8 +442,8 @@ st.title(
 )
 
 st.caption(
-    "v1.4 • PDF-geometria • "
-    "helyrajzi szám vizuális koordinátájának ellenőrzése"
+    "v1.5 • vizuális hrsz-keresés • "
+    "látható szövegréteg ellenőrzése a tervlapon"
 )
 
 
@@ -349,9 +454,9 @@ with st.sidebar:
     )
 
     st.info(
-        "A program megkeresi a helyrajzi számot, majd a PDF saját oldalgeometriája "
-        "alapján ellenőrzi annak vizuális helyét. Nem használ teljes "
-        "szövegréteg-alapú arányos koordináta-korrekciót."
+        "A program először megkeresi, melyik tervoldalon szerepel a helyrajzi szám. "
+        "Ezután külön, a látható oldal szövegstruktúrájában keresi meg annak "
+        "tényleges vizuális helyét. A v1.4 hibás koordinátáját nem használja telekazonosításra."
     )
 
     plan = st.file_uploader(
@@ -389,7 +494,7 @@ hrsz = c2.text_input(
 
 
 if st.button(
-    "v1.4 helymeghatározás indítása",
+    "v1.5 vizuális keresés indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -476,10 +581,18 @@ if st.button(
 
     page = doc[pno]
 
-    visual_rect, was_corrected, coordinate_method = visual_rect_from_pdf(
-        page,
-        rect,
-    )
+    # v1.5: a search_for találat csak az oldal azonosítására szolgál.
+    # A tényleges vizuális helyet külön keressük a látható text-spanek között.
+    visual_candidates = visual_hrsz_candidates(page, clean_hrsz)
+
+    if visual_candidates:
+        visual_rect = visual_candidates[0]["rect"]
+        was_corrected = False
+        coordinate_method = visual_candidates[0]["source"]
+    else:
+        visual_rect = None
+        was_corrected = False
+        coordinate_method = "nincs látható text-span találat"
 
 
     st.success(
@@ -551,29 +664,24 @@ if st.button(
         f"Y = {(cy / page_height) * 100:.2f}%"
     )
 
-    st.write("**Vizuális helyhez használt koordináta:**")
+    st.write("**Vizuális hrsz.-keresés eredménye:**")
 
     if visual_rect is None:
         st.error(
-            "A PDF-ből kapott hrsz.-koordináta nem vetíthető megbízhatóan "
-            "a látható tervlapra. A program ezért nem készít hrsz-központú "
-            "kivágást és nem von le övezeti következtetést."
+            "A helyrajzi szám ugyan megtalálható a PDF kereshető szövegében, "
+            "de a látható oldal szövegstruktúrájában nem sikerült megbízható "
+            "helyet találni hozzá. Ez fontos eredmény: a program nem használja "
+            "telekpozícióként a v1.4 hibás koordinátáját."
         )
         vcx = vcy = None
     else:
         vcx = (visual_rect.x0 + visual_rect.x1) / 2
         vcy = (visual_rect.y0 + visual_rect.y1) / 2
 
-        if was_corrected:
-            st.warning(
-                "A keresési koordináta a látható oldalon kívül volt; "
-                "a program a PDF oldal saját transzformációs mátrixát használta."
-            )
-        else:
-            st.success(
-                "A hrsz. keresési koordinátája közvetlenül a látható "
-                "oldal koordinátarendszerében használható."
-            )
+        st.success(
+            f"Látható hrsz.-jelölt található a tervlapon. "
+            f"Vizuális jelöltek száma: {len(visual_candidates)}."
+        )
 
         st.code(
             f"x0 = {visual_rect.x0:.2f}\n"
@@ -584,20 +692,38 @@ if st.button(
             f"középpont Y = {vcy:.2f}\n"
             f"relatív X = {(vcx / page_width) * 100:.2f}%\n"
             f"relatív Y = {(vcy / page_height) * 100:.2f}%\n"
-            f"módszer = {coordinate_method}"
+            f"forrás = {coordinate_method}"
         )
+
+        st.subheader("2. Vizuális találat nagyítása")
+        st.caption(
+            "A piros keretnek közvetlenül a keresett helyrajzi szám feliratát kell körülvennie. "
+            "Ez a v1.5 legfontosabb ellenőrzése."
+        )
+        try:
+            candidate_img, candidate_clip = render_visual_candidate(
+                page, visual_rect
+            )
+            st.image(
+                candidate_img,
+                caption=f"{clean_hrsz} – vizuális találat",
+                use_container_width=True,
+            )
+        except Exception as e:
+            st.error("A vizuális találat nagyítása sikertelen.")
+            st.code(repr(e))
 
     # =====================================================
     # 2. TELJES OLDAL
     # =====================================================
 
     st.subheader(
-        "2. Teljes tervoldal"
+        "3. Teljes tervoldal"
     )
 
     st.caption(
-        "A teljes tervlapon piros keret jelöli a hrsz. feltételezett vizuális helyét. "
-        "Ha a keret nem a megadott helyrajzi számnál van, a találat nem tekinthető bizonyítottnak."
+        "A teljes tervlapon piros keret jelöli a látható szövegstruktúrából megtalált hrsz.-jelöltet. "
+        "A jelölést a nagyított kivágással együtt kell ellenőrizni."
     )
 
 
@@ -634,7 +760,7 @@ if st.button(
     # =====================================================
 
     st.subheader(
-        "3. Korrigált nagy környezet"
+        "4. Vizuális nagy környezet"
     )
 
 
@@ -682,7 +808,7 @@ if st.button(
     # =====================================================
 
     st.subheader(
-        "4. Korrigált szűk hrsz-környezet"
+        "5. Vizuális szűk hrsz-környezet"
     )
 
 
@@ -730,7 +856,7 @@ if st.button(
     # =====================================================
 
     st.subheader(
-        "5. Felismert közeli övezeti feliratok"
+        "6. Felismert közeli övezeti feliratok"
     )
 
 
@@ -793,9 +919,9 @@ if st.button(
     )
 
     st.write(
-        f"A v1.4 a PDF saját oldalgeometriáját használja. A döntési pont az, "
-        f"hogy a {clean_hrsz} piros jelölése és a szűk kivágás ténylegesen "
-        "a keresett telekre mutat-e."
+        f"A v1.5 különválasztja az oldal megtalálását és a helyrajzi szám vizuális "
+        f"lokalizálását. A döntési pont az, hogy a {clean_hrsz} piros kerete "
+        "valóban közvetlenül a terven látható helyrajzi számot jelöli-e."
     )
 
 
@@ -812,5 +938,5 @@ if st.button(
 st.divider()
 
 st.caption(
-    "TelekElőírás AI v1.4 – PDF-geometriai helymeghatározási teszt"
+    "TelekElőírás AI v1.5 – vizuális hrsz-helymeghatározási teszt"
 )
