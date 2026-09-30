@@ -366,7 +366,7 @@ def raster_ocr_hrsz(page, hrsz, zoom=1.5):
     target_a, target_b = _target_parts(hrsz)
 
     def candidate_score(item):
-        txt = _ocr_text(item.get("text", ""))
+        txt = _ocr_norm(item.get("text", ""))
         score = float(item.get("confidence", 0) or 0)
 
         if target_b:
