@@ -16,7 +16,7 @@ except Exception:
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v1.6
+# TELEKELŐÍRÁS AI v1.7
 # RASZTERES HRSZ-KERESÉSI TESZT
 # =========================================================
 
@@ -259,186 +259,133 @@ def _target_parts(hrsz):
     return h, ""
 
 
-def raster_ocr_hrsz(page, hrsz, zoom=1.5):
-    """
-    A PDF-oldalt képpé rendereli, és Tesseract OCR-rel keresi a hrsz.-t.
-    A visszaadott rect már közvetlenül a látható page.rect koordinátája.
-    Több OCR-tokenből (pl. '2200', '/', '8') is képes jelöltet építeni.
-    """
+def raster_ocr_hrsz(page, hrsz, zoom=3.0, tile_px=2200, overlap_px=220):
+    """v1.7: nagyfelbontású, átfedő csempéken végzett OCR."""
     if not OCR_AVAILABLE:
         return [], "A pytesseract Python-csomag nem érhető el."
 
-    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
-    img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
-
-    try:
-        data = pytesseract.image_to_data(
-            img,
-            config="--psm 11",
-            output_type=pytesseract.Output.DICT,
-        )
-    except Exception as e:
-        return [], f"OCR nem indítható: {e}"
-
     target = _ocr_norm(hrsz)
     first, last = _target_parts(target)
-    words = []
-    n = len(data.get("text", []))
+    if not target:
+        return [], "Üres helyrajzi szám."
 
-    for i in range(n):
-        raw = (data["text"][i] or "").strip()
-        if not raw:
-            continue
-        try:
-            conf = float(data["conf"][i])
-        except Exception:
-            conf = -1
-        if conf < 0:
-            continue
-        x, y = int(data["left"][i]), int(data["top"][i])
-        w, h = int(data["width"][i]), int(data["height"][i])
-        words.append({
-            "raw": raw,
-            "norm": _ocr_norm(raw),
-            "conf": conf,
-            "box": (x, y, x+w, y+h),
-            "line": (
-                data.get("block_num", [0]*n)[i],
-                data.get("par_num", [0]*n)[i],
-                data.get("line_num", [0]*n)[i],
-            ),
-        })
-
+    page_w_px = max(1, int(math.ceil(page.rect.width * zoom)))
+    page_h_px = max(1, int(math.ceil(page.rect.height * zoom)))
+    step = max(400, tile_px - overlap_px)
     hits = []
+    tile_count = 0
 
-    # 1) Egyetlen OCR-token tartalmazza a teljes hrsz.-t.
-    for w in words:
-        if target and target == w["norm"]:
-            hits.append((w["box"], w["conf"], w["raw"], "OCR-egy-token"))
+    for top in range(0, page_h_px, step):
+        for left in range(0, page_w_px, step):
+            right = min(page_w_px, left + tile_px)
+            bottom = min(page_h_px, top + tile_px)
+            clip = fitz.Rect(left/zoom, top/zoom, right/zoom, bottom/zoom) & page.rect
+            if clip.is_empty:
+                continue
+            tile_count += 1
+            try:
+                pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), clip=clip, alpha=False)
+                img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+                data = pytesseract.image_to_data(
+                    img, config="--psm 11", output_type=pytesseract.Output.DICT
+                )
+            except Exception:
+                continue
 
-    # 2) Azonos OCR-sor egymás melletti tokenjeiből építjük fel.
-    by_line = {}
-    for w in words:
-        by_line.setdefault(w["line"], []).append(w)
+            words = []
+            n = len(data.get("text", []))
+            for i in range(n):
+                raw = (data["text"][i] or "").strip()
+                if not raw:
+                    continue
+                try:
+                    conf = float(data["conf"][i])
+                except Exception:
+                    conf = -1
+                if conf < 0:
+                    continue
+                x, y = int(data["left"][i]), int(data["top"][i])
+                w, h = int(data["width"][i]), int(data["height"][i])
+                words.append({
+                    "raw": raw, "norm": _ocr_norm(raw), "conf": conf,
+                    "box": (x, y, x+w, y+h),
+                    "line": (
+                        data.get("block_num", [0]*n)[i],
+                        data.get("par_num", [0]*n)[i],
+                        data.get("line_num", [0]*n)[i],
+                    ),
+                })
 
-    for line_words in by_line.values():
-        line_words.sort(key=lambda q: q["box"][0])
-        for i in range(len(line_words)):
-            combined = ""
-            boxes = []
-            confs = []
-            raws = []
-            for j in range(i, min(i + 5, len(line_words))):
-                q = line_words[j]
-                combined += q["norm"]
-                boxes.append(q["box"])
-                confs.append(q["conf"])
-                raws.append(q["raw"])
-                if combined == target or (
-                    first and last and first in combined and combined.endswith(last)
-                    and "/" in combined
-                ):
-                    x0 = min(b[0] for b in boxes); y0 = min(b[1] for b in boxes)
-                    x1 = max(b[2] for b in boxes); y1 = max(b[3] for b in boxes)
-                    hits.append(((x0,y0,x1,y1), sum(confs)/len(confs),
-                                 " ".join(raws), "OCR-több-token"))
-                    break
-                if len(combined) > len(target) + 3:
-                    break
+            local_hits = []
+            for w in words:
+                if w["norm"] == target:
+                    local_hits.append((w["box"], w["conf"], w["raw"], "tile-OCR-egy-token"))
 
-    # Duplikátumok és visszavetítés PDF-oldalkoordinátába.
+            by_line = {}
+            for w in words:
+                by_line.setdefault(w["line"], []).append(w)
+
+            for line_words in by_line.values():
+                line_words.sort(key=lambda q: q["box"][0])
+                for i in range(len(line_words)):
+                    combined = ""
+                    boxes, confs, raws = [], [], []
+                    for j in range(i, min(i+6, len(line_words))):
+                        q = line_words[j]
+                        combined += q["norm"]
+                        boxes.append(q["box"])
+                        confs.append(q["conf"])
+                        raws.append(q["raw"])
+                        exact = combined == target
+                        split_match = (
+                            first and last and first in combined
+                            and combined.endswith(last) and "/" in combined
+                        )
+                        if exact or split_match:
+                            x0 = min(b[0] for b in boxes); y0 = min(b[1] for b in boxes)
+                            x1 = max(b[2] for b in boxes); y1 = max(b[3] for b in boxes)
+                            local_hits.append(((x0,y0,x1,y1), sum(confs)/len(confs),
+                                               " ".join(raws), "tile-OCR-több-token"))
+                            break
+                        if len(combined) > len(target) + 3:
+                            break
+
+            for box, conf, raw, method in local_hits:
+                x0,y0,x1,y1 = box
+                r = fitz.Rect(
+                    clip.x0 + x0/zoom, clip.y0 + y0/zoom,
+                    clip.x0 + x1/zoom, clip.y0 + y1/zoom
+                ) & page.rect
+                if not r.is_empty:
+                    hits.append({"rect": r, "text": raw, "source": method,
+                                 "confidence": round(conf, 1)})
+
     out, seen = [], set()
-    for box, conf, raw, method in sorted(hits, key=lambda z: -z[1]):
-        x0,y0,x1,y1 = box
-        key = (round(x0/zoom), round(y0/zoom), round(x1/zoom), round(y1/zoom))
-        if key in seen:
-            continue
-        seen.add(key)
-        r = fitz.Rect(x0/zoom, y0/zoom, x1/zoom, y1/zoom) & page.rect
-        if not r.is_empty:
-            out.append({
-                "rect": r,
-                "text": raw,
-                "source": method,
-                "confidence": round(conf, 1),
-            })
-    # OCR-találatok rendezése: előnyben a pontos hrsz.-alak
-    target_a, target_b = _target_parts(hrsz)
+    for item in sorted(hits, key=lambda q: float(q.get("confidence",0) or 0), reverse=True):
+        r = item["rect"]
+        key = (round(((r.x0+r.x1)/2)/3), round(((r.y0+r.y1)/2)/3))
+        if key not in seen:
+            seen.add(key)
+            out.append(item)
 
     def candidate_score(item):
-        txt = _ocr_norm(item.get("text", ""))
-        score = float(item.get("confidence", 0) or 0)
-
-        if target_b:
-            exact = f"{target_a}/{target_b}"
-            if exact in txt:
-                score += 1000
-        elif target_a in txt:
+        txt = _ocr_norm(item.get("text",""))
+        score = float(item.get("confidence",0) or 0)
+        if txt == target:
+            score += 2000
+        elif target in txt:
             score += 1000
-
         return score
 
     out.sort(key=candidate_score, reverse=True)
+    if not out:
+        return [], f"A tile-OCR {tile_count} képrészletet vizsgált meg, de nem talált biztos egyezést."
     return out, None
 
 
-
 def ocr_debug_tokens(page, hrsz, zoom=1.5):
-    """Diagnosztika: megmutatja, mit olvas ki a Tesseract a keresett hrsz. környezetében."""
-    if not OCR_AVAILABLE:
-        return [], "A pytesseract Python-csomag nem érhető el."
-
-    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
-    img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
-
-    try:
-        data = pytesseract.image_to_data(
-            img,
-            config="--psm 11",
-            output_type=pytesseract.Output.DICT,
-        )
-    except Exception as e:
-        return [], f"OCR diagnosztika nem indítható: {e}"
-
-    target = _ocr_norm(hrsz)
-    first, last = _target_parts(target)
-    rows = []
-    n = len(data.get("text", []))
-
-    for i in range(n):
-        raw = (data["text"][i] or "").strip()
-        if not raw:
-            continue
-
-        norm = _ocr_norm(raw)
-        try:
-            conf = float(data["conf"][i])
-        except Exception:
-            conf = -1
-
-        # Olyan tokeneket mutatunk, amelyek a keresett hrsz. valamely részére hasonlítanak.
-        interesting = (
-            (first and (first in norm or norm in first))
-            or (last and norm == last)
-            or (target and (target in norm or norm in target))
-            or "/" in norm
-        )
-
-        if interesting:
-            rows.append({
-                "OCR szöveg": raw,
-                "Normalizált": norm,
-                "Biztonság": round(conf, 1),
-                "X": int(data["left"][i]),
-                "Y": int(data["top"][i]),
-                "Szélesség": int(data["width"][i]),
-                "Magasság": int(data["height"][i]),
-                "Blokk": data.get("block_num", [0] * n)[i],
-                "Sor": data.get("line_num", [0] * n)[i],
-            })
-
-    rows.sort(key=lambda r: (-r["Biztonság"], r["Y"], r["X"]))
-    return rows[:100], None
+    """v1.7: a memóriaigényes teljes oldalas OCR-diagnosztika kikapcsolva."""
+    return [], None
 
 
 def render_ocr_candidate(page, rect, zoom=3.0, margin_factor=0.045):
@@ -662,7 +609,7 @@ def render_crop(
 # ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="TelekElőírás AI v1.6",
+    page_title="TelekElőírás AI v1.7",
     page_icon="🏗️",
     layout="wide",
 )
@@ -673,7 +620,7 @@ st.title(
 )
 
 st.caption(
-    "v1.6 • raszteres hrsz-keresés • "
+    "v1.7 • csempézett nagyfelbontású OCR • "
     "a PDF-oldal képén végzett OCR-helymeghatározás"
 )
 
@@ -725,7 +672,7 @@ hrsz = c2.text_input(
 
 
 if st.button(
-    "v1.6 képi keresés indítása",
+    "v1.7 tile-OCR keresés indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -814,7 +761,7 @@ if st.button(
 
     # v1.6: a search_for találat CSAK az oldal azonosítására szolgál.
     # A tényleges helyet a renderelt oldal képén OCR-rel keressük.
-    visual_candidates, ocr_error = raster_ocr_hrsz(page, clean_hrsz, zoom=1.5)
+    visual_candidates, ocr_error = raster_ocr_hrsz(page, clean_hrsz, zoom=3.0, tile_px=2200, overlap_px=220)
     ocr_debug, ocr_debug_error = ocr_debug_tokens(page, clean_hrsz, zoom=1.5)
 
     if visual_candidates:
@@ -1206,5 +1153,5 @@ if st.button(
 st.divider()
 
 st.caption(
-    "TelekElőírás AI v1.6 – raszteres/OCR hrsz-helymeghatározási teszt"
+    "TelekElőírás AI v1.7 – raszteres/OCR hrsz-helymeghatározási teszt"
 )
