@@ -4,11 +4,20 @@ import math
 import fitz
 import pandas as pd
 import streamlit as st
+from PIL import Image, ImageDraw
+import io
+
+try:
+    import pytesseract
+    OCR_AVAILABLE = True
+except Exception:
+    pytesseract = None
+    OCR_AVAILABLE = False
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v1.5
-# VIZUÁLIS HRSZ-KERESÉSI TESZT
+# TELEKELŐÍRÁS AI v1.6
+# RASZTERES HRSZ-KERESÉSI TESZT
 # =========================================================
 
 
@@ -228,6 +237,153 @@ def render_visual_candidate(page, rect, scale_factor=0.055, zoom=2.4):
     return out, clip
 
 
+
+# ---------------------------------------------------------
+# v1.6: RASZTERES / OCR-ALAPÚ HRSZ-HELYMEGHATÁROZÁS
+# ---------------------------------------------------------
+
+def _ocr_norm(s):
+    """OCR-szöveg normalizálása helyrajzi szám összehasonlításához."""
+    s = (s or "").strip()
+    s = s.replace("\\", "/").replace("|", "/")
+    s = s.replace("O", "0").replace("o", "0")
+    s = re.sub(r"[^0-9/]", "", s)
+    return s
+
+
+def _target_parts(hrsz):
+    h = re.sub(r"\s+", "", hrsz or "")
+    if "/" in h:
+        a, b = h.split("/", 1)
+        return a, b
+    return h, ""
+
+
+def raster_ocr_hrsz(page, hrsz, zoom=3.0):
+    """
+    A PDF-oldalt képpé rendereli, és Tesseract OCR-rel keresi a hrsz.-t.
+    A visszaadott rect már közvetlenül a látható page.rect koordinátája.
+    Több OCR-tokenből (pl. '2200', '/', '8') is képes jelöltet építeni.
+    """
+    if not OCR_AVAILABLE:
+        return [], "A pytesseract Python-csomag nem érhető el."
+
+    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
+    img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+
+    try:
+        data = pytesseract.image_to_data(
+            img,
+            config="--psm 11",
+            output_type=pytesseract.Output.DICT,
+        )
+    except Exception as e:
+        return [], f"OCR nem indítható: {e}"
+
+    target = _ocr_norm(hrsz)
+    first, last = _target_parts(target)
+    words = []
+    n = len(data.get("text", []))
+
+    for i in range(n):
+        raw = (data["text"][i] or "").strip()
+        if not raw:
+            continue
+        try:
+            conf = float(data["conf"][i])
+        except Exception:
+            conf = -1
+        if conf < 0:
+            continue
+        x, y = int(data["left"][i]), int(data["top"][i])
+        w, h = int(data["width"][i]), int(data["height"][i])
+        words.append({
+            "raw": raw,
+            "norm": _ocr_norm(raw),
+            "conf": conf,
+            "box": (x, y, x+w, y+h),
+            "line": (
+                data.get("block_num", [0]*n)[i],
+                data.get("par_num", [0]*n)[i],
+                data.get("line_num", [0]*n)[i],
+            ),
+        })
+
+    hits = []
+
+    # 1) Egyetlen OCR-token tartalmazza a teljes hrsz.-t.
+    for w in words:
+        if target and target == w["norm"]:
+            hits.append((w["box"], w["conf"], w["raw"], "OCR-egy-token"))
+
+    # 2) Azonos OCR-sor egymás melletti tokenjeiből építjük fel.
+    by_line = {}
+    for w in words:
+        by_line.setdefault(w["line"], []).append(w)
+
+    for line_words in by_line.values():
+        line_words.sort(key=lambda q: q["box"][0])
+        for i in range(len(line_words)):
+            combined = ""
+            boxes = []
+            confs = []
+            raws = []
+            for j in range(i, min(i + 5, len(line_words))):
+                q = line_words[j]
+                combined += q["norm"]
+                boxes.append(q["box"])
+                confs.append(q["conf"])
+                raws.append(q["raw"])
+                if combined == target or (
+                    first and last and first in combined and combined.endswith(last)
+                    and "/" in combined
+                ):
+                    x0 = min(b[0] for b in boxes); y0 = min(b[1] for b in boxes)
+                    x1 = max(b[2] for b in boxes); y1 = max(b[3] for b in boxes)
+                    hits.append(((x0,y0,x1,y1), sum(confs)/len(confs),
+                                 " ".join(raws), "OCR-több-token"))
+                    break
+                if len(combined) > len(target) + 3:
+                    break
+
+    # Duplikátumok és visszavetítés PDF-oldalkoordinátába.
+    out, seen = [], set()
+    for box, conf, raw, method in sorted(hits, key=lambda z: -z[1]):
+        x0,y0,x1,y1 = box
+        key = (round(x0/zoom), round(y0/zoom), round(x1/zoom), round(y1/zoom))
+        if key in seen:
+            continue
+        seen.add(key)
+        r = fitz.Rect(x0/zoom, y0/zoom, x1/zoom, y1/zoom) & page.rect
+        if not r.is_empty:
+            out.append({
+                "rect": r,
+                "text": raw,
+                "source": method,
+                "confidence": round(conf, 1),
+            })
+
+    return out, None
+
+
+def render_ocr_candidate(page, rect, zoom=3.0, margin_factor=0.045):
+    """OCR-találat környezetének nagyítása, piros kerettel."""
+    cx=(rect.x0+rect.x1)/2; cy=(rect.y0+rect.y1)/2
+    hw=max(page.rect.width*margin_factor, rect.width*8)
+    hh=max(page.rect.height*margin_factor, rect.height*8)
+    clip=fitz.Rect(max(0,cx-hw), max(0,cy-hh),
+                   min(page.rect.width,cx+hw), min(page.rect.height,cy+hh))
+    pix=page.get_pixmap(matrix=fitz.Matrix(zoom,zoom), clip=clip, alpha=False)
+    img=Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+    draw=ImageDraw.Draw(img)
+    sx=zoom
+    bx0=(rect.x0-clip.x0)*sx; by0=(rect.y0-clip.y0)*sx
+    bx1=(rect.x1-clip.x0)*sx; by1=(rect.y1-clip.y0)*sx
+    draw.rectangle((bx0,by0,bx1,by1), outline="red", width=max(4,int(2*zoom)))
+    bio=io.BytesIO(); img.save(bio, format="PNG")
+    return bio.getvalue(), clip
+
+
 # ---------------------------------------------------------
 # HÉSZ KÓDOK
 # ---------------------------------------------------------
@@ -431,7 +587,7 @@ def render_crop(
 # ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="TelekElőírás AI v1.5",
+    page_title="TelekElőírás AI v1.6",
     page_icon="🏗️",
     layout="wide",
 )
@@ -442,8 +598,8 @@ st.title(
 )
 
 st.caption(
-    "v1.5 • vizuális hrsz-keresés • "
-    "látható szövegréteg ellenőrzése a tervlapon"
+    "v1.6 • raszteres hrsz-keresés • "
+    "a PDF-oldal képén végzett OCR-helymeghatározás"
 )
 
 
@@ -454,9 +610,9 @@ with st.sidebar:
     )
 
     st.info(
-        "A program először megkeresi, melyik tervoldalon szerepel a helyrajzi szám. "
-        "Ezután külön, a látható oldal szövegstruktúrájában keresi meg annak "
-        "tényleges vizuális helyét. A v1.4 hibás koordinátáját nem használja telekazonosításra."
+        "A program először a PDF kereshető szövegével azonosítja a tervoldalt. "
+        "Ezután az oldalt képpé rendereli, és OCR-rel a ténylegesen látható "
+        "helyrajzi számot keresi meg. A hibás PDF-szövegkoordinátát nem használja telekazonosításra."
     )
 
     plan = st.file_uploader(
@@ -494,7 +650,7 @@ hrsz = c2.text_input(
 
 
 if st.button(
-    "v1.5 vizuális keresés indítása",
+    "v1.6 képi keresés indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -581,18 +737,22 @@ if st.button(
 
     page = doc[pno]
 
-    # v1.5: a search_for találat csak az oldal azonosítására szolgál.
-    # A tényleges vizuális helyet külön keressük a látható text-spanek között.
-    visual_candidates = visual_hrsz_candidates(page, clean_hrsz)
+    # v1.6: a search_for találat CSAK az oldal azonosítására szolgál.
+    # A tényleges helyet a renderelt oldal képén OCR-rel keressük.
+    visual_candidates, ocr_error = raster_ocr_hrsz(page, clean_hrsz, zoom=3.0)
 
     if visual_candidates:
         visual_rect = visual_candidates[0]["rect"]
         was_corrected = False
         coordinate_method = visual_candidates[0]["source"]
+        ocr_confidence = visual_candidates[0].get("confidence")
+        ocr_text = visual_candidates[0].get("text", "")
     else:
         visual_rect = None
         was_corrected = False
-        coordinate_method = "nincs látható text-span találat"
+        coordinate_method = "nincs megbízható OCR-találat"
+        ocr_confidence = None
+        ocr_text = ""
 
 
     st.success(
@@ -664,23 +824,24 @@ if st.button(
         f"Y = {(cy / page_height) * 100:.2f}%"
     )
 
-    st.write("**Vizuális hrsz.-keresés eredménye:**")
+    st.write("**Képi/OCR hrsz.-keresés eredménye:**")
 
     if visual_rect is None:
         st.error(
-            "A helyrajzi szám ugyan megtalálható a PDF kereshető szövegében, "
-            "de a látható oldal szövegstruktúrájában nem sikerült megbízható "
-            "helyet találni hozzá. Ez fontos eredmény: a program nem használja "
-            "telekpozícióként a v1.4 hibás koordinátáját."
+            "A helyrajzi szám megtalálható a PDF kereshető szövegében, "
+            "de a renderelt tervlapon az OCR nem talált hozzá megbízható vizuális helyet. "
+            "A program ezért nem készít telek-központú kivágást és nem ad övezeti következtetést."
         )
+        if ocr_error:
+            st.code(ocr_error)
         vcx = vcy = None
     else:
         vcx = (visual_rect.x0 + visual_rect.x1) / 2
         vcy = (visual_rect.y0 + visual_rect.y1) / 2
 
         st.success(
-            f"Látható hrsz.-jelölt található a tervlapon. "
-            f"Vizuális jelöltek száma: {len(visual_candidates)}."
+            f"Képi hrsz.-jelölt található a renderelt tervlapon. "
+            f"OCR-jelöltek száma: {len(visual_candidates)}."
         )
 
         st.code(
@@ -692,16 +853,18 @@ if st.button(
             f"középpont Y = {vcy:.2f}\n"
             f"relatív X = {(vcx / page_width) * 100:.2f}%\n"
             f"relatív Y = {(vcy / page_height) * 100:.2f}%\n"
-            f"forrás = {coordinate_method}"
+            f"forrás = {coordinate_method}\n"
+            f"OCR szöveg = {ocr_text}\n"
+            f"OCR biztonság = {ocr_confidence}"
         )
 
-        st.subheader("2. Vizuális találat nagyítása")
+        st.subheader("2. OCR-találat nagyítása")
         st.caption(
             "A piros keretnek közvetlenül a keresett helyrajzi szám feliratát kell körülvennie. "
             "Ez a v1.5 legfontosabb ellenőrzése."
         )
         try:
-            candidate_img, candidate_clip = render_visual_candidate(
+            candidate_img, candidate_clip = render_ocr_candidate(
                 page, visual_rect
             )
             st.image(
@@ -754,6 +917,15 @@ if st.button(
             repr(e)
         )
 
+
+    if visual_rect is None:
+        st.subheader("4. További vizsgálat")
+        st.info(
+            "A képi helymeghatározás nem bizonyított, ezért a program itt megáll. "
+            "Nagy/szűk kivágás és közeli övezeti keresés csak bizonyított OCR-találat után készül."
+        )
+        doc.close()
+        st.stop()
 
     # =====================================================
     # 3. NAGY KIVÁGÁS
@@ -919,7 +1091,7 @@ if st.button(
     )
 
     st.write(
-        f"A v1.5 különválasztja az oldal megtalálását és a helyrajzi szám vizuális "
+        f"A v1.6 különválasztja az oldal megtalálását és a helyrajzi szám vizuális "
         f"lokalizálását. A döntési pont az, hogy a {clean_hrsz} piros kerete "
         "valóban közvetlenül a terven látható helyrajzi számot jelöli-e."
     )
@@ -938,5 +1110,5 @@ if st.button(
 st.divider()
 
 st.caption(
-    "TelekElőírás AI v1.5 – vizuális hrsz-helymeghatározási teszt"
+    "TelekElőírás AI v1.6 – raszteres/OCR hrsz-helymeghatározási teszt"
 )
