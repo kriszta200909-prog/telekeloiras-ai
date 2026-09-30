@@ -362,7 +362,23 @@ def raster_ocr_hrsz(page, hrsz, zoom=1.5):
                 "source": method,
                 "confidence": round(conf, 1),
             })
+    # OCR-találatok rendezése: előnyben a pontos hrsz.-alak
+    target_a, target_b = _target_parts(hrsz)
 
+    def candidate_score(item):
+        txt = _ocr_text(item.get("text", ""))
+        score = float(item.get("confidence", 0) or 0)
+
+        if target_b:
+            exact = f"{target_a}/{target_b}"
+            if exact in txt:
+                score += 1000
+        elif target_a in txt:
+            score += 1000
+
+        return score
+
+    out.sort(key=candidate_score, reverse=True)
     return out, None
 
 
@@ -741,12 +757,13 @@ if st.button(
     # A tényleges helyet a renderelt oldal képén OCR-rel keressük.
     visual_candidates, ocr_error = raster_ocr_hrsz(page, clean_hrsz, zoom=1.5)
 
-    if visual_candidates:
-        visual_rect = visual_candidates[0]["rect"]
-        was_corrected = False
-        coordinate_method = visual_candidates[0]["source"]
-        ocr_confidence = visual_candidates[0].get("confidence")
-        ocr_text = visual_candidates[0].get("text", "")
+if visual_candidates:
+    best_candidate = visual_candidates[0]
+    visual_rect = best_candidate["rect"]
+    was_corrected = False
+    coordinate_method = best_candidate["source"]
+    ocr_confidence = best_candidate.get("confidence")
+    ocr_text = best_candidate.get("text", "")
     else:
         visual_rect = None
         was_corrected = False
