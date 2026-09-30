@@ -4,7 +4,7 @@ import math
 import fitz
 import pandas as pd
 import streamlit as st
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps, ImageFilter
 import io
 
 try:
@@ -16,7 +16,7 @@ except Exception:
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v1.8
+# TELEKELŐÍRÁS AI v1.9
 # RASZTERES HRSZ-KERESÉSI TESZT
 # =========================================================
 
@@ -262,20 +262,20 @@ def _target_parts(hrsz):
 def raster_ocr_hrsz(
     page,
     hrsz,
-    hint_rect=None,
     progress_cb=None,
-    local_zoom=3.0,
-    fallback_zoom=2.0,
-    tile_px=1800,
-    overlap_px=180,
 ):
     """
-    v1.8:
-    1) a PDF szövegtalálat koordinátáját csak KERESÉSI TÁMPONTKÉNT használja;
-    2) először a támpont környezetét vizsgálja nagy felbontásban;
-    3) ha ott nincs biztos találat, a teljes oldalt csempénként járja be;
-    4) pontos OCR-egyezésnél azonnal leáll.
-    A PDF-szövegkoordináta önmagában továbbra sem bizonyít telekhelyet.
+    v1.9 – koordinátafüggetlen vizuális keresés.
+
+    A PDF szövegrétege csak a megfelelő OLDAL kiválasztására szolgál.
+    A search_for() bbox/koordináta semmilyen formában nem vesz részt
+    a vizuális helymeghatározásban.
+
+    Két teljes-oldalas OCR-fázis:
+      1. gyors pásztázás közepes felbontású, átfedő csempékkel;
+      2. ha nincs találat, finom pásztázás nagy felbontásban.
+
+    Minden csempén több képelőkészítési változatot próbálunk.
     """
     if not OCR_AVAILABLE:
         return [], "A pytesseract Python-csomag nem érhető el."
@@ -286,97 +286,58 @@ def raster_ocr_hrsz(
         return [], "Üres helyrajzi szám."
 
     pr = page.rect
+
+    phases = [
+        {
+            "name": "gyors teljes-oldalas keresés",
+            "zoom": 1.7,
+            "tile_px": 1700,
+            "overlap_px": 260,
+        },
+        {
+            "name": "finom teljes-oldalas keresés",
+            "zoom": 3.0,
+            "tile_px": 1650,
+            "overlap_px": 300,
+        },
+    ]
+
     jobs = []
-    seen_jobs = set()
+    for phase in phases:
+        zoom = phase["zoom"]
+        tile_px = phase["tile_px"]
+        overlap_px = phase["overlap_px"]
+        step_px = max(500, tile_px - overlap_px)
 
-    def add_job(clip, zoom, phase):
-        clip = fitz.Rect(clip) & pr
-        if clip.is_empty:
-            return
-        key = (
-            round(clip.x0, 1), round(clip.y0, 1),
-            round(clip.x1, 1), round(clip.y1, 1),
-            round(zoom, 2),
-        )
-        if key not in seen_jobs:
-            seen_jobs.add(key)
-            jobs.append((clip, zoom, phase))
+        page_w_px = max(1, int(pr.width * zoom))
+        page_h_px = max(1, int(pr.height * zoom))
 
-    # --- 1. fázis: célzott keresés a PDF-szövegkoordináta környezetében ---
-    if hint_rect is not None:
-        hr = fitz.Rect(hint_rect)
-        cx = min(max((hr.x0 + hr.x1) / 2, pr.x0), pr.x1)
-        cy = min(max((hr.y0 + hr.y1) / 2, pr.y0), pr.y1)
+        for top in range(0, page_h_px, step_px):
+            for left in range(0, page_w_px, step_px):
+                right = min(page_w_px, left + tile_px)
+                bottom = min(page_h_px, top + tile_px)
 
-        # Több, fokozatosan táguló ablak a támpont körül.
-        for radius in (350, 700, 1200):
-            add_job(
-                fitz.Rect(cx - radius, cy - radius, cx + radius, cy + radius),
-                local_zoom,
-                "célzott",
-            )
+                clip = fitz.Rect(
+                    pr.x0 + left / zoom,
+                    pr.y0 + top / zoom,
+                    pr.x0 + right / zoom,
+                    pr.y0 + bottom / zoom,
+                ) & pr
 
-    # --- 2. fázis: teljes oldal, de kisebb felbontású átfedő csempékkel ---
-    step_px = max(500, tile_px - overlap_px)
-    page_w_px = max(1, int(pr.width * fallback_zoom))
-    page_h_px = max(1, int(pr.height * fallback_zoom))
-
-    full_jobs = []
-    for top in range(0, page_h_px, step_px):
-        for left in range(0, page_w_px, step_px):
-            right = min(page_w_px, left + tile_px)
-            bottom = min(page_h_px, top + tile_px)
-            clip = fitz.Rect(
-                pr.x0 + left / fallback_zoom,
-                pr.y0 + top / fallback_zoom,
-                pr.x0 + right / fallback_zoom,
-                pr.y0 + bottom / fallback_zoom,
-            ) & pr
-            if not clip.is_empty:
-                full_jobs.append(clip)
-
-    # Ha van támpont, a teljes oldalas csempéket is ahhoz legközelebbi sorrendben járjuk.
-    if hint_rect is not None:
-        hr = fitz.Rect(hint_rect)
-        hx = min(max((hr.x0 + hr.x1) / 2, pr.x0), pr.x1)
-        hy = min(max((hr.y0 + hr.y1) / 2, pr.y0), pr.y1)
-
-        def dist2(r):
-            cx = (r.x0 + r.x1) / 2
-            cy = (r.y0 + r.y1) / 2
-            return (cx - hx) ** 2 + (cy - hy) ** 2
-
-        full_jobs.sort(key=dist2)
-
-    for clip in full_jobs:
-        add_job(clip, fallback_zoom, "teljes oldal")
+                if not clip.is_empty:
+                    jobs.append((clip, zoom, phase["name"]))
 
     total = max(1, len(jobs))
 
-    for idx, (clip, zoom, phase) in enumerate(jobs, start=1):
-        if progress_cb:
-            progress_cb(idx - 1, total, phase)
-
-        try:
-            pix = page.get_pixmap(
-                matrix=fitz.Matrix(zoom, zoom),
-                clip=clip,
-                alpha=False,
-            )
-            img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
-
-            # Kontrasztos szürke kép általában jobb a halvány CAD-feliratokhoz.
-            gray = img.convert("L")
-            data = pytesseract.image_to_data(
-                gray,
-                config="--psm 11",
-                output_type=pytesseract.Output.DICT,
-            )
-        except Exception:
-            continue
-
+    def extract_words(img, config):
+        data = pytesseract.image_to_data(
+            img,
+            config=config,
+            output_type=pytesseract.Output.DICT,
+        )
         words = []
         n = len(data.get("text", []))
+
         for i in range(n):
             raw = (data["text"][i] or "").strip()
             if not raw:
@@ -404,28 +365,31 @@ def raster_ocr_hrsz(
                     data.get("line_num", [0] * n)[i],
                 ),
             })
+        return words
 
+    def find_hits(words, phase_label):
         local_hits = []
 
-        # Egyetlen OCR-tokenben szereplő pontos hrsz.
+        # 1 token
         for w in words:
             if w["norm"] == target:
                 local_hits.append(
-                    (w["box"], w["conf"], w["raw"], f"{phase} OCR – egy token")
+                    (w["box"], w["conf"], w["raw"], f"{phase_label} – egy token")
                 )
 
-        # Több tokenből összerakott hrsz. ugyanazon OCR-sorban.
+        # több token ugyanazon sorban: pl. 2200 / 8
         by_line = {}
         for w in words:
             by_line.setdefault(w["line"], []).append(w)
 
         for line_words in by_line.values():
             line_words.sort(key=lambda q: q["box"][0])
+
             for i in range(len(line_words)):
                 combined = ""
                 boxes, confs, raws = [], [], []
 
-                for j in range(i, min(i + 6, len(line_words))):
+                for j in range(i, min(i + 7, len(line_words))):
                     q = line_words[j]
                     combined += q["norm"]
                     boxes.append(q["box"])
@@ -445,19 +409,61 @@ def raster_ocr_hrsz(
                         y0 = min(b[1] for b in boxes)
                         x1 = max(b[2] for b in boxes)
                         y1 = max(b[3] for b in boxes)
+
                         local_hits.append((
                             (x0, y0, x1, y1),
                             sum(confs) / len(confs),
                             " ".join(raws),
-                            f"{phase} OCR – több token",
+                            f"{phase_label} – több token",
                         ))
                         break
 
-                    if len(combined) > len(target) + 3:
+                    if len(combined) > len(target) + 4:
                         break
 
+        return local_hits
+
+    for idx, (clip, zoom, phase) in enumerate(jobs, start=1):
+        if progress_cb:
+            progress_cb(idx - 1, total, phase)
+
+        try:
+            pix = page.get_pixmap(
+                matrix=fitz.Matrix(zoom, zoom),
+                clip=clip,
+                alpha=False,
+            )
+            rgb = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+            gray = ImageOps.autocontrast(rgb.convert("L"))
+
+            # Halvány CAD-vonalrajznál nem egyetlen előfeldolgozásra hagyatkozunk.
+            variants = [
+                ("szürke", gray),
+                ("élesített", gray.filter(ImageFilter.SHARPEN)),
+                ("küszöbölt", gray.point(lambda p: 255 if p > 210 else 0)),
+            ]
+
+            local_hits = []
+            for variant_name, prepared in variants:
+                for psm in (11, 6):
+                    words = extract_words(
+                        prepared,
+                        f"--oem 3 --psm {psm}",
+                    )
+                    hits = find_hits(
+                        words,
+                        f"{phase}, {variant_name}, psm {psm}",
+                    )
+                    if hits:
+                        local_hits.extend(hits)
+                        break
+                if local_hits:
+                    break
+
+        except Exception:
+            continue
+
         if local_hits:
-            # A legerősebb találatot visszaadjuk, és AZONNAL leállunk.
             local_hits.sort(key=lambda q: q[1], reverse=True)
             box, conf, raw, method = local_hits[0]
             x0, y0, x1, y1 = box
@@ -485,10 +491,9 @@ def raster_ocr_hrsz(
         progress_cb(total, total, "kész")
 
     return [], (
-        f"Az irányított tile-OCR {total} képrészletet vizsgált meg, "
-        "de nem talált biztos vizuális egyezést."
+        f"A koordinátafüggetlen v1.9 OCR {total} képrészletet vizsgált meg "
+        "a teljes tervoldalon, de nem talált biztos vizuális egyezést."
     )
-
 
 def ocr_debug_tokens(page, hrsz, zoom=1.5):
     """v1.8: a memóriaigényes teljes oldalas OCR-diagnosztika kikapcsolva."""
@@ -716,7 +721,7 @@ def render_crop(
 # ---------------------------------------------------------
 
 st.set_page_config(
-    page_title="TelekElőírás AI v1.8",
+    page_title="TelekElőírás AI v1.9",
     page_icon="🏗️",
     layout="wide",
 )
@@ -727,8 +732,8 @@ st.title(
 )
 
 st.caption(
-    "v1.8 • irányított progresszív tile-OCR • "
-    "a PDF-oldal képén végzett OCR-helymeghatározás"
+    "v1.9 • koordinátafüggetlen teljes-oldalas tile-OCR • "
+    "a PDF-szöveg csak az oldal kiválasztására szolgál"
 )
 
 
@@ -739,9 +744,9 @@ with st.sidebar:
     )
 
     st.info(
-        "A program először a PDF kereshető szövegével azonosítja a tervoldalt. "
-        "Ezután az oldalt képpé rendereli, és OCR-rel a ténylegesen látható "
-        "helyrajzi számot keresi meg. A hibás PDF-szövegkoordinátát nem használja telekazonosításra."
+        "A PDF kereshető szövege kizárólag a megfelelő tervoldal azonosítására szolgál. "
+        "A helyrajzi szám tényleges helyét a program ezután a TELJES renderelt oldalon, "
+        "a PDF-koordinátáktól független tile-OCR-rel keresi meg."
     )
 
     plan = st.file_uploader(
@@ -779,7 +784,7 @@ hrsz = c2.text_input(
 
 
 if st.button(
-    "v1.8 irányított OCR keresés indítása",
+    "v1.9 koordinátafüggetlen OCR keresés indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -900,12 +905,7 @@ if st.button(
     visual_candidates, ocr_error = raster_ocr_hrsz(
         page,
         clean_hrsz,
-        hint_rect=rect,
         progress_cb=update_ocr_progress,
-        local_zoom=3.0,
-        fallback_zoom=2.0,
-        tile_px=1800,
-        overlap_px=180,
     )
     ocr_debug, ocr_debug_error = ocr_debug_tokens(page, clean_hrsz, zoom=1.5)
 
@@ -932,68 +932,25 @@ if st.button(
 
 
     # =====================================================
-    # 1. DIAGNOSZTIKAI ADATOK
+    # 1. VIZUÁLIS KERESÉSI DIAGNOSZTIKA
     # =====================================================
 
-    st.subheader(
-        "1. Koordináta-ellenőrzés"
-    )
-
+    st.subheader("1. Vizuális keresési diagnosztika")
 
     page_width = page.rect.width
     page_height = page.rect.height
 
-    cx = (
-        rect.x0 + rect.x1
-    ) / 2
+    d1, d2 = st.columns(2)
+    d1.metric("Azonosított tervoldal", pno + 1)
+    d2.metric("PDF-szöveges oldaltalálatok", len(candidates))
 
-    cy = (
-        rect.y0 + rect.y1
-    ) / 2
-
-
-    d1, d2, d3 = st.columns(3)
-
-    d1.metric(
-        "PDF-oldal szélessége",
-        f"{page_width:.1f}"
+    st.info(
+        "v1.9-ben a PDF-ben talált helyrajzi szám koordinátáját a program "
+        "szándékosan nem használja és nem értelmezi. A szövegréteg csak azt "
+        "mondja meg, melyik oldalt kell képként átvizsgálni."
     )
 
-    d2.metric(
-        "PDF-oldal magassága",
-        f"{page_height:.1f}"
-    )
-
-    d3.metric(
-        "Oldalszám",
-        pno + 1,
-    )
-
-
-    st.write(
-        "**A megtalált hrsz. koordinátái:**"
-    )
-
-    st.code(
-        f"x0 = {rect.x0:.2f}\n"
-        f"y0 = {rect.y0:.2f}\n"
-        f"x1 = {rect.x1:.2f}\n"
-        f"y1 = {rect.y1:.2f}\n"
-        f"középpont X = {cx:.2f}\n"
-        f"középpont Y = {cy:.2f}"
-    )
-
-
-    st.write(
-        "**Relatív hely az oldalon:**"
-    )
-
-    st.code(
-        f"X = {(cx / page_width) * 100:.2f}%\n"
-        f"Y = {(cy / page_height) * 100:.2f}%"
-    )
-
-    st.write("**OCR diagnosztika – mit lát a Tesseract?**")
+    st.write("**OCR diagnosztika:**")
     if ocr_debug_error:
         st.code(ocr_debug_error)
     elif ocr_debug:
@@ -1008,17 +965,18 @@ if st.button(
         )
     else:
         st.warning(
-            "A Tesseract ezen a renderelt oldalon még a 2200/8 részleteire "
-            "hasonlító OCR-tokeneket sem talált."
+            "A memóriaigényes teljes-oldalas tokenlista v1.9-ben ki van kapcsolva; "
+            "a keresés csempénként, több előfeldolgozással fut."
         )
 
     st.write("**Képi/OCR hrsz.-keresés eredménye:**")
 
     if visual_rect is None:
         st.error(
-            "A helyrajzi szám megtalálható a PDF kereshető szövegében, "
-            "de a renderelt tervlapon az OCR nem talált hozzá megbízható vizuális helyet. "
-            "A program ezért nem készít telek-központú kivágást és nem ad övezeti következtetést."
+            "A megfelelő tervoldalt a PDF szövegrétege alapján megtaláltuk, "
+            "de a teljes renderelt tervlapon a koordinátafüggetlen OCR nem talált "
+            "biztos vizuális hrsz.-egyezést. A program ezért nem készít "
+            "telek-központú kivágást és nem ad övezeti következtetést."
         )
         if ocr_error:
             st.code(ocr_error)
@@ -1073,7 +1031,7 @@ if st.button(
     )
 
     st.caption(
-        "A teljes tervlapon piros keret jelöli a látható szövegstruktúrából megtalált hrsz.-jelöltet. "
+        "Ha a v1.9 vizuális OCR megtalálta a helyrajzi számot, a teljes tervlapon piros keret jelöli. "
         "A jelölést a nagyított kivágással együtt kell ellenőrizni."
     )
 
