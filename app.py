@@ -1,5 +1,5 @@
 # =========================================================
-# TELEKELŐÍRÁS AI v5.0
+# TELEKELŐÍRÁS AI v5.1
 # Tiszta új vezérlési réteg a bevált v4.x feldolgozó függvények fölött
 # Cél: "Mit lehet és mit nem lehet ezen a konkrét telken csinálni,
 #       és ezt melyik hatályos hivatalos forrás mondja?"
@@ -22,11 +22,11 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v5.0
+# TELEKELŐÍRÁS AI v5.1
 # NJT-MELLÉKLET FELDERÍTÉS + NATÍV PDF HELYMEGHATÁROZÁS
 # =========================================================
 
-st.set_page_config(page_title="TelekElőírás AI v5.0", page_icon="🏗️", layout="wide")
+st.set_page_config(page_title="TelekElőírás AI v5.1", page_icon="🏗️", layout="wide")
 
 
 
@@ -1327,10 +1327,262 @@ def _v5_extract_decision_rows(njt_text, zone):
     return rows, params
 
 
+
+# =========================================================
+# v5.1 – ROBUSZTUS, INGYENES HÉSZ/TÉSZ WEBES FELDERÍTÉS
+# Nem Google HTML-t kapar. Több nyilvános keresési útvonalat használ,
+# majd MAGÁT AZ NJT/OR.NJT OLDALT validálja.
+# =========================================================
+
+from urllib.parse import quote_plus, urljoin, urlparse, parse_qs
+import html as _html
+
+
+def _v51_clean_search_url(href):
+    """Keresőmotor-átirányításból kinyeri a valódi cél-URL-t."""
+    if not href:
+        return ""
+    href = _html.unescape(href)
+
+    # DuckDuckGo redirect: /l/?uddg=https%3A...
+    if "uddg=" in href:
+        try:
+            return requests.utils.unquote(parse_qs(urlparse(href).query).get("uddg", [""])[0])
+        except Exception:
+            pass
+
+    if href.startswith("//"):
+        href = "https:" + href
+    return href
+
+
+def _v51_search_web(query, timeout=14):
+    """
+    Ingyenes keresés több nyilvános HTML keresőfelületen.
+    Nincs API-kulcs. Sikertelenség esetén üres listát ad.
+    """
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.1; +public-web-search)",
+        "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.6",
+    }
+    endpoints = [
+        ("duckduckgo", "https://html.duckduckgo.com/html/?q=" + quote_plus(query)),
+        ("bing", "https://www.bing.com/search?q=" + quote_plus(query)),
+    ]
+    found = []
+    seen = set()
+
+    for engine, url in endpoints:
+        try:
+            r = requests.get(url, headers=headers, timeout=timeout)
+            if r.status_code != 200:
+                continue
+            soup = BeautifulSoup(r.text, "html.parser")
+            for a in soup.find_all("a", href=True):
+                href = _v51_clean_search_url(a.get("href", ""))
+                title = normalize_text(a.get_text(" ", strip=True))
+                if not href.startswith("http"):
+                    continue
+                host = urlparse(href).netloc.lower()
+                if not (host.endswith("njt.hu") or host.endswith("tiszaujvaros.hu") or
+                        "onkormanyzati-rendelet" in href or "jogszabaly" in href):
+                    continue
+                key = href.split("#")[0]
+                if key in seen:
+                    continue
+                seen.add(key)
+                found.append({"engine": engine, "title": title, "url": key})
+        except Exception:
+            continue
+    return found
+
+
+def _v51_candidate_queries(town):
+    town = normalize_text(town)
+    return [
+        f'"{town}" "Építési Szabályzatáról" NJT',
+        f'"{town}" "Helyi Építési Szabályzatáról" NJT',
+        f'{town} építési szabályzat NJT',
+        f'{town} HÉSZ NJT',
+        f'site:or.njt.hu {town} építési szabályzat',
+        f'site:njt.jog.gov.hu {town} építési szabályzat',
+    ]
+
+
+def _v51_fetch_page(url, timeout=18):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.1)",
+        "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
+    }
+    r = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+    r.raise_for_status()
+    soup = BeautifulSoup(r.text, "html.parser")
+    title = normalize_text(soup.title.get_text(" ", strip=True) if soup.title else "")
+    body = normalize_text(soup.get_text(" ", strip=True))
+    return {"url": r.url, "title": title, "text": body, "html": r.text}
+
+
+def _v51_score_hesz_page(town, page):
+    """Nem a találati címet, hanem a céloldal tartalmát pontozza."""
+    town_l = normalize_text(town).lower()
+    title_l = page.get("title", "").lower()
+    text_l = page.get("text", "").lower()
+    url_l = page.get("url", "").lower()
+
+    score = 0
+    reasons = []
+
+    if town_l and town_l in (title_l + " " + text_l[:5000]):
+        score += 35
+        reasons.append("településnév egyezik")
+
+    exact_terms = [
+        "építési szabályzatáról",
+        "helyi építési szabályzatáról",
+        "építési szabályzata",
+        "helyi építési szabályzata",
+    ]
+    if any(t in title_l for t in exact_terms):
+        score += 45
+        reasons.append("HÉSZ/TÉSZ cím")
+    elif any(t in text_l[:7000] for t in exact_terms):
+        score += 28
+        reasons.append("HÉSZ/TÉSZ tartalom")
+
+    if "módosításáról" in title_l:
+        score -= 28
+        reasons.append("módosító rendelet")
+    if "hatályon kívül" in text_l[:5000]:
+        score -= 8
+
+    if "or.njt.hu" in url_l or "njt.jog.gov.hu" in url_l:
+        score += 20
+        reasons.append("NJT domain")
+
+    # Erős jel: szabályozási terv/mellékletek említése.
+    if "szabályozási terv" in text_l:
+        score += 12
+        reasons.append("szabályozási terv hivatkozás")
+    if "1. melléklet" in text_l or "1.1. melléklet" in text_l:
+        score += 5
+
+    # Az alaprendeletet preferáljuk a puszta módosító rendelettel szemben.
+    if "önkormányzati rendelete" in text_l[:2500]:
+        score += 4
+
+    return score, reasons
+
+
+def discover_current_njt_hesz_v51(town):
+    """
+    1) több keresőkifejezés;
+    2) találatok összegyűjtése;
+    3) NJT céloldalak tényleges letöltése;
+    4) tartalmi validálás;
+    5) módosító rendelet visszasorolása.
+    """
+    raw = []
+    seen = set()
+    diagnostics = []
+
+    for q in _v51_candidate_queries(town):
+        results = _v51_search_web(q)
+        diagnostics.append({"query": q, "hits": len(results)})
+        for item in results:
+            u = item["url"]
+            if u not in seen:
+                seen.add(u)
+                raw.append(item)
+
+    validated = []
+    for item in raw[:40]:
+        try:
+            page = _v51_fetch_page(item["url"])
+        except Exception:
+            continue
+        score, reasons = _v51_score_hesz_page(town, page)
+        if score >= 55:
+            validated.append({
+                "title": page["title"] or item.get("title", ""),
+                "url": page["url"],
+                "score": score,
+                "reasons": ", ".join(reasons),
+                "engine": item.get("engine", ""),
+                "text": page["text"],
+            })
+
+    # Deduplikálás + legerősebb előre.
+    dedup = {}
+    for c in validated:
+        key = c["url"].split("?")[0].rstrip("/")
+        if key not in dedup or c["score"] > dedup[key]["score"]:
+            dedup[key] = c
+    validated = sorted(dedup.values(), key=lambda x: x["score"], reverse=True)
+
+    if not validated:
+        return {
+            "status": "NINCS",
+            "url": "",
+            "title": "",
+            "candidates": [],
+            "diagnostics": diagnostics,
+        }
+
+    best = validated[0]
+
+    # Ha a legjobb találat módosító rendelet, próbáljuk a szövegben szereplő
+    # alaprendeletet megtalálni a többi validált jelölt között.
+    if "módosításáról" in best["title"].lower():
+        base_candidates = [
+            c for c in validated
+            if "módosításáról" not in c["title"].lower()
+            and normalize_text(town).lower() in (c["title"] + " " + c.get("text", "")[:3000]).lower()
+        ]
+        if base_candidates:
+            best = base_candidates[0]
+
+    return {
+        "status": "OK",
+        "url": best["url"],
+        "title": best["title"],
+        "score": best["score"],
+        "reasons": best["reasons"],
+        "candidates": validated[:10],
+        "diagnostics": diagnostics,
+    }
+
+
+def discover_current_njt_hesz_v51_with_legacy(town):
+    """
+    Elsőként az új keresőréteg fut.
+    Ha a hosztolt környezet mindkét nyilvános kereső HTML-jét blokkolja,
+    utolsó tartalékként meghívja a korábbi felderítőt.
+    """
+    result = discover_current_njt_hesz_v51(town)
+    if result.get("status") == "OK":
+        return result
+
+    legacy = globals().get("_legacy_discover_current_njt_hesz")
+    if callable(legacy):
+        try:
+            old = legacy(town)
+            if isinstance(old, dict) and old.get("status") in ("OK", "TÖBB JELÖLT"):
+                old["finder"] = "legacy fallback"
+                return old
+        except Exception:
+            pass
+    return result
+
+
+# A korábbi függvényt megőrizzük fallbacknek, majd az újra irányítjuk a v5 folyamatot.
+if "discover_current_njt_hesz" in globals():
+    _legacy_discover_current_njt_hesz = discover_current_njt_hesz
+discover_current_njt_hesz = discover_current_njt_hesz_v51_with_legacy
+
 def run_v5():
     st.title("TelekElőírás AI")
     st.caption(
-        "v5.0 • telek → hatályos HÉSZ/TÉSZ → szabályozási terv → övezet → "
+        "v5.1 • telek → hatályos HÉSZ/TÉSZ → szabályozási terv → övezet → "
         "telekspecifikus előírások → forrásolt döntéstámogató adatlap"
     )
 
