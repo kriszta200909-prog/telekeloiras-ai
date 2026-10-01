@@ -12,12 +12,12 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v4.0
+# TELEKELŐÍRÁS AI v4.1
 # NATÍV PDF HELYMEGHATÁROZÁS – ELLENŐRZÖTT ROTÁCIÓS LEKÉPEZÉS
 # =========================================================
 
 st.set_page_config(
-    page_title="TelekElőírás AI v4.0",
+    page_title="TelekElőírás AI v4.1",
     page_icon="🏗️",
     layout="wide",
 )
@@ -751,7 +751,7 @@ def show_njt_source(njt_url, zone_term):
 
 
 # =========================================================
-# v4.0 – FORRÁSHIERARCHIA ÉS TELEK-ADATLAP
+# v4.1 – FORRÁSHIERARCHIA ÉS TELEK-ADATLAP
 # Elsődleges elv:
 #   E-közmű / állami ingatlan-nyilvántartás = telekazonosítás
 #   NJT szabályozási terv = övezeti térbeli besorolás
@@ -789,6 +789,54 @@ def extract_basic_zone_params_from_text(text_blob, zone_code):
             result[key] = m.group(1).strip()
     return result
 
+def parse_zone_table_context(text_blob, zone_code):
+    """Kísérleti v4.1 parser az NJT szövegében megjelenő övezeti táblázatsorokra.
+    Csak a kód közvetlen környezetéből dolgozik, és a nyers kontextust is visszaadja.
+    """
+    if not text_blob or not zone_code:
+        return {}, []
+    contexts = njt_snippets(text_blob, zone_code, radius=450, max_items=20)
+    params = {}
+    # Tipikus sorrend a Tiszaújváros 1.2 mellékletben: kód, beépítési mód, beépítettség,
+    # legkisebb telekterület, zöldfelület, magasság. Nem tekintjük univerzális sémának.
+    code_rx = re.escape(zone_code).replace(r'\\/', r'\\s*/\\s*')
+    for c in contexts:
+        compact = normalize_text(c)
+        m = re.search(code_rx + r"\\s+(SZ|O|K|Z)\\s+(\\d{1,3}(?:[.,]\\d+)?)\\s+(\\d[\\d .]{2,})\\s+(\\d{1,3}(?:[.,]\\d+)?)\\s+(\\d{1,3}(?:[.,]\\d+)?)", compact, re.I)
+        if m:
+            params = {
+                "Beépítési mód": m.group(1).upper(),
+                "Legnagyobb beépítettség": m.group(2) + " %",
+                "Legkisebb telekterület": re.sub(r"\\s+", " ", m.group(3)).strip() + " m²",
+                "Legkisebb zöldfelület": m.group(4) + " %",
+                "Legnagyobb épület-/építménymagasság": m.group(5) + " m",
+            }
+            break
+    return params, contexts
+
+
+def show_zone_parameter_card(njt_text, zone):
+    if not zone:
+        return
+    st.markdown("### Övezeti paraméter-adatlap")
+    table_params, contexts = parse_zone_table_context(njt_text, zone)
+    prose_params = extract_basic_zone_params_from_text(njt_text, zone)
+    merged = dict(table_params)
+    for k, v in prose_params.items():
+        merged.setdefault(k, v)
+    if merged:
+        st.dataframe([
+            {"Paraméter": k, "Érték": v, "Forrás": "NJT – hatályos rendelet / melléklet", "Bizonyosság": "forrásszövegből kinyert"}
+            for k, v in merged.items()
+        ], use_container_width=True, hide_index=True)
+    else:
+        st.info("Az övezeti kódhoz nem sikerült biztonságosan strukturált számszerű paramétereket kinyerni az NJT letöltött szövegéből.")
+    if contexts:
+        with st.expander("NJT nyers forráskörnyezet – ellenőrzéshez", expanded=False):
+            for i, c in enumerate(contexts[:5], 1):
+                st.markdown(f"**{i}. találat**")
+                st.write(c)
+
 def render_reference_card(town, hrsz, zone=None, zone_verified=False):
     st.markdown("## Telek-adatlap")
     c1, c2, c3 = st.columns(3)
@@ -805,7 +853,7 @@ def render_reference_card(town, hrsz, zone=None, zone_verified=False):
             )
 
 st.title("TelekElőírás AI")
-st.caption("v4.0 • E-közmű telekazonosítás + NJT szabályozás + forrásolt telek-adatlap")
+st.caption("v4.1 • E-közmű telekazonosítás + NJT szabályozás + forrásolt telek-adatlap")
 
 with st.sidebar:
     st.header("Telek")
@@ -836,7 +884,7 @@ with st.sidebar:
         help="Csak teszteléshez. Nem helyettesíti az automatikus térbeli meghatározást.",
     ).strip()
 
-    run = st.button("v4.0 telekvizsgálat indítása", type="primary", use_container_width=True)
+    run = st.button("v4.1 telekvizsgálat indítása", type="primary", use_container_width=True)
 
 if not run:
     st.markdown(
@@ -879,7 +927,7 @@ hits = []
 if plan is not None:
     try:
         plan_doc = fitz.open(stream=plan.getvalue(), filetype="pdf")
-        hits = native_search(plan_doc, clean_hrsz)
+        hits = find_hrsz(plan_doc, clean_hrsz)
         if hits:
             source_status(
                 "Szabályozási terv – hrsz. térbeli találat",
@@ -990,6 +1038,8 @@ else:
                 "A rendeletszövegből nem nyerhető ki biztonságosan minden számszerű paraméter. "
                 "Ezek elsődleges forrása az NJT övezeti melléklete."
             )
+
+        show_zone_parameter_card(njt_text, zone)
     else:
         st.info("Övezetspecifikus előírásokat csak igazolt övezeti besorolás után alkalmazunk a telekre.")
 
