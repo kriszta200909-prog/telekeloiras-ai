@@ -1,4 +1,4 @@
-# TelekElőírás AI v8.0
+# TelekElőírás AI v7.1
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -16,13 +16,11 @@ from urllib.parse import urljoin
 
 import fitz
 import streamlit as st
-import pytesseract
-from pytesseract import Output
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v8.0",
+    page_title="TelekElőírás AI v7.1",
     page_icon="🏗️",
     layout="wide",
 )
@@ -74,7 +72,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/8.0",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/7.1",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -323,101 +321,6 @@ def visible_rect(page, pdf_rect):
     return fitz.Rect(pdf_rect) * page.rotation_matrix
 
 
-def _ocr_normalize(value):
-    """OCR-szöveg összehasonlításhoz: szóközök és gyakori elválasztók nélkül."""
-    return re.sub(r"[^0-9/]", "", str(value or ""))
-
-
-def _ocr_page(page, zoom=1.6):
-    """Egy PDF-oldal OCR-e koordinátákkal. Csak akkor fut, ha a natív keresés nem talált hrsz-t."""
-    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
-    image = Image.open(io.BytesIO(pix.tobytes("png"))).convert("L")
-    # Enyhe kontrasztnövelés a vékony CAD-feliratokhoz.
-    image = ImageOps.autocontrast(image)
-    data = pytesseract.image_to_data(
-        image, lang="eng", config="--psm 11", output_type=Output.DICT
-    )
-    return image, data
-
-
-def find_hrsz_ocr(doc, hrsz, max_pages=80):
-    """Célzott tartalék OCR: a helyrajzi számot keresi, nem az egész PDF szövegét építi újra."""
-    target = _ocr_normalize(hrsz)
-    if not target:
-        return []
-
-    hits = []
-    page_count = min(len(doc), max_pages)
-    for page_no in range(page_count):
-        page = doc[page_no]
-        try:
-            image, data = _ocr_page(page)
-        except Exception:
-            continue
-
-        tokens = [clean_text(x) for x in data.get("text", [])]
-        n = len(tokens)
-        # A hrsz. lehet egy OCR-tokenben (2200/8), vagy 2-3 részre törve (2200 / 8).
-        for i in range(n):
-            for width in (1, 2, 3):
-                if i + width > n:
-                    continue
-                joined = "".join(tokens[i:i+width])
-                if _ocr_normalize(joined) != target:
-                    continue
-
-                xs=[]; ys=[]; x2s=[]; y2s=[]
-                for j in range(i, i+width):
-                    x=int(data["left"][j]); y=int(data["top"][j])
-                    w=int(data["width"][j]); h=int(data["height"][j])
-                    xs.append(x); ys.append(y); x2s.append(x+w); y2s.append(y+h)
-                if not xs:
-                    continue
-
-                # Képpixel -> PDF-koordináta.
-                rect = fitz.Rect(
-                    min(xs) * page.rect.width / image.width,
-                    min(ys) * page.rect.height / image.height,
-                    max(x2s) * page.rect.width / image.width,
-                    max(y2s) * page.rect.height / image.height,
-                )
-                hits.append({
-                    "page_number": page_no,
-                    "pdf_rect": rect,
-                    "method": "OCR",
-                })
-                return hits
-    return hits
-
-
-def ocr_zone_candidates(page, pdf_rect, radius=220, zoom=2.2):
-    """Csak a megtalált hrsz környezetét OCR-ezi, és ott keres övezeti kódot."""
-    clip = fitz.Rect(
-        max(page.rect.x0, pdf_rect.x0-radius),
-        max(page.rect.y0, pdf_rect.y0-radius),
-        min(page.rect.x1, pdf_rect.x1+radius),
-        min(page.rect.y1, pdf_rect.y1+radius),
-    )
-    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), clip=clip, alpha=False)
-    image = Image.open(io.BytesIO(pix.tobytes("png"))).convert("L")
-    image = ImageOps.autocontrast(image)
-    try:
-        text = pytesseract.image_to_string(image, lang="eng", config="--psm 11")
-    except Exception:
-        return []
-
-    # OCR gyakran szóközt tesz a / köré; ezt egységesítjük.
-    text = re.sub(r"\s*/\s*", "/", text)
-    found=[]; seen=set()
-    for match in ZONE_PATTERN.finditer(text):
-        code = re.sub(r"\s*/\s*", "/", match.group(0))
-        key=code.casefold()
-        if key not in seen:
-            seen.add(key)
-            found.append({"Övezeti kód": code, "Forrás": "OCR – hrsz. környezete"})
-    return found[:12]
-
-
 def render_page(page, zoom=0.75):
     pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
     return Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
@@ -535,31 +438,23 @@ def locate_parcel(doc, hrsz):
         }
 
     hits = find_hrsz(doc, hrsz)
-    method = "natív PDF-szöveg"
-    if not hits:
-        hits = find_hrsz_ocr(doc, hrsz)
-        method = "OCR"
     if not hits:
         return {
             "status": "parcel_not_found",
             "hit": None,
             "candidates": [],
             "zone": "",
-            "method": "",
         }
 
     hit = hits[0]
     page = doc[hit["page_number"]]
     candidates = zone_candidates(page, hit["pdf_rect"])
-    if not candidates:
-        candidates = ocr_zone_candidates(page, hit["pdf_rect"])
 
     return {
         "status": "candidate" if candidates else "zone_not_found",
         "hit": hit,
         "candidates": candidates,
         "zone": candidates[0]["Övezeti kód"] if candidates else "",
-        "method": method,
     }
 
 
@@ -735,8 +630,7 @@ def try_auto_plan(attachments):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v8.0 • célzott OCR • hivatalos forrás → szabályozási terv → "
-        "telek → övezeti jelölt → forrásolt előírások"
+        "v7.1 • OCR nélkül • NJT → szabályozási terv → telek → övezet → előírások"
     )
 
     with st.sidebar:
@@ -757,9 +651,17 @@ def main():
                 placeholder="https://njt.jog.gov.hu/jogszabaly/...",
             )
             manual_zone = st.text_input(
-                "Kézzel ellenőrzött övezeti kód",
+                "E-közműben / hivatalos térképen ellenőrzött övezeti kód",
                 value="",
                 placeholder="pl. Gip/3",
+                help=(
+                    "Csak akkor add meg, ha a telek helyét és az övezeti jelet "
+                    "hivatalos térképen ténylegesen ellenőrizted."
+                ),
+            )
+            map_verified = st.checkbox(
+                "A helyrajzi számot és a telek helyét hivatalos térképen ellenőriztem",
+                value=False,
             )
 
         start = st.button(
@@ -770,9 +672,13 @@ def main():
 
         st.divider()
         st.link_button(
-            "E-közmű térkép megnyitása",
+            "E-közmű térkép megnyitása – telek ellenőrzése",
             EKOZMU_MAP,
             use_container_width=True,
+        )
+        st.caption(
+            "Az E-közmű itt hivatalos térképi ellenőrzési forrás. "
+            "A program nem állítja, hogy publikus API-ból automatikusan kiolvasta az övezetet."
         )
 
     if not start:
@@ -879,14 +785,14 @@ def main():
         )
     elif spatial["status"] == "parcel_not_found":
         st.error(
-            "A helyrajzi számot sem a PDF natív szövegrétegében, sem a célzott OCR-rel "
-            "nem sikerült megtalálni. A program ezért nem állapít meg övezetet."
+            "A helyrajzi számot nem találtam meg a szabályozási terv natív "
+            "szövegrétegében. A v7.1 nem használ OCR-t."
         )
     else:
         hit = spatial["hit"]
         st.success(
             f"A helyrajzi szám megtalálva a szabályozási terv "
-            f"{hit['page_number'] + 1}. PDF-oldalán ({spatial.get('method', 'azonosítás')})."
+            f"{hit['page_number'] + 1}. PDF-oldalán."
         )
         page_obj = plan_doc[hit["page_number"]]
         st.image(
@@ -904,10 +810,18 @@ def main():
     zone = clean_text(manual_zone) or auto_zone
 
     if manual_zone.strip():
-        st.warning(
-            f"Kézzel megadott ellenőrzési kód: **{manual_zone.strip()}**. "
-            "Ezt a program nem minősíti automatikusan térben igazolt besorolásnak."
-        )
+        if map_verified:
+            st.success(
+                f"Hivatalos térképen ellenőrzött övezeti kód: **{manual_zone.strip()}**. "
+                "A kód felhasználói térképi ellenőrzésből származik; a program ezt nem "
+                "automatikus geometriai metszésként állítja."
+            )
+        else:
+            st.warning(
+                f"Kézzel megadott övezeti kód: **{manual_zone.strip()}**. "
+                "Jelöld az ellenőrzőnégyzetet csak akkor, ha a telek helyét hivatalos "
+                "térképen ténylegesen ellenőrizted."
+            )
     elif auto_zone:
         st.warning(
             f"A hrsz. közelében talált első övezeti jelölt: **{auto_zone}**. "
@@ -958,10 +872,12 @@ def main():
     st.header("7. Forrásolt telek-adatlap")
 
     spatial_status = (
-        "közeli dokumentumalapú jelölt"
-        if auto_zone and not manual_zone.strip()
-        else "kézi ellenőrzési adat"
+        "hivatalos térképen felhasználó által ellenőrzött"
+        if manual_zone.strip() and map_verified
+        else "kézzel megadott, még nem igazolt"
         if manual_zone.strip()
+        else "közeli dokumentumalapú jelölt"
+        if auto_zone
         else "nincs igazolva"
     )
 
@@ -969,8 +885,8 @@ def main():
         {
             "Adat": "Telek",
             "Eredmény": f"{town} {normalize_hrsz(hrsz)}",
-            "Forrás": "felhasználói adat / hivatalos térképen ellenőrzendő",
-            "Bizonyosság": "ellenőrzendő",
+            "Forrás": "felhasználói adat + hivatalos térképi ellenőrzés" if map_verified else "felhasználói adat / hivatalos térképen ellenőrzendő",
+            "Bizonyosság": "térképen ellenőrzött" if map_verified else "ellenőrzendő",
         },
         {
             "Adat": "HÉSZ/TÉSZ",
@@ -992,9 +908,9 @@ def main():
         },
         {
             "Adat": "Közműérintettség",
-            "Eredmény": "kézi térképi ellenőrzés",
-            "Forrás": "E-közmű",
-            "Bizonyosság": "nincs automatizálva",
+            "Eredmény": "térképi ellenőrzés elvégezve" if map_verified else "kézi térképi ellenőrzés szükséges",
+            "Forrás": "E-közmű / hivatalos térkép",
+            "Bizonyosság": "felhasználó által ellenőrzött" if map_verified else "nincs automatizálva",
         },
     ]
     st.dataframe(summary, hide_index=True, use_container_width=True)
