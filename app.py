@@ -7,19 +7,19 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v2.6.1
+# TELEKELŐÍRÁS AI v2.7
 # NATÍV PDF HELYMEGHATÁROZÁS – ELLENŐRZÖTT ROTÁCIÓS LEKÉPEZÉS
 # =========================================================
 
 st.set_page_config(
-    page_title="TelekElőírás AI v2.6.1",
+    page_title="TelekElőírás AI v2.7",
     page_icon="🏗️",
     layout="wide",
 )
 
 
 
-# --- v2.6.1: övezeti jelöltek diagnosztikája ---
+# --- v2.7: övezeti jelöltek diagnosztikája ---
 import re as _zone_re
 import math as _zone_math
 
@@ -159,7 +159,7 @@ def find_hrsz(doc, hrsz: str):
 
 def visible_rect(page, pdf_rect):
     """
-    FONTOS v2.6.1:
+    FONTOS v2.7:
     A search_for() találatára NEM alkalmazunk page.transformation_matrix-ot.
 
     A vizsgált Tiszaújváros CAD-PDF-ben a keresési találat koordinátája
@@ -246,14 +246,14 @@ def parcel_crop(page, visible_hit, scale=0.10, zoom=0.75):
 
 st.title("TelekElőírás AI")
 st.caption(
-    "v2.6.1 • natív PDF-szövegkeresés • helyes rotation_matrix leképezés • "
+    "v2.7 • natív PDF-szövegkeresés • helyes rotation_matrix leképezés • "
     "OCR nélkül • telekhely-ellenőrzési verzió"
 )
 
 with st.sidebar:
     st.header("Tesztforrások")
     st.info(
-        "A v2.6.1 célja kizárólag a telek helyének biztos meghatározása. "
+        "A v2.7 célja kizárólag a telek helyének biztos meghatározása. "
         "A helyrajzi számot a PDF kereshető szövegrétegében keresi, majd a "
         "találatot közvetlenül page.rotation_matrix-szal vetíti a látható tervlapra. "
         "page.transformation_matrix nincs használva."
@@ -285,7 +285,7 @@ town = c1.text_input("Település", "Tiszaújváros")
 hrsz = c2.text_input("Helyrajzi szám", "2200/8")
 
 if st.button(
-    "v2.6.1 ellenőrzött telekhely keresés indítása",
+    "v2.7 övezeti diagnosztika indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -386,7 +386,7 @@ if st.button(
 # ============================================================
 # v2.7 – övezeti jelöltek vizuális diagnosztikája
 # ============================================================
-# A v2.6.1 által előállított zone_candidates listát használja.
+# A v2.7 által előállított zone_candidates listát használja.
 # Nem választ automatikusan övezetet: a legközelebbi értelmes
 # jelölteket sorszámozva rárajzolja a tervre.
 
@@ -502,7 +502,7 @@ def v27_zone_diagnostic(page, zone_candidates, parcel_rect, max_candidates=10, z
 
 
 # --- v2.7 UI ---
-# Csak akkor fut, ha a v2.6.1 változói már léteznek.
+# Csak akkor fut, ha a v2.7 változói már léteznek.
 try:
     if "page" in globals() and "zone_candidates" in globals() and "vrect" in globals():
         st.divider()
