@@ -751,78 +751,117 @@ def fetch_njt_text(url):
 
 
 
-def _streamlit_secret(name, default=""):
-    try:
-        return st.secrets.get(name, default)
-    except Exception:
-        return default
+def official_web_zone_search(town: str, hrsz: str):
+    """Ingyenes webes fallback: nyilvános keresőindex + hivatalos források.
+
+    Nem használ fizetős AI/API-t. A találatot csak akkor tekinti igazoltnak,
+    ha hivatalos oldal/dokumentum szövegében a hrsz és az övezeti kód érdemi
+    közelségben együtt szerepel. Egyébként csak jelöltet ad vissza.
+    """
+    town = normalize_text(town).strip()
+    hrsz = normalize_hrsz(hrsz)
+    domains = ("njt.jog.gov.hu", "or.njt.hu", "kormanyhivatalok.hu", ".gov.hu", ".hu")
+    queries = [
+        f'"{town}" "{hrsz}" "Gip"',
+        f'"{town}" "{hrsz}" "építési övezet"',
+        f'"{town}" "{hrsz}" "övezet"',
+        f'"{town}" "{hrsz}" "szabályozási terv"',
+    ]
+    urls, seen = [], set()
+    for q in queries:
+        search_url = "https://html.duckduckgo.com/html/?" + urllib.parse.urlencode({"q": q})
+        try:
+            req = urllib.request.Request(search_url, headers={"User-Agent":"Mozilla/5.0 TelekEloirasAI/4.4-free","Accept-Language":"hu-HU,hu;q=0.9"})
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                html = resp.read().decode(resp.headers.get_content_charset() or "utf-8", errors="replace")
+            parser = _HTMLLinkExtractor(); parser.feed(html)
+            for title, href in parser.links:
+                u = _clean_search_redirect(href)
+                if not u.startswith("http") or u in seen:
+                    continue
+                host = urllib.parse.urlparse(u).netloc.lower()
+                if not any(d in host for d in domains):
+                    continue
+                seen.add(u); urls.append((normalize_text(title), u))
+        except Exception:
+            continue
+
+    zone_rx = re.compile(r'(?<![A-Za-z0-9ÁÉÍÓÖŐÚÜŰáéíóöőúüű])((?:Gip|Gksz|Gá|Ge|Gipe|Gipez|Lke|Lk|Lf|Ln|Vt|Üü|Üh|Köu|Kök|Köm|Má|Mk|Ev|Eg|Kst|Ksp|Kte|Kap|Ksz|Ke|Kcs|Kre|Kkm|Kmg|Kb)\s*(?:[/_-]\s*[A-Za-z0-9ÁÉÍÓÖŐÚÜŰáéíóöőúüű.-]+)+)', re.I)
+    evidence=[]
+    for title,u in urls[:20]:
+        try:
+            if u.lower().split('?')[0].endswith('.pdf'):
+                raw=fetch_pdf_bytes(u)
+                doc=fitz.open(stream=raw,filetype='pdf')
+                chunks=[]
+                for pno in range(min(len(doc),250)):
+                    txt=extract_page_text(doc[pno])
+                    if hrsz.lower() in txt.lower() or hrsz.replace('/',' / ').lower() in txt.lower():
+                        chunks.append((pno+1,txt))
+                doc.close()
+                for page_no,txt in chunks:
+                    for sn in snippets_around(txt, hrsz, radius=1600):
+                        zones=[canonical_zone(m.group(1).replace(' ','')) for m in zone_rx.finditer(sn)]
+                        zones=[z for z in zones if z]
+                        if zones:
+                            evidence.append({"zone":zones[0],"url":u,"title":title,"detail":f"PDF {page_no}. oldal: hrsz és övezeti kód egy szövegkörnyezetben"})
+            else:
+                req=urllib.request.Request(u,headers={"User-Agent":"Mozilla/5.0 TelekEloirasAI/4.4-free","Accept-Language":"hu-HU,hu;q=0.9"})
+                with urllib.request.urlopen(req,timeout=20) as resp:
+                    raw=resp.read()
+                    ctype=(resp.headers.get('Content-Type') or '').lower()
+                if 'pdf' in ctype:
+                    doc=fitz.open(stream=raw,filetype='pdf'); txt=' '.join(extract_page_text(doc[i]) for i in range(len(doc))); doc.close()
+                else:
+                    parser=_HTMLTextExtractor(); parser.feed(raw.decode('utf-8',errors='replace')); txt=parser.text()
+                for sn in snippets_around(txt, hrsz, radius=1600):
+                    zones=[canonical_zone(m.group(1).replace(' ','')) for m in zone_rx.finditer(sn)]
+                    zones=[z for z in zones if z]
+                    if zones:
+                        evidence.append({"zone":zones[0],"url":u,"title":title,"detail":"hrsz és övezeti kód egy hivatalos szövegkörnyezetben"})
+        except Exception:
+            continue
+    if evidence:
+        counts={}
+        for e in evidence: counts[e['zone']]=counts.get(e['zone'],0)+1
+        best=max(counts,key=counts.get)
+        best_ev=[e for e in evidence if e['zone']==best]
+        status='verified' if any('njt.jog.gov.hu' in e['url'] or 'or.njt.hu' in e['url'] for e in best_ev) else 'candidate'
+        return {"status":status,"zone":best,"confidence":"magas" if status=='verified' else "közepes","reason":"Hivatalos webes forrásban a hrsz és az övezeti kód együtt szerepel.","evidence":best_ev}
+    return {"status":"not_found","zone":"","confidence":"nincs","reason":"A nyilvánosan indexelt hivatalos webes forrásokban nem találtam explicit hrsz–övezet kapcsolatot.","evidence":[]}
 
 
-def openai_web_zone_search(town: str, hrsz: str):
-    # OpenAI Responses API + beépített web_search. Csak explicit hrsz–övezet kapcsolatot igazol.
-    api_key = (_streamlit_secret("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY", "")).strip()
-    if not api_key:
-        return {"status":"no_key","zone":"","confidence":"nincs","reason":"Az OPENAI_API_KEY nincs beállítva a Streamlit Secrets-ben.","sources":[],"raw":""}
+def full_zone_codes_from_docs(*docs):
+    """Összegyűjti a teljes alövezeti kódokat (pl. Gip/3) a natív PDF-szövegből."""
+    rx = re.compile(r'(?<![A-Za-z0-9ÁÉÍÓÖŐÚÜŰáéíóöőúüű])((?:Gip|Gksz|Gá|Ge|Gipe|Gipez|Lke|Lk|Lf|Ln|Vt|Üü|Üh|Köu|Kök|Köm|Má|Mk|Ev|Eg|Kst|Ksp|Kte|Kap|Ksz|Ke|Kcs|Kre|Kkm|Kmg|Kb)\s*(?:[/_-]\s*[A-Za-z0-9ÁÉÍÓÖŐÚÜŰáéíóöőúüű.-]+)+)', re.I)
+    out=set()
+    for doc in docs:
+        if doc is None: continue
+        for pno in range(len(doc)):
+            txt=extract_page_text(doc[pno])
+            for m in rx.finditer(txt):
+                z=canonical_zone(re.sub(r'\s+','',m.group(1)))
+                if z: out.add(z)
+    return sorted(out)
 
-    prompt = f"""Te egy magyar településrendezési forráskutató modul vagy.
-Feladat: állapítsd meg webes kereséssel a(z) {town}, {hrsz} helyrajzi számú KONKRÉT ingatlan hatályos építési övezetét/övezetét.
 
-Keresési stratégia:
-1. Keress pontosan a település + helyrajzi szám kombinációra.
-2. Keress hivatalos forrásokban és PDF-ekben: njt.jog.gov.hu, or.njt.hu, a települési önkormányzat honlapja, kormanyhivatalok.hu, kormányzati/jogszabályi dokumentumok.
-3. Keresd a szabályozási tervet, HÉSZ/TÉSZ mellékleteket, hatósági határozatokat és olyan dokumentumot, amely a hrsz.-t övezeti kóddal explicit összekapcsolja.
-4. Másodlagos forrás csak nyom lehet; az övezeti eredményhez elsődleges/hivatalos forrás szükséges.
-5. Ne következtess pusztán abból, hogy milyen létesítmény működik a telken.
-6. Ha a forrás csak övezetcsoportot (pl. Gip) bizonyít, de alövezetet nem, csak azt add vissza.
-7. Ha nincs elég bizonyíték, zone legyen üres és status legyen candidate vagy not_found.
-
-Kizárólag JSON objektumot adj vissza, markdown nélkül:
-{{"status":"verified|candidate|not_found","zone":"övezeti kód vagy üres","confidence":"magas|közepes|alacsony","reason":"rövid indoklás magyarul","evidence":["bizonyíték 1","bizonyíték 2"]}}"""
-
-    body = {
-        "model": "gpt-5.5",
-        "tools": [{"type":"web_search","search_context_size":"high"}],
-        "tool_choice": "required",
-        "include": ["web_search_call.action.sources"],
-        "input": prompt,
-    }
-    req = urllib.request.Request(
-        "https://api.openai.com/v1/responses",
-        data=json.dumps(body).encode("utf-8"),
-        headers={"Authorization":f"Bearer {api_key}","Content-Type":"application/json","User-Agent":"TelekEloirasAI/4.4"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except Exception as e:
-        return {"status":"error","zone":"","confidence":"nincs","reason":str(e),"sources":[],"raw":""}
-
-    text_parts, sources = [], []
-    for item in data.get("output", []):
-        if item.get("type") == "message":
-            for c in item.get("content", []):
-                if c.get("type") == "output_text":
-                    text_parts.append(c.get("text", ""))
-                    for a in c.get("annotations", []) or []:
-                        if a.get("type") == "url_citation":
-                            u = a.get("url")
-                            if u and u not in [x.get("url") for x in sources]:
-                                sources.append({"title":a.get("title",u),"url":u})
-        elif item.get("type") == "web_search_call":
-            for src in (item.get("action") or {}).get("sources", []) or []:
-                u = src.get("url")
-                if u and u not in [x.get("url") for x in sources]:
-                    sources.append({"title":src.get("title",u),"url":u})
-
-    raw = "\n".join(text_parts).strip()
-    cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.I|re.S).strip()
-    try:
-        result = json.loads(cleaned)
-    except Exception:
-        result = {"status":"candidate","zone":"","confidence":"alacsony","reason":"A webes keresés válasza nem volt szabályos JSON.","evidence":[]}
-    result["sources"], result["raw"] = sources, raw
-    return result
+def spatial_full_zone_candidates(page, visible_hit, full_codes, radius_factor=160):
+    """A hrsz körül konkrét alövezeti kódokat keres search_for()-ral (pl. Gip/3)."""
+    cx=(visible_hit.x0+visible_hit.x1)/2; cy=(visible_hit.y0+visible_hit.y1)/2
+    base=max(visible_hit.width,visible_hit.height,8); max_dist=base*radius_factor
+    found=[]; seen=set()
+    for code in full_codes:
+        variants={code, code.replace('/',' / '), code.replace('/','/ '), code.replace('/',' /')}
+        for v in variants:
+            for rect in page.search_for(v):
+                vr=visible_rect(page,rect); wx=(vr.x0+vr.x1)/2; wy=(vr.y0+vr.y1)/2
+                dist=((wx-cx)**2+(wy-cy)**2)**0.5
+                if dist>max_dist: continue
+                key=(code,round(vr.x0,1),round(vr.y0,1))
+                if key in seen: continue
+                seen.add(key); found.append({"Övezeti kód":code,"Felirat":v,"Távolság":round(dist,1),"_rect":vr})
+    found.sort(key=lambda r:r['Távolság'])
+    return found
 
 def njt_snippets(text, term, radius=650, max_items=20):
     if not text or not term:
@@ -1122,7 +1161,7 @@ def render_reference_card(town, hrsz, zone=None, zone_verified=False):
             )
 
 st.title("TelekElőírás AI")
-st.caption("v4.4 • automatikus HÉSZ/NJT + OpenAI webes övezetkutatás + hrsz. keresés + forrásolt telek-adatlap")
+st.caption("v4.4 • automatikus HÉSZ/NJT + ingyenes hivatalos webes övezetkutatás + hrsz. keresés + forrásolt telek-adatlap")
 
 with st.sidebar:
     st.header("Telek")
@@ -1326,7 +1365,10 @@ elif plan_doc is not None and hits:
     page = plan_doc[hits[0]["page_number"]]
     vh = visible_rect(page, hits[0]["pdf_rect"])
     allowed = [r["Övezeti kód"] for r in dictionary if r.get("Bizonyosság") in ("erős", "közepes")]
-    candidates = spatial_zone_candidates(page, vh, allowed, radius_factor=90)
+    full_codes = full_zone_codes_from_docs(zone_doc, plan_doc)
+    candidates = spatial_full_zone_candidates(page, vh, full_codes, radius_factor=180)
+    if not candidates:
+        candidates = spatial_zone_candidates(page, vh, allowed, radius_factor=90)
     if candidates:
         auto_zone = candidates[0]['Övezeti kód']
         zone = auto_zone
@@ -1348,31 +1390,31 @@ else:
 # v4.4: webes fallback, ha a PDF-alapú vizsgálat nem adott igazolt övezetet.
 web_zone_result = None
 if not zone_verified:
-    with st.spinner(f"Webes forráskutatás az övezetre: {town} {clean_hrsz}…"):
-        web_zone_result = openai_web_zone_search(town, clean_hrsz)
+    with st.spinner(f"Ingyenes hivatalos webes forráskutatás az övezetre: {town} {clean_hrsz}…"):
+        web_zone_result = official_web_zone_search(town, clean_hrsz)
 
     if web_zone_result.get("status") == "verified" and web_zone_result.get("zone"):
         zone = web_zone_result["zone"].strip()
         zone_verified = True
-        st.success(f"Webes forráskutatással igazolt övezet: **{zone}**. {web_zone_result.get('reason','')}")
+        st.success(f"Hivatalos webes forrásból igazolt övezet: **{zone}**. {web_zone_result.get('reason','')}")
     elif web_zone_result.get("zone"):
         if not zone:
             zone = web_zone_result["zone"].strip()
-        st.warning(f"Webes forráskutatás övezeti jelöltje: **{web_zone_result['zone']}** ({web_zone_result.get('confidence','')} bizonyosság). {web_zone_result.get('reason','')}")
-    elif web_zone_result.get("status") == "no_key":
-        st.warning("A webes övezetkereső nincs aktiválva. A Streamlit Secrets-ben állítsd be az `OPENAI_API_KEY` értéket.")
+        st.warning(f"Hivatalos webes forrás övezeti jelöltje: **{web_zone_result['zone']}** ({web_zone_result.get('confidence','')} bizonyosság). {web_zone_result.get('reason','')}")
     elif web_zone_result.get("status") == "error":
         st.warning(f"A webes övezetkeresés hibát adott: {web_zone_result.get('reason','')}")
     else:
         st.info(f"A webes forráskutatás sem talált kellően igazolt övezeti kódot. {web_zone_result.get('reason','')}")
 
     if web_zone_result and (web_zone_result.get("evidence") or web_zone_result.get("sources")):
-        with st.expander("Webes övezetkutatás – bizonyítékok és források", expanded=False):
+        with st.expander("Ingyenes hivatalos webes övezetkutatás – bizonyítékok és források", expanded=False):
             for e in web_zone_result.get("evidence", []):
-                st.write("• " + str(e))
-            for src in web_zone_result.get("sources", [])[:12]:
-                if src.get("url"):
-                    st.markdown(f"- [{src.get('title') or src['url']}]({src['url']})")
+                if isinstance(e, dict):
+                    st.write(f"• {e.get('detail','')} — {e.get('zone','')}")
+                    if e.get('url'):
+                        st.markdown(f"  [Forrás megnyitása]({e['url']})")
+                else:
+                    st.write("• " + str(e))
 
 render_reference_card(town, clean_hrsz, zone or None, zone_verified)
 
