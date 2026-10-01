@@ -1,4 +1,7 @@
-Flask
+streamlit>=1.38
+PyMuPDF>=1.24
+pandas>=2.2
+shapely>=2.0
+pytesseract
+Pillow
 gunicorn
-requests
-beautifulsoup4
