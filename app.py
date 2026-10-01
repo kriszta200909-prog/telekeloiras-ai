@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 # NJT-MELLÉKLET FELDERÍTÉS + NATÍV PDF HELYMEGHATÁROZÁS
 # =========================================================
 
-st.set_page_config(page_title="TelekElőírás AI v6.2", page_icon="🏗️", layout="wide")
+st.set_page_config(page_title="TelekElőírás AI v6.3", page_icon="🏗️", layout="wide")
 
 
 
@@ -1905,26 +1905,61 @@ def _v60_fetch_official_njt(url):
     """
     Közvetlenül a konkrét, már azonosított njt.jog.gov.hu/jogszabaly oldalt tölti le.
     Az or.njt.hu címet nem használjuk és nem generáljuk. A kanonikus URL-t a forrásindex tárolja.
+
+    v6.3 diagnosztika:
+    - a Render logba kiírja a kérés indulását és eredményét;
+    - HTTP-hibánál megőrzi a státuszkódot és a végső URL-t;
+    - hálózati hibánál az exception típusát és repr-jét is visszaadja.
     """
+    import sys
+    started = datetime.datetime.now(datetime.timezone.utc)
+    print(f"[NJT-DIAG] START url={url} utc={started.isoformat()}", file=sys.stderr, flush=True)
+
     try:
         r = _v52_http_get(url, timeout=25)
         html = r.text or ""
         soup = BeautifulSoup(html, "html.parser")
         txt = normalize_text(soup.get_text(" ", strip=True))
         title = normalize_text(soup.title.get_text(" ", strip=True) if soup.title else "")
+        ok = r.status_code == 200 and len(txt) > 500
+        detail = (
+            f"HTTP {r.status_code}; final_url={r.url}; "
+            f"content_type={r.headers.get('Content-Type', '')}; "
+            f"html_chars={len(html)}; text_chars={len(txt)}"
+        )
+        print(f"[NJT-DIAG] RESPONSE ok={ok} {detail}", file=sys.stderr, flush=True)
         return {
-            "ok": r.status_code == 200 and len(txt) > 500,
+            "ok": ok,
             "status_code": r.status_code,
             "url": r.url,
             "html": html,
             "text": txt,
             "title": title,
-            "error": "",
+            "error": "" if ok else "A válasz megérkezett, de nem tartalmazott elegendő feldolgozható NJT-szöveget.",
+            "diagnostic_detail": detail,
+            "exception_type": "",
         }
     except Exception as e:
+        response = getattr(e, "response", None)
+        status_code = getattr(response, "status_code", None) if response is not None else None
+        final_url = getattr(response, "url", None) if response is not None else None
+        exc_type = type(e).__name__
+        detail = f"{exc_type}: {e!r}"
+        if status_code is not None:
+            detail += f"; HTTP {status_code}"
+        if final_url:
+            detail += f"; final_url={final_url}"
+        print(f"[NJT-DIAG] ERROR {detail}", file=sys.stderr, flush=True)
         return {
-            "ok": False, "status_code": None, "url": url,
-            "html": "", "text": "", "title": "", "error": str(e)
+            "ok": False,
+            "status_code": status_code,
+            "url": final_url or url,
+            "html": "",
+            "text": "",
+            "title": "",
+            "error": str(e) or repr(e),
+            "diagnostic_detail": detail,
+            "exception_type": exc_type,
         }
 
 def _v60_validate_indexed_hesz(town, meta, page):
@@ -2043,7 +2078,9 @@ def discover_current_njt_hesz_v60(town):
                 "stage": "v6.2 közvetlen NJT újraellenőrzés",
                 "status": "HIBA",
                 "url": meta["url"],
-                "detail": page.get("error") or f"HTTP {page.get('status_code')}",
+                "detail": page.get("diagnostic_detail") or page.get("error") or f"HTTP {page.get('status_code')}",
+                "exception_type": page.get("exception_type", ""),
+                "status_code": page.get("status_code"),
             }],
             "detail": (
                 "A hivatalos NJT-forrás az indexben azonosítva van, de a Streamlit "
@@ -2063,7 +2100,7 @@ discover_current_njt_hesz = discover_current_njt_hesz_v60
 def run_v5():
     st.title("TelekElőírás AI")
     st.caption(
-        "v6.2 • telek → hatályos NJT jogszabályoldal → szabályozási terv → övezet → telekspecifikus előírások → "
+        "v6.3 • telek → hatályos NJT jogszabályoldal → szabályozási terv → övezet → telekspecifikus előírások → "
         "forrásolt döntéstámogató adatlap"
     )
 
@@ -2125,6 +2162,26 @@ def run_v5():
         if hesz.get("regulation"):
             st.write(f"**Alaprendelet:** {hesz.get('regulation')}")
         _v5_source_link("NJT – hivatalos HÉSZ/TÉSZ megnyitása", njt_url)
+
+        # v6.3: hiba esetén a valódi runtime diagnosztika a felületen is látható.
+        if hesz.get("status") == "INDEX_OK_RUNTIME_HIBA":
+            with st.expander("NJT-kapcsolati diagnosztika", expanded=True):
+                for d in hesz.get("diagnostics", []):
+                    st.code(
+                        "\n".join([
+                            f"stage: {d.get('stage', '')}",
+                            f"status: {d.get('status', '')}",
+                            f"url: {d.get('url', '')}",
+                            f"http_status: {d.get('status_code', '')}",
+                            f"exception_type: {d.get('exception_type', '')}",
+                            f"detail: {d.get('detail', '')}",
+                        ]),
+                        language="text",
+                    )
+                st.caption(
+                    "Ugyanez a Render logban [NJT-DIAG] előtaggal is megjelenik. "
+                    "Ebből már megállapítható, hogy HTTP-tiltás, timeout, SSL- vagy más hálózati hiba történt-e."
+                )
     elif hesz.get("status") == "TÖBB JELÖLT":
         st.warning("Több hivatalos HÉSZ/TÉSZ-jelölt maradt. Automatikusan nem választok közülük.")
         for c in hesz.get("candidates", [])[:5]:
