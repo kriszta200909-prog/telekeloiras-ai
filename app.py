@@ -7,12 +7,12 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v2.5
+# TELEKELŐÍRÁS AI v2.6
 # NATÍV PDF HELYMEGHATÁROZÁS – ELLENŐRZÖTT ROTÁCIÓS LEKÉPEZÉS
 # =========================================================
 
 st.set_page_config(
-    page_title="TelekElőírás AI v2.5",
+    page_title="TelekElőírás AI v2.6",
     page_icon="🏗️",
     layout="wide",
 )
@@ -62,7 +62,7 @@ def find_hrsz(doc, hrsz: str):
 
 def visible_rect(page, pdf_rect):
     """
-    FONTOS v2.5:
+    FONTOS v2.6:
     A search_for() találatára NEM alkalmazunk page.transformation_matrix-ot.
 
     A vizsgált Tiszaújváros CAD-PDF-ben a keresési találat koordinátája
@@ -149,14 +149,14 @@ def parcel_crop(page, visible_hit, scale=0.10, zoom=0.75):
 
 st.title("TelekElőírás AI")
 st.caption(
-    "v2.5 • natív PDF-szövegkeresés • helyes rotation_matrix leképezés • "
+    "v2.6 • natív PDF-szövegkeresés • helyes rotation_matrix leképezés • "
     "OCR nélkül • telekhely-ellenőrzési verzió"
 )
 
 with st.sidebar:
     st.header("Tesztforrások")
     st.info(
-        "A v2.5 célja kizárólag a telek helyének biztos meghatározása. "
+        "A v2.6 célja kizárólag a telek helyének biztos meghatározása. "
         "A helyrajzi számot a PDF kereshető szövegrétegében keresi, majd a "
         "találatot közvetlenül page.rotation_matrix-szal vetíti a látható tervlapra. "
         "page.transformation_matrix nincs használva."
@@ -188,7 +188,7 @@ town = c1.text_input("Település", "Tiszaújváros")
 hrsz = c2.text_input("Helyrajzi szám", "2200/8")
 
 if st.button(
-    "v2.5 ellenőrzött telekhely keresés indítása",
+    "v2.6 ellenőrzött telekhely keresés indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -280,3 +280,112 @@ if st.button(
     )
 
     doc.close()
+
+
+# --- v2.6: övezeti jelöltek diagnosztikája ---
+# A v2.5 telekhely-meghatározását nem módosítjuk.
+# Ez a blokk kizárólag megmutatja, milyen szöveges övezeti kódok vannak
+# a megtalált hrsz. környezetében. Nem választ győztest és nem ad besorolást.
+
+import re
+import math
+
+def _looks_like_zone_code(s):
+    s = " ".join((s or "").split()).strip()
+    if not s or len(s) > 35:
+        return False
+    # Tág diagnosztikai szűrő: pl. Gksz-..., Gip-..., Vt-..., Lke-..., Má-..., K-...
+    patterns = [
+        r"^[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]{1,8}[-–/][A-Za-z0-9ÁÉÍÓÖŐÚÜŰáéíóöőúüű./_-]{1,24}$",
+        r"^[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]{1,8}\s*[-–]\s*[A-Za-z0-9./_-]{1,24}$",
+    ]
+    return any(re.match(p, s) for p in patterns)
+
+def _zone_candidates_from_page(page, parcel_point_visible, max_distance=1800):
+    """
+    page: PyMuPDF oldal
+    parcel_point_visible: a v2.5 által már HELYESEN leképezett, látható oldali pont (x,y)
+    max_distance: diagnosztikai sugár a látható oldal koordinátáiban
+    """
+    px, py = parcel_point_visible
+    words = page.get_text("words") or []
+    out = []
+
+    # Egyedi szavak + rövid, szomszédos szókapcsolatok vizsgálata.
+    # A cél most a láthatóság, nem az automatikus döntés.
+    rows = {}
+    for w in words:
+        x0,y0,x1,y1,word,*rest = w
+        cy=(y0+y1)/2
+        key=round(cy/8)*8
+        rows.setdefault(key, []).append((x0,y0,x1,y1,str(word)))
+
+    candidates = []
+    for row in rows.values():
+        row.sort(key=lambda z:z[0])
+        for i, item in enumerate(row):
+            groups = [[item]]
+            if i+1 < len(row): groups.append([item,row[i+1]])
+            if i+2 < len(row): groups.append([item,row[i+1],row[i+2]])
+            for g in groups:
+                s=" ".join(z[4] for z in g).strip()
+                if not _looks_like_zone_code(s):
+                    continue
+                x0=min(z[0] for z in g); y0=min(z[1] for z in g)
+                x1=max(z[2] for z in g); y1=max(z[3] for z in g)
+                # Ugyanaz a rotation_matrix, amely a v2.5-ben már helyesnek bizonyult.
+                r = fitz.Rect(x0,y0,x1,y1) * page.rotation_matrix
+                cx=(r.x0+r.x1)/2; cy=(r.y0+r.y1)/2
+                d=math.hypot(cx-px, cy-py)
+                if d <= max_distance:
+                    candidates.append((d,s,r))
+
+    # duplikátumok kiszűrése
+    seen=set()
+    for d,s,r in sorted(candidates, key=lambda z:z[0]):
+        key=(s, round(r.x0,1), round(r.y0,1))
+        if key in seen: continue
+        seen.add(key)
+        out.append({"kód":s, "távolság":round(d,1), "rect":r})
+    return out[:30]
+
+def show_zone_diagnostics(page, parcel_rect_visible):
+    st.header("4. Övezeti jelöltek – diagnosztika")
+    st.info(
+        "A v2.6 itt még nem sorolja övezetbe a telket. "
+        "A biztosan megtalált helyrajzi szám környezetében lévő lehetséges "
+        "övezeti feliratokat gyűjti össze és távolság szerint rendezi."
+    )
+    parcel_point=((parcel_rect_visible.x0+parcel_rect_visible.x1)/2,
+                  (parcel_rect_visible.y0+parcel_rect_visible.y1)/2)
+    cand=_zone_candidates_from_page(page, parcel_point)
+    if not cand:
+        st.warning("A natív PDF-szövegrétegben a telek környezetében nem találtam övezeti kódnak látszó feliratot.")
+        return
+    st.success(f"{len(cand)} lehetséges övezeti feliratot találtam a vizsgált környezetben.")
+    st.dataframe(
+        [{"Sorrend":i+1, "Lehetséges övezeti kód":c["kód"], "Távolság":c["távolság"]}
+         for i,c in enumerate(cand)],
+        use_container_width=True,
+        hide_index=True
+    )
+    st.caption(
+        "A lista csak diagnosztika. A legközelebbi felirat nem feltétlenül a telek övezete; "
+        "a következő lépésben az övezethatárral való geometriai kapcsolatot vizsgáljuk."
+    )
+
+
+# v2.6 diagnosztikai bekötés a v2.5 eredményéhez.
+# Csak akkor fut, ha az alkalmazás globális névterében rendelkezésre állnak a szükséges objektumok.
+try:
+    _page_obj = globals().get("page")
+    _parcel_rect = (
+        globals().get("visible_rect")
+        or globals().get("rotated_rect")
+        or globals().get("hit_visible")
+        or globals().get("display_rect")
+    )
+    if _page_obj is not None and _parcel_rect is not None:
+        show_zone_diagnostics(_page_obj, _parcel_rect)
+except Exception as _e:
+    st.warning(f"v2.6 övezeti diagnosztika nem tudott elindulni: {_e}")
