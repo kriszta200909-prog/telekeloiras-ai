@@ -2,24 +2,23 @@
 
 Streamlit Community Cloud-ra feltölthető változat.
 
-## Aktuális verzió: v6.1
+## Aktuális verzió: v6.2
 
-A v4.4 célja, hogy a vizsgálat végén közvetlenül erre a kérdésre adjon forrásolt választ:
+A v6.2 fő javítása az NJT-forráskezelés:
+
+- a program elsődlegesen a `https://njt.jog.gov.hu/jogszabaly/...` hivatalos jogszabályoldalakat keresi és validálja;
+- Tiszaújváros HÉSZ-ének validált kanonikus forrása: `https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228`;
+- a Tiszaújváros-forrásnál nem generál `or.njt.hu` URL-t;
+- az ingyenes webes felderítő a találatot településnév, „építési szabályzat”, „szabályozási terv” és melléklet/övezeti tartalom alapján ellenőrzi;
+- történeti NJT URL-változat esetén a kanonikus jogszabályoldalt használja;
+- a kézi szabályozási terv PDF továbbra is tartalék/ellenőrzési lehetőség.
+
+## Cél
+
+A vizsgálat végén közvetlenül erre a kérdésre adjon forrásolt választ:
 
 > **Mit lehet és mit nem lehet ezen a konkrét telken csinálni, és ezt melyik hatályos forrás mondja?**
 
-A program:
-- az NJT hatályos rendeletszövegét és elérhető mellékleteit használja;
-- a helyrajzi számot a szabályozási tervben keresi;
-- az övezeti besorolást csak térbeli igazolás után kezeli telekspecifikus jogi alapként;
-- elkülöníti a megengedő, tiltó és feltételt/korlátot tartalmazó előírásokat;
-- megjeleníti a kinyerhető beépítési paramétereket és azok forrását;
-- nem állít telekspecifikus következtetést pusztán azért, mert egy korlátozástípus szerepel a TÉSZ-ben;
-- nem talál ki hiányzó adatot vagy nem dokumentált E-közmű API-végpontot.
+## GitHub / Streamlit
 
-## Fájlok
-- `app.py`
-- `requirements.txt`
-- `packages.txt`
-
-A Streamlit indítógomb felirata verziófüggetlen: **Telekvizsgálat indítása**.
+A GitHub repóban az `app.py` legyen a v6.2 fájl, és a `README.md` is ezt a verziót mutassa. A Streamlit Community Cloud az `app.py`-t futtassa.

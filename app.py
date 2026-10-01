@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 # NJT-MELLÉKLET FELDERÍTÉS + NATÍV PDF HELYMEGHATÁROZÁS
 # =========================================================
 
-st.set_page_config(page_title="TelekElőírás AI v5.1", page_icon="🏗️", layout="wide")
+st.set_page_config(page_title="TelekElőírás AI v6.2", page_icon="🏗️", layout="wide")
 
 
 
@@ -1874,7 +1874,7 @@ discover_current_njt_hesz = discover_current_njt_hesz_v52
 
 
 # =========================================================
-# v6.0 – VALIDÁLT HÉSZ-FORRÁSINDEX + RUNTIME NJT-ELLENŐRZÉS
+# v6.2 – VALIDÁLT NJT.JOG.GOV.HU HÉSZ-FORRÁS + RUNTIME ELLENŐRZÉS
 #
 # Architektúra:
 # 1) település -> validált NJT alaprendelet URL (cache/index)
@@ -1887,14 +1887,14 @@ discover_current_njt_hesz = discover_current_njt_hesz_v52
 # a hivatalos NJT-forrásból kell kiolvasni.
 # =========================================================
 
-V60_HESZ_SOURCE_INDEX = {
+V62_HESZ_SOURCE_INDEX = {
     "tiszaújváros": {
         "municipality": "Tiszaújváros",
         "title": "Tiszaújváros Építési Szabályzatáról",
         "regulation": "11/2018. (VI.12.) önkormányzati rendelet",
-        "url": "https://or.njt.hu/onkormanyzati-rendelet/2018-11-SP-1228",
-        "official_domain": "or.njt.hu",
-        "index_status": "webes kereséssel azonosított, hivatalos NJT-forrás",
+        "url": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228",
+        "official_domain": "njt.jog.gov.hu",
+        "index_status": "webes kereséssel azonosított, hivatalos NJT jogszabályoldal",
     }
 }
 
@@ -1903,8 +1903,8 @@ def _v60_key(s):
 
 def _v60_fetch_official_njt(url):
     """
-    Közvetlenül a konkrét, már azonosított NJT rendeletoldalt tölti le.
-    Itt nincs keresőmotor és nincs NJT keresőfelület.
+    Közvetlenül a konkrét, már azonosított njt.jog.gov.hu/jogszabaly oldalt tölti le.
+    Az or.njt.hu címet nem használjuk és nem generáljuk. A kanonikus URL-t a forrásindex tárolja.
     """
     try:
         r = _v52_http_get(url, timeout=25)
@@ -1935,7 +1935,7 @@ def _v60_validate_indexed_hesz(town, meta, page):
         "település": t in body or t in title,
         "építési szabályzat": ("építési szabályzat" in body or "építési szabályzat" in title),
         "rendeletazonosító": _v60_key(meta.get("regulation", "").split("önkormányzati")[0].strip())[:7] in body,
-        "NJT-domain": "or.njt.hu" in page.get("url", ""),
+        "NJT-domain": "njt.jog.gov.hu/jogszabaly/" in page.get("url", ""),
     }
     ok = checks["település"] and checks["építési szabályzat"] and checks["NJT-domain"]
     return ok, checks
@@ -1992,7 +1992,7 @@ _v60_old_discover = discover_current_njt_hesz
 
 def discover_current_njt_hesz_v60(town):
     key = _v60_key(town)
-    meta = V60_HESZ_SOURCE_INDEX.get(key)
+    meta = V62_HESZ_SOURCE_INDEX.get(key)
 
     if meta:
         page = _v60_fetch_official_njt(meta["url"])
@@ -2017,7 +2017,7 @@ def discover_current_njt_hesz_v60(town):
                     "index_status": meta["index_status"],
                     "candidates": [],
                     "diagnostics": [{
-                        "stage": "v6.0 forrásindex",
+                        "stage": "v6.2 NJT-forrásindex",
                         "status": "OK",
                         "url": page["url"],
                         "checks": checks,
@@ -2040,7 +2040,7 @@ def discover_current_njt_hesz_v60(town):
             "index_status": meta["index_status"],
             "candidates": [],
             "diagnostics": [{
-                "stage": "v6.0 közvetlen NJT újraellenőrzés",
+                "stage": "v6.2 közvetlen NJT újraellenőrzés",
                 "status": "HIBA",
                 "url": meta["url"],
                 "detail": page.get("error") or f"HTTP {page.get('status_code')}",
@@ -2054,7 +2054,7 @@ def discover_current_njt_hesz_v60(town):
     # Ismeretlen település: automatikus felderítés a korábbi lánccal.
     old = _v60_old_discover(town)
     if isinstance(old, dict):
-        old["finder"] = old.get("finder", "automatikus felderítés") + " (v6.0 fallback)"
+        old["finder"] = old.get("finder", "automatikus felderítés") + " (v6.2 fallback)"
     return old
 
 discover_current_njt_hesz = discover_current_njt_hesz_v60
@@ -2063,8 +2063,8 @@ discover_current_njt_hesz = discover_current_njt_hesz_v60
 def run_v5():
     st.title("TelekElőírás AI")
     st.caption(
-        "v6.0 • telek → validált HÉSZ-forrás → NJT → szabályozási terv → övezet → telekspecifikus előírások → szabályozási terv → övezet → "
-        "telekspecifikus előírások → forrásolt döntéstámogató adatlap"
+        "v6.2 • telek → hatályos NJT jogszabályoldal → szabályozási terv → övezet → telekspecifikus előírások → "
+        "forrásolt döntéstámogató adatlap"
     )
 
     with st.sidebar:
