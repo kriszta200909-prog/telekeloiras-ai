@@ -7,12 +7,12 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v3.1
+# TELEKELŐÍRÁS AI v3.2
 # NATÍV PDF HELYMEGHATÁROZÁS – ELLENŐRZÖTT ROTÁCIÓS LEKÉPEZÉS
 # =========================================================
 
 st.set_page_config(
-    page_title="TelekElőírás AI v3.1",
+    page_title="TelekElőírás AI v3.2",
     page_icon="🏗️",
     layout="wide",
 )
@@ -150,7 +150,7 @@ def parcel_crop(page, visible_hit, scale=0.10, zoom=0.75):
 
 
 # =========================================================
-# v3.1 – ÖVEZETI JELKULCS / SZÓTÁR FELDERÍTÉS
+# v3.2 – ÖVEZETI JELKULCS / SZÓTÁR + TELEKHELY KAPCSOLÁS
 # NINCS FIX OLDALSZÁM, NINCS OCR
 # =========================================================
 
@@ -386,7 +386,7 @@ def search_term_in_document(doc, term):
 def show_document_discovery(plan_doc, hesz_doc=None):
     st.markdown("## 4. Övezeti jelkulcs automatikus felderítése")
     st.info(
-        "A v3.1 nem ismer előre oldalszámot. A teljes natív PDF-szövegrétegből keresi meg "
+        "A v3.2 nem ismer előre oldalszámot. A teljes natív PDF-szövegrétegből keresi meg "
         "azokat az oldalakat, amelyek jelkulcsnak vagy övezeti jelölés-listának látszanak. "
         "A közmű- és szelvényfeliratokat (például DK 150 KPE, V-0-0, V-1-0) nem tekinti övezeti kódnak."
     )
@@ -423,7 +423,7 @@ def show_document_discovery(plan_doc, hesz_doc=None):
     zone_term = st.text_input(
         "Vizsgálandó övezeti kifejezés",
         value=default_term,
-        key="zone_term_v31",
+        key="zone_term_v32",
     ).strip()
 
     docs = [("Szabályozási terv", plan_doc)]
@@ -456,15 +456,144 @@ def show_document_discovery(plan_doc, hesz_doc=None):
         else:
             st.warning(f"A(z) {zone_term} kifejezést nem találtam.")
 
+
+def spatial_zone_candidates(page, visible_hit, allowed_roots, radius_factor=18):
+    """
+    v3.2: A már ellenőrzött hrsz-találat környezetében keres övezeti kódokat.
+    Nem oldalszámot kódolunk, hanem a hrsz ugyanazon tervlapján, natív PDF-szavakból
+    keressük a felismert övezeti szótár elemeit.
+    """
+    words = page.get_text("words") or []
+    cx = (visible_hit.x0 + visible_hit.x1) / 2
+    cy = (visible_hit.y0 + visible_hit.y1) / 2
+    base = max(visible_hit.width, visible_hit.height, 8)
+    max_dist = base * radius_factor
+
+    allowed = {str(x).lower(): str(x) for x in allowed_roots}
+    found = []
+    seen = set()
+
+    for w in words:
+        if len(w) < 5:
+            continue
+        raw = str(w[4]).strip()
+        tok = canonical_zone(raw)
+        if not tok or is_rejected_label(tok):
+            continue
+        root = re.split(r"[/_-]", tok, maxsplit=1)[0]
+        if root.lower() not in allowed:
+            continue
+
+        pdf_rect = fitz.Rect(w[0], w[1], w[2], w[3])
+        vr = visible_rect(page, pdf_rect)
+        wx = (vr.x0 + vr.x1) / 2
+        wy = (vr.y0 + vr.y1) / 2
+        dist = ((wx - cx) ** 2 + (wy - cy) ** 2) ** 0.5
+        if dist > max_dist:
+            continue
+
+        key = (root.lower(), round(vr.x0, 1), round(vr.y0, 1))
+        if key in seen:
+            continue
+        seen.add(key)
+        found.append({
+            "Övezeti kód": root,
+            "Felirat": raw,
+            "Távolság": round(dist, 1),
+            "_rect": vr,
+        })
+
+    found.sort(key=lambda r: r["Távolság"])
+    return found
+
+
+def marked_zone_crop(page, visible_hit, candidates, scale=0.13, zoom=0.85):
+    image = render_page(page, zoom=zoom)
+    hx0, hy0, hx1, hy1 = rect_to_pixels(page, image, visible_hit)
+    cx = (hx0 + hx1) / 2
+    cy = (hy0 + hy1) / 2
+    half_w = image.width * scale
+    half_h = image.height * scale
+    left = max(0, int(cx - half_w))
+    top = max(0, int(cy - half_h))
+    right = min(image.width, int(cx + half_w))
+    bottom = min(image.height, int(cy + half_h))
+    crop = image.crop((left, top, right, bottom))
+    draw = ImageDraw.Draw(crop)
+
+    # telek/hrsz helye: fekete célkereszt
+    hx = cx - left
+    hy = cy - top
+    rr = 15
+    draw.ellipse((hx-rr, hy-rr, hx+rr, hy+rr), outline="black", width=4)
+    draw.line((hx-rr-8, hy, hx+rr+8, hy), fill="black", width=3)
+    draw.line((hx, hy-rr-8, hx, hy+rr+8), fill="black", width=3)
+
+    # övezeti jelöltek: piros keret
+    for i, c in enumerate(candidates[:12], start=1):
+        x0, y0, x1, y1 = rect_to_pixels(page, image, c["_rect"])
+        x0 -= left; x1 -= left; y0 -= top; y1 -= top
+        pad = 7
+        draw.rectangle((x0-pad, y0-pad, x1+pad, y1+pad), outline="red", width=4)
+        draw.text((x1+10, y0-5), f"{i}: {c['Övezeti kód']}", fill="red")
+    return crop
+
+
+def show_parcel_zone_link(plan_doc, hit, dictionary, crop_scale_pct=10):
+    st.markdown("## 7. Telek és övezeti jelölés térbeli összekapcsolása")
+    st.info(
+        "Itt már nem a dokumentumban általában előforduló kódot keressük. "
+        "A korábban natív PDF-kereséssel azonosított helyrajzi szám ugyanazon tervlapján, "
+        "annak közvetlen környezetében vizsgáljuk a dokumentumokból felismert övezeti kódokat. "
+        "Fix oldalszám és OCR nincs."
+    )
+
+    page = plan_doc[hit["page_number"]]
+    vh = visible_rect(page, hit["pdf_rect"])
+    allowed = [r["Övezeti kód"] for r in dictionary if r.get("Bizonyosság") in ("erős", "közepes")]
+    candidates = spatial_zone_candidates(page, vh, allowed)
+
+    if not candidates:
+        st.warning(
+            "A telek közvetlen környezetében nem találtam kellően megbízható, "
+            "a felismert övezeti szótárhoz tartozó natív PDF-feliratot. "
+            "Ez önmagában nem jelenti azt, hogy nincs övezeti besorolás."
+        )
+        return
+
+    st.success(f"{len(candidates)} térbeli övezeti jelöltet találtam a telek környezetében.")
+    st.dataframe(
+        [{k:v for k,v in r.items() if k != "_rect"} for r in candidates[:20]],
+        use_container_width=True,
+        hide_index=True,
+    )
+    img = marked_zone_crop(
+        page, vh, candidates,
+        scale=max(0.08, min(0.22, crop_scale_pct / 100.0 + 0.03))
+    )
+    st.image(img, caption="Fekete célkereszt: hrsz helye • piros keretek: közeli, szótárból igazolt övezeti kód-jelöltek",
+             use_container_width=True)
+
+    nearest = candidates[0]
+    st.markdown("### Legközelebbi térbeli jelölt")
+    st.write(
+        f"**{nearest['Övezeti kód']}** — natív PDF-felirat: **{nearest['Felirat']}**, "
+        f"relatív távolság: **{nearest['Távolság']}**."
+    )
+    st.caption(
+        "A legközelebbi felirat még nem automatikus jogi besorolás. "
+        "A következő fejlesztési lépés a telek geometriai területének és az övezethatárnak az összevetése."
+    )
+
 st.title("TelekElőírás AI")
 st.caption(
-    "v3.1 • natív PDF-keresés • automatikus övezeti jelkulcs-felderítés • OCR nélkül"
+    "v3.2 • natív PDF-keresés • telekhely + övezeti jelölés összekapcsolása • OCR nélkül"
 )
 
 with st.sidebar:
     st.header("Tesztforrások")
     st.info(
-        "A v3.1 megtartja az ellenőrzött telekhely-meghatározást, és a teljes PDF kereshető "
+        "A v3.2 megtartja az ellenőrzött telekhely-meghatározást, és a teljes PDF kereshető "
         "szövegrétegéből automatikusan felderíti a jelkulcs-oldalakat és az övezeti kódokat. "
         "Fix oldalszámokat nem használ, és kiszűri a tipikus közmű- és szelvényjelöléseket. "
         "A helyrajzi számot a PDF kereshető szövegrétegében keresi, majd a "
@@ -498,7 +627,7 @@ town = c1.text_input("Település", "Tiszaújváros")
 hrsz = c2.text_input("Helyrajzi szám", "2200/8")
 
 if st.button(
-    "v3.1 övezeti jelkulcs felderítés indítása",
+    "v3.2 telek + övezet vizsgálat indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -530,6 +659,12 @@ if st.button(
 
         st.divider()
         show_document_discovery(doc, hesz_doc)
+
+        # v3.2: a dokumentumokból felismert övezeti szótárat összekapcsoljuk
+        # a már ellenőrzött hrsz-találat térbeli helyével.
+        if hits:
+            zone_dictionary_v32 = build_zone_dictionary(doc, hesz_doc)
+            show_parcel_zone_link(doc, hits[0], zone_dictionary_v32, crop_scale)
     finally:
         if hesz_doc is not None:
             hesz_doc.close()
