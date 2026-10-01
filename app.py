@@ -13,12 +13,12 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v4.2
+# TELEKELŐÍRÁS AI v4.3
 # NJT-MELLÉKLET FELDERÍTÉS + NATÍV PDF HELYMEGHATÁROZÁS
 # =========================================================
 
 st.set_page_config(
-    page_title="TelekElőírás AI v4.2",
+    page_title="TelekElőírás AI v4.3",
     page_icon="🏗️",
     layout="wide",
 )
@@ -557,7 +557,7 @@ def show_parcel_zone_link(plan_doc, hit, dictionary, crop_scale_pct=10):
     page = plan_doc[hit["page_number"]]
     vh = visible_rect(page, hit["pdf_rect"])
     allowed = [r["Övezeti kód"] for r in dictionary if r.get("Bizonyosság") in ("erős", "közepes")]
-    candidates = spatial_zone_candidates(page, vh, allowed)
+    candidates = spatial_zone_candidates(page, vh, allowed, radius_factor=90)
 
     if not candidates:
         st.warning(
@@ -648,7 +648,7 @@ def fetch_njt_html(url):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/4.2",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/4.3",
             "Accept-Language": "hu-HU,hu;q=0.9",
         },
     )
@@ -681,6 +681,33 @@ def discover_njt_attachments(url):
         out.append({"Megnevezés": label or "melléklet", "URL": full})
     return out
 
+
+
+def attachment_by_label(rows, wanted):
+    wanted = wanted.lower().strip()
+    for r in rows or []:
+        label = normalize_text(r.get("Megnevezés", "")).lower()
+        if label.startswith(wanted):
+            return r.get("URL")
+    return None
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def fetch_pdf_bytes(url):
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/4.3",
+            "Accept": "application/pdf,*/*;q=0.8",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=90) as resp:
+        return resp.read()
+
+
+def open_pdf_from_url(url):
+    raw = fetch_pdf_bytes(url)
+    return fitz.open(stream=raw, filetype="pdf"), len(raw)
 
 def expected_attachment_labels(njt_text):
     """A rendeletszöveg záró részéből felismeri a név szerint felsorolt mellékleteket."""
@@ -934,7 +961,7 @@ def render_reference_card(town, hrsz, zone=None, zone_verified=False):
             )
 
 st.title("TelekElőírás AI")
-st.caption("v4.2 • NJT melléklet-felderítés + E-közmű telekazonosítás + forrásolt telek-adatlap")
+st.caption("v4.3 • NJT mellékletek automatikus betöltése + hrsz. keresés + övezeti jelölt + forrásolt telek-adatlap")
 
 with st.sidebar:
     st.header("Telek")
@@ -1019,21 +1046,55 @@ except Exception as e:
     source_status("NJT rendeletszöveg", "HIBA", str(e))
 
 plan_doc = None
+zone_doc = None
 hits = []
+plan_source = ""
+
+# v4.3: az NJT-ben ténylegesen megtalált 1.1 és 1.2 mellékletet automatikusan használjuk.
+plan_url = attachment_by_label(njt_attachments, "1.1. melléklet")
+zone_url = attachment_by_label(njt_attachments, "1.2. melléklet")
+
+if plan_url:
+    try:
+        with st.spinner("NJT 1.1. szabályozási terv automatikus betöltése… (nagy PDF)"):
+            plan_doc, plan_size = open_pdf_from_url(plan_url)
+        plan_source = "NJT 1.1. melléklet – automatikusan betöltve"
+        source_status("NJT 1.1. szabályozási terv", "OK", f"{len(plan_doc)} oldal · {plan_size/1024/1024:.1f} MB")
+    except Exception as e:
+        source_status("NJT 1.1. szabályozási terv", "HIBA", str(e))
+
+if zone_url:
+    try:
+        with st.spinner("NJT 1.2. övezeti melléklet automatikus betöltése…"):
+            zone_doc, zone_size = open_pdf_from_url(zone_url)
+        source_status("NJT 1.2. övezeti melléklet", "OK", f"{len(zone_doc)} oldal · {zone_size/1024/1024:.1f} MB")
+    except Exception as e:
+        source_status("NJT 1.2. övezeti melléklet", "HIBA", str(e))
+
+# A kézzel feltöltött terv csak tartalék/diagnosztikai felülbírálás.
 if plan is not None:
     try:
+        if plan_doc is not None:
+            plan_doc.close()
         plan_doc = fitz.open(stream=plan.getvalue(), filetype="pdf")
+        plan_source = "kézzel feltöltött ellenőrző terv-PDF"
+        source_status("Szabályozási terv – kézi felülbírálás", "OK", f"{len(plan_doc)} oldal")
+    except Exception as e:
+        source_status("Szabályozási terv – kézi PDF", "HIBA", str(e))
+
+if plan_doc is not None:
+    try:
         hits = find_hrsz(plan_doc, clean_hrsz)
         if hits:
             source_status(
                 "Szabályozási terv – hrsz. térbeli találat",
                 "OK",
-                f"{hits[0]['page_number'] + 1}. oldal · {len(hits)} natív találat",
+                f"{hits[0]['page_number'] + 1}. oldal · {len(hits)} natív találat · {plan_source}",
             )
         else:
-            source_status("Szabályozási terv – hrsz. térbeli találat", "NINCS")
+            source_status("Szabályozási terv – hrsz. térbeli találat", "NINCS", "a PDF natív szövegrétegében nem található")
     except Exception as e:
-        source_status("Szabályozási terv", "HIBA", str(e))
+        source_status("Szabályozási terv – hrsz. keresés", "HIBA", str(e))
 
 st.markdown("## 2. NJT mellékletek automatikus felderítése")
 if expected:
@@ -1082,15 +1143,23 @@ if zone_verified:
     )
 elif plan_doc is not None and hits:
     # A régi közelségi keresést csak diagnosztikaként használjuk.
-    dictionary = build_zone_dictionary(plan_doc, None)
+    dictionary = build_zone_dictionary(plan_doc, zone_doc)
     page = plan_doc[hits[0]["page_number"]]
     vh = visible_rect(page, hits[0]["pdf_rect"])
     allowed = [r["Övezeti kód"] for r in dictionary if r.get("Bizonyosság") in ("erős", "közepes")]
-    candidates = spatial_zone_candidates(page, vh, allowed)
+    candidates = spatial_zone_candidates(page, vh, allowed, radius_factor=90)
     if candidates:
+        auto_zone = candidates[0]['Övezeti kód']
+        zone = auto_zone
         st.warning(
-            f"Legközelebbi diagnosztikai övezeti felirat: **{candidates[0]['Övezeti kód']}**. "
-            "Ezt a v4.0 nem tekinti automatikusan a telek övezetének."
+            f"Automatikusan felismert legközelebbi övezeti jelölt: **{auto_zone}** "
+            f"(PDF-felirat: {candidates[0]['Felirat']}, relatív távolság: {candidates[0]['Távolság']}). "
+            "Ez még jelölt, nem jogilag igazolt besorolás: a következő lépés a tényleges övezethatár-geometria vizsgálata."
+        )
+        st.image(
+            marked_zone_crop(page, vh, candidates, scale=0.20, zoom=0.85),
+            caption="Fekete célkereszt: keresett hrsz. • piros keretek: közeli övezeti feliratok",
+            use_container_width=True,
         )
     else:
         st.info("A hrsz. közvetlen közelében nincs megbízható övezeti bélyeg. Ez nagy ipari telkeknél normális lehet.")
@@ -1210,3 +1279,5 @@ st.caption(
 
 if plan_doc is not None:
     plan_doc.close()
+if zone_doc is not None:
+    zone_doc.close()
