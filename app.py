@@ -1362,7 +1362,7 @@ def _v51_search_web(query, timeout=14):
     Nincs API-kulcs. Sikertelenség esetén üres listát ad.
     """
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.0; +public-web-search)",
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.1; +public-web-search)",
         "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.6",
     }
     endpoints = [
@@ -1411,7 +1411,7 @@ def _v51_candidate_queries(town):
 
 def _v51_fetch_page(url, timeout=18):
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.0)",
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.1)",
         "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
     }
     r = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
@@ -1594,7 +1594,7 @@ _OR_NJT_SEARCH = "https://or.njt.hu/onkorm"
 
 def _v52_http_get(url, params=None, timeout=22):
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.0; official-NJT-client)",
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.1; official-NJT-client)",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
         "Cache-Control": "no-cache",
@@ -1605,7 +1605,7 @@ def _v52_http_get(url, params=None, timeout=22):
 
 def _v52_http_post(url, data=None, timeout=22):
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.0; official-NJT-client)",
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.1; official-NJT-client)",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
         "Content-Type": "application/x-www-form-urlencoded",
@@ -2111,8 +2111,19 @@ def run_v5():
         hesz = discover_current_njt_hesz(town)
 
     njt_url = hesz.get("url", "") if isinstance(hesz, dict) else ""
-    if hesz.get("status") == "OK":
-        st.success("Hatályos HÉSZ/TÉSZ-jelölt megtalálva és az NJT tartalmával visszaellenőrizve.")
+    if hesz.get("status") in ("OK", "INDEX_OK_RUNTIME_HIBA"):
+        if hesz.get("status") == "OK":
+            st.success("A hatályos HÉSZ/TÉSZ hivatalos NJT-forrása azonosítva és tartalmilag visszaellenőrizve.")
+        else:
+            st.warning(
+                "A hatályos HÉSZ/TÉSZ hivatalos NJT-forrása azonosítva van. "
+                "A Streamlit szerver pillanatnyi NJT-kapcsolata megszakadt, ezért az online "
+                "tartalmi újraellenőrzés most nem futott le."
+            )
+        if hesz.get("title"):
+            st.write(f"**{hesz.get('title')}**")
+        if hesz.get("regulation"):
+            st.write(f"**Alaprendelet:** {hesz.get('regulation')}")
         _v5_source_link("NJT – hivatalos HÉSZ/TÉSZ megnyitása", njt_url)
     elif hesz.get("status") == "TÖBB JELÖLT":
         st.warning("Több hivatalos HÉSZ/TÉSZ-jelölt maradt. Automatikusan nem választok közülük.")
@@ -2125,17 +2136,22 @@ def run_v5():
             "nem jelenti azt, hogy nincs hatályos szabályzat."
         )
 
-    njt_text = ""
-    if njt_url:
+    njt_text = hesz.get("text", "") if isinstance(hesz, dict) else ""
+    if njt_url and not njt_text and hesz.get("status") != "INDEX_OK_RUNTIME_HIBA":
         try:
             njt_text = fetch_njt_text(njt_url)
         except Exception as e:
             st.warning(f"Az NJT szövegét nem sikerült betölteni: {e}")
+    elif hesz.get("status") == "INDEX_OK_RUNTIME_HIBA":
+        st.caption(
+            "A rendelet forrásazonosítása ettől még érvényes; csak a Streamlit → NJT "
+            "aktuális hálózati kapcsolat szakadt meg."
+        )
 
     # 2. Mellékletek
     st.header("2. Szabályozási terv és mellékletek")
-    attachments = []
-    if njt_url:
+    attachments = hesz.get("attachments", []) if isinstance(hesz, dict) else []
+    if njt_url and not attachments and hesz.get("status") == "OK":
         try:
             attachments = discover_njt_attachments(njt_url)
         except Exception:
@@ -2145,10 +2161,17 @@ def run_v5():
         st.success(f"{len(attachments)} hivatalos melléklet-hivatkozást találtam.")
         st.dataframe(attachments, width="stretch", hide_index=True)
     else:
-        st.warning(
-            "Az NJT HTML-ből nem sikerült stabil közvetlen melléklet-hivatkozást kinyerni. "
-            "Ezért a feltöltött szabályozási terv használható térbeli ellenőrzésre."
-        )
+        if hesz.get("status") == "INDEX_OK_RUNTIME_HIBA":
+            st.info(
+                "A hivatalos HÉSZ forrása ismert, de az NJT szerver most megszakította a "
+                "Streamlit szerver kapcsolatát, ezért a mellékletek automatikus letöltése "
+                "ebben a futásban nem történt meg."
+            )
+        else:
+            st.warning(
+                "Az NJT HTML-ből nem sikerült stabil közvetlen melléklet-hivatkozást kinyerni. "
+                "Ezért a feltöltött szabályozási terv használható térbeli ellenőrzésre."
+            )
 
     plan_doc = _v5_open_uploaded_pdf(plan_upload)
     hesz_doc = None
