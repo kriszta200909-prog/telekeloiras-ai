@@ -13,12 +13,12 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v4.3
+# TELEKELŐÍRÁS AI v4.4
 # NJT-MELLÉKLET FELDERÍTÉS + NATÍV PDF HELYMEGHATÁROZÁS
 # =========================================================
 
 st.set_page_config(
-    page_title="TelekElőírás AI v4.3",
+    page_title="TelekElőírás AI v4.4",
     page_icon="🏗️",
     layout="wide",
 )
@@ -648,7 +648,7 @@ def fetch_njt_html(url):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/4.3",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/4.4",
             "Accept-Language": "hu-HU,hu;q=0.9",
         },
     )
@@ -697,7 +697,7 @@ def fetch_pdf_bytes(url):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/4.3",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/4.4",
             "Accept": "application/pdf,*/*;q=0.8",
         },
     )
@@ -961,7 +961,7 @@ def render_reference_card(town, hrsz, zone=None, zone_verified=False):
             )
 
 st.title("TelekElőírás AI")
-st.caption("v4.3 • NJT mellékletek automatikus betöltése + hrsz. keresés + övezeti jelölt + forrásolt telek-adatlap")
+st.caption("v4.4 • telekspecifikus lehetőségek és korlátozások + hatályos források + forrásolt telek-adatlap")
 
 with st.sidebar:
     st.header("Telek")
@@ -992,7 +992,7 @@ with st.sidebar:
         help="Csak teszteléshez. Nem helyettesíti az automatikus térbeli meghatározást.",
     ).strip()
 
-    run = st.button("v4.2 telekvizsgálat indítása", type="primary", use_container_width=True)
+    run = st.button("Telekvizsgálat indítása", type="primary", use_container_width=True)
 
 if not run:
     st.markdown(
@@ -1258,7 +1258,174 @@ st.warning(
 )
 st.link_button("Közműtérkép megnyitása", EKOZMU_MAP)
 
-st.markdown("## 8. Forrásolt összegzés")
+# =========================================================
+# v4.4 – DÖNTÉSTÁMOGATÓ TELEKSPECIFIKUS ÖSSZEFOGLALÓ
+# Cél: „Mit lehet és mit nem lehet ezen a konkrét telken csinálni,
+#       és ezt melyik hatályos forrás mondja?”
+# Csak igazolt övezetből készít telekspecifikus jogi állítást.
+# =========================================================
+
+def document_text(doc):
+    if doc is None:
+        return ""
+    return normalize_text(" ".join(extract_page_text(doc[p]) for p in range(len(doc))))
+
+
+def split_legal_sentences(text):
+    text = normalize_text(text)
+    if not text:
+        return []
+    # A §-jelet nem választjuk le önmagában; mondatvégi írásjelek mentén bontunk.
+    return [x.strip() for x in re.split(r"(?<=[.!?;])\s+", text) if len(x.strip()) >= 20]
+
+
+def zone_relevant_context(text, zone_code, radius=1800, max_items=40):
+    if not text or not zone_code:
+        return []
+    root = re.split(r"[/_-]", zone_code, maxsplit=1)[0]
+    out, seen = [], set()
+    for term in (zone_code, root):
+        for snip in njt_snippets(text, term, radius=radius, max_items=max_items):
+            if snip not in seen:
+                seen.add(snip)
+                out.append(snip)
+    return out
+
+
+def classify_rule_sentence(sentence):
+    low = sentence.lower()
+    prohibition = (
+        "nem helyezhető" in low or "nem létesíthető" in low or
+        "nem alakítható" in low or "tilos" in low or
+        "nem megengedett" in low or "nem alkalmazható" in low
+    )
+    permission = (
+        "elhelyezhető" in low or "létesíthető" in low or
+        "kialakítható" in low or "megengedett" in low
+    ) and not prohibition
+    condition = any(k in low for k in (
+        "feltétel", "kizárólag", "csak akkor", "legfeljebb", "legalább",
+        "legkisebb", "legnagyobb", "beépítettség", "zöldfelület",
+        "épületmagasság", "építménymagasság", "telekterület", "beépítési mód"
+    ))
+    if prohibition:
+        return "NEM LEHET / TILALOM"
+    if permission:
+        return "LEHET / MEGENGEDETT"
+    if condition:
+        return "FELTÉTEL / KORLÁT"
+    return None
+
+
+def extract_decision_rules(text, zone_code, source_label, source_url=""):
+    rows, seen = [], set()
+    for context in zone_relevant_context(text, zone_code):
+        for sentence in split_legal_sentences(context):
+            kind = classify_rule_sentence(sentence)
+            if not kind:
+                continue
+            # Csökkentjük a távoli, nem övezetspecifikus találatokat.
+            low = sentence.lower()
+            root = re.split(r"[/_-]", zone_code, maxsplit=1)[0].lower()
+            legal_signal = any(k in low for k in (
+                "elhelyez", "létesít", "kialakít", "tilos", "megenged",
+                "beépít", "zöldfelület", "magasság", "telekterület", "rendeltetés"
+            ))
+            if not legal_signal:
+                continue
+            key = normalize_text(sentence).lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append({
+                "Minősítés": kind,
+                "Előírás": normalize_text(sentence),
+                "Hatályos forrás": source_label,
+                "Forrás URL": source_url or "—",
+                "Bizonyosság": "forrásszövegből kinyert – tervezői ellenőrzendő",
+            })
+    return rows
+
+
+st.markdown("## 8. Mit lehet és mit nem lehet ezen a telken?")
+st.caption(
+    "Ez a rész a telekvizsgálat döntéstámogató kimenete. Csak olyan előírást kapcsol a konkrét telekhez, "
+    "amelyhez az övezeti besorolás igazolt; a pusztán közeli övezeti felirat nem elegendő."
+)
+
+if not zone_verified:
+    st.warning(
+        "A konkrét telekre vonatkozó 'lehet / nem lehet' válasz még nem adható ki megbízhatóan, "
+        "mert az építési övezet nincs térbelileg igazolva. A jelenlegi övezeti jelölt csak diagnosztikai adat."
+    )
+    st.dataframe([
+        {
+            "Kérdés": "Mit lehet / mit nem lehet?",
+            "Válasz": "még nem állapítható meg telekspecifikusan",
+            "Mi hiányzik?": "igazolt övezeti besorolás + telekspecifikus térbeli korlátozások",
+            "Elsődleges forrás": "NJT szabályozási terv + NJT HÉSZ/TÉSZ/mellékletek",
+        }
+    ], use_container_width=True, hide_index=True)
+else:
+    # Az NJT rendeletszöveget és az automatikusan betöltött 1.2 melléklet szövegét együtt vizsgáljuk.
+    zone_attachment_text = document_text(zone_doc)
+    decision_rows = []
+    decision_rows.extend(extract_decision_rules(
+        njt_text, zone, "NJT – hatályos helyi építési szabályzat", njt_url
+    ))
+    if zone_attachment_text:
+        decision_rows.extend(extract_decision_rules(
+            zone_attachment_text, zone, "NJT – 1.2. övezeti melléklet", zone_url or ""
+        ))
+
+    # Számszerű beépítési paraméterek: ezek is tényleges korlátok.
+    combined_legal_text = normalize_text((njt_text or "") + " " + (zone_attachment_text or ""))
+    table_params, _ = parse_zone_table_context(combined_legal_text, zone)
+    prose_params = extract_basic_zone_params_from_text(combined_legal_text, zone)
+    merged_params = dict(table_params)
+    for k, v in prose_params.items():
+        merged_params.setdefault(k, v)
+
+    st.success(f"A telekhez igazolt építési övezet: **{zone}**. Az alábbi válaszok ehhez az övezethez vannak kötve.")
+
+    if decision_rows:
+        # Duplikációk kiszűrése a két NJT-forrás között.
+        unique_rows, keys = [], set()
+        for r in decision_rows:
+            key = r["Előírás"].lower()
+            if key in keys:
+                continue
+            keys.add(key)
+            unique_rows.append(r)
+        order = {"LEHET / MEGENGEDETT": 0, "NEM LEHET / TILALOM": 1, "FELTÉTEL / KORLÁT": 2}
+        unique_rows.sort(key=lambda r: order.get(r["Minősítés"], 9))
+        st.dataframe(unique_rows[:30], use_container_width=True, hide_index=True)
+    else:
+        st.info(
+            "Az igazolt övezeti kód környezetéből nem sikerült kellően egyértelmű engedő vagy tiltó "
+            "mondatokat automatikusan kinyerni. A program ezért nem talál ki választ."
+        )
+
+    st.markdown("### Beépítési keretek")
+    if merged_params:
+        st.dataframe([
+            {
+                "Korlát / paraméter": k,
+                "Érték": v,
+                "Hatályos forrás": "NJT – HÉSZ/TÉSZ / övezeti melléklet",
+                "Forrás URL": zone_url or njt_url,
+            }
+            for k, v in merged_params.items()
+        ], use_container_width=True, hide_index=True)
+    else:
+        st.info("Az övezethez nem sikerült biztonságosan számszerű beépítési paramétereket kinyerni.")
+
+    st.warning(
+        "A fenti övezeti előírások mellett a telek tényleges beépíthetőségét tervi, közmű- és egyéb "
+        "hatósági korlátozások is módosíthatják. Ezek közül csak a térbelileg igazolt érintettség tekinthető telekspecifikusnak."
+    )
+
+st.markdown("## 9. Forrásolt összegzés")
 summary_rows = [
     ["Telek", f"{town} {clean_hrsz}", "E-közmű / ingatlan-nyilvántartás", "ellenőrzendő a térképen"],
     ["Övezet", zone if zone else "nincs igazolva", "NJT szabályozási terv", "igazolt" if zone_verified else "további térbeli ellenőrzés"],
