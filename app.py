@@ -1,5 +1,8 @@
 import io
 import re
+import urllib.request
+import urllib.error
+from html.parser import HTMLParser
 
 import fitz
 import streamlit as st
@@ -7,12 +10,12 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v3.2
+# TELEKELŐÍRÁS AI v3.3
 # NATÍV PDF HELYMEGHATÁROZÁS – ELLENŐRZÖTT ROTÁCIÓS LEKÉPEZÉS
 # =========================================================
 
 st.set_page_config(
-    page_title="TelekElőírás AI v3.2",
+    page_title="TelekElőírás AI v3.3",
     page_icon="🏗️",
     layout="wide",
 )
@@ -585,15 +588,174 @@ def show_parcel_zone_link(plan_doc, hit, dictionary, crop_scale_pct=10):
         "A következő fejlesztési lépés a telek geometriai területének és az övezethatárnak az összevetése."
     )
 
+
+class _HTMLTextExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.parts = []
+        self._skip = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ("script", "style", "noscript"):
+            self._skip += 1
+        elif tag in ("p", "div", "br", "li", "tr", "h1", "h2", "h3", "h4"):
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag in ("script", "style", "noscript") and self._skip:
+            self._skip -= 1
+        elif tag in ("p", "div", "li", "tr", "h1", "h2", "h3", "h4"):
+            self.parts.append("\n")
+
+    def handle_data(self, data):
+        if not self._skip:
+            self.parts.append(data)
+
+    def text(self):
+        return "\n".join(
+            line.strip() for line in "".join(self.parts).splitlines() if line.strip()
+        )
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def fetch_njt_text(url):
+    """NJT oldal letöltése és olvasható szöveggé alakítása."""
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/3.3",
+            "Accept-Language": "hu-HU,hu;q=0.9",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        raw = resp.read()
+        charset = resp.headers.get_content_charset() or "utf-8"
+    html = raw.decode(charset, errors="replace")
+    parser = _HTMLTextExtractor()
+    parser.feed(html)
+    txt = parser.text()
+    return normalize_text(txt)
+
+
+def njt_snippets(text, term, radius=650, max_items=20):
+    if not text or not term:
+        return []
+    low = text.lower()
+    needle = term.lower()
+    out = []
+    pos = 0
+    while len(out) < max_items:
+        i = low.find(needle, pos)
+        if i < 0:
+            break
+        a = max(0, i - radius)
+        b = min(len(text), i + len(term) + radius)
+        snippet = normalize_text(text[a:b])
+        if snippet and snippet not in out:
+            out.append(snippet)
+        pos = i + max(1, len(needle))
+    return out
+
+
+def score_njt_snippet(snippet):
+    low = snippet.lower()
+    score = 0
+    for word, weight in (
+        ("§", 5),
+        ("építési övezet", 5),
+        ("övezet", 3),
+        ("beépítettség", 5),
+        ("zöldfelület", 5),
+        ("épületmagasság", 5),
+        ("építménymagasság", 5),
+        ("legkisebb telek", 4),
+        ("szintterületi", 4),
+        ("elhelyezhető", 4),
+        ("nem helyezhető", 4),
+        ("rendeltetés", 3),
+        ("beépítési mód", 4),
+    ):
+        if word in low:
+            score += weight
+    return score
+
+
+def show_njt_source(njt_url, zone_term):
+    st.markdown("## 8. Hatályos jogszabályi forrás – NJT")
+    st.info(
+        "A v3.3-ban a szabályozási terv marad a térbeli forrás, "
+        "a szöveges övezeti előírásokat pedig elsődlegesen a Nemzeti Jogszabálytárból vizsgáljuk. "
+        "A program nem PDF-oldalszámot keres az NJT-ben, hanem a rendelet teljes kereshető szövegét."
+    )
+
+    if not njt_url:
+        st.warning("Nincs megadva NJT-forrás.")
+        return
+
+    try:
+        with st.spinner("NJT jogszabályi szöveg betöltése…"):
+            njt_text = fetch_njt_text(njt_url)
+    except Exception as e:
+        st.error(f"Az NJT-forrást nem sikerült betölteni: {e}")
+        return
+
+    if len(njt_text) < 500:
+        st.warning("Az NJT oldalról túl kevés szöveget sikerült kinyerni.")
+        return
+
+    st.success(f"NJT-forrás betöltve • {len(njt_text):,} karakter kereshető jogszabályszöveg.")
+
+    # Alapvető forrásellenőrzés
+    checks = []
+    for phrase in (
+        "építési övezet vagy övezet határa",
+        "építési övezet vagy övezet besorolása",
+        "telkenként betartandó beépítési mutatók",
+    ):
+        checks.append({
+            "Forrásellenőrzés": phrase,
+            "Megtalálva": "igen" if phrase.lower() in njt_text.lower() else "nem",
+        })
+    st.dataframe(checks, use_container_width=True, hide_index=True)
+
+    if not zone_term:
+        st.warning("Nincs kiválasztott övezeti kód, ezért az NJT-ben még nem végzek övezetspecifikus keresést.")
+        return
+
+    snippets = njt_snippets(njt_text, zone_term)
+    ranked = sorted(
+        [{"Pontszám": score_njt_snippet(s), "Szövegkörnyezet": s} for s in snippets],
+        key=lambda r: -r["Pontszám"],
+    )
+
+    st.markdown(f"### `{zone_term}` találatok az NJT-ben")
+    if not ranked:
+        st.warning(f"A(z) {zone_term} kifejezést nem találtam az NJT rendeletszövegében.")
+        return
+
+    st.success(f"{len(ranked)} releváns szövegkörnyezetet találtam.")
+    for i, row in enumerate(ranked[:10], start=1):
+        with st.expander(
+            f"{i}. NJT-találat • relevancia: {row['Pontszám']}",
+            expanded=(i <= 3),
+        ):
+            st.write(row["Szövegkörnyezet"])
+
+    st.caption(
+        "A v3.3 még forrás- és tartalomfelderítő verzió: az NJT-találatokból még nem állít elő "
+        "automatikusan jogi következtetést. A következő lépésben ezekből strukturált mezőket "
+        "készíthetünk (beépítettség, zöldfelület, magasság, telekméret, rendeltetés stb.)."
+    )
+
 st.title("TelekElőírás AI")
 st.caption(
-    "v3.2 • natív PDF-keresés • telekhely + övezeti jelölés összekapcsolása • OCR nélkül"
+    "v3.3 • szabályozási terv + NJT jogforrás • natív PDF • OCR nélkül"
 )
 
 with st.sidebar:
     st.header("Tesztforrások")
     st.info(
-        "A v3.2 megtartja az ellenőrzött telekhely-meghatározást, és a teljes PDF kereshető "
+        "A v3.3 megtartja az ellenőrzött telekhely-meghatározást, és a teljes PDF kereshető "
         "szövegrétegéből automatikusan felderíti a jelkulcs-oldalakat és az övezeti kódokat. "
         "Fix oldalszámokat nem használ, és kiszűri a tipikus közmű- és szelvényjelöléseket. "
         "A helyrajzi számot a PDF kereshető szövegrétegében keresi, majd a "
@@ -613,6 +775,12 @@ with st.sidebar:
         key="hesz",
     )
 
+    njt_url = st.text_input(
+        "NJT – hatályos építési szabályzat URL",
+        value="https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228",
+        help="A v3.3 tesztben ezt közvetlen jogszabályi forrásként használjuk. Később a település alapján automatikusan keressük meg.",
+    )
+
     crop_scale = st.slider(
         "Telek környezetének mérete",
         min_value=5,
@@ -627,7 +795,7 @@ town = c1.text_input("Település", "Tiszaújváros")
 hrsz = c2.text_input("Helyrajzi szám", "2200/8")
 
 if st.button(
-    "v3.2 telek + övezet vizsgálat indítása",
+    "v3.3 telek + övezet + NJT vizsgálat indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -663,8 +831,21 @@ if st.button(
         # v3.2: a dokumentumokból felismert övezeti szótárat összekapcsoljuk
         # a már ellenőrzött hrsz-találat térbeli helyével.
         if hits:
-            zone_dictionary_v32 = build_zone_dictionary(doc, hesz_doc)
-            show_parcel_zone_link(doc, hits[0], zone_dictionary_v32, crop_scale)
+            zone_dictionary_v33 = build_zone_dictionary(doc, hesz_doc)
+            show_parcel_zone_link(doc, hits[0], zone_dictionary_v33, crop_scale)
+
+            # NJT: ebben a tesztverzióban ugyanazt az övezeti kódot használjuk,
+            # amelyet a dokumentumfelderítés alapértelmezett vizsgálati kódként választ.
+            gip_v33 = next(
+                (r for r in zone_dictionary_v33 if r["Övezeti kód"].lower() == "gip"),
+                None,
+            )
+            zone_term_v33 = (
+                "Gip" if gip_v33
+                else (zone_dictionary_v33[0]["Övezeti kód"] if zone_dictionary_v33 else "")
+            )
+            st.divider()
+            show_njt_source(njt_url, zone_term_v33)
     finally:
         if hesz_doc is not None:
             hesz_doc.close()
