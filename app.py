@@ -381,3 +381,154 @@ if st.button(
     show_zone_diagnostics(page, vrect)
 
     doc.close()
+
+
+# ============================================================
+# v2.7 – övezeti jelöltek vizuális diagnosztikája
+# ============================================================
+# A v2.6.1 által előállított zone_candidates listát használja.
+# Nem választ automatikusan övezetet: a legközelebbi értelmes
+# jelölteket sorszámozva rárajzolja a tervre.
+
+def _v27_get_candidate_fields(item):
+    """Toleráns mezőkiolvasás dict / tuple jelöltekhez."""
+    if isinstance(item, dict):
+        txt = item.get("text") or item.get("code") or item.get("label") or ""
+        dist = item.get("distance")
+        rect = item.get("rect") or item.get("bbox")
+        point = item.get("point") or item.get("center")
+        return str(txt).strip(), dist, rect, point
+    if isinstance(item, (list, tuple)):
+        txt = str(item[0]).strip() if len(item) > 0 else ""
+        dist = item[1] if len(item) > 1 else None
+        rect = item[2] if len(item) > 2 else None
+        point = item[3] if len(item) > 3 else None
+        return txt, dist, rect, point
+    return "", None, None, None
+
+def _v27_plausible_zone_code(s):
+    import re
+    s = (s or "").strip()
+    if not s or len(s) > 18:
+        return False
+    # Legalább egy nagybetű és kötőjeles/kód-jellegű szerkezet.
+    # Kizárja a tipikus szöveges hamis pozitívokat (park, utca, Kálmán, acél...).
+    if not re.search(r"[A-ZÁÉÍÓÖŐÚÜŰ]", s):
+        return False
+    if re.search(r"[a-záéíóöőúüű]{3,}", s):
+        return False
+    return bool(re.fullmatch(r"[A-ZÁÉÍÓÖŐÚÜŰ0-9]+(?:[-/][A-ZÁÉÍÓÖŐÚÜŰ0-9]+)+", s) or
+                re.fullmatch(r"[A-ZÁÉÍÓÖŐÚÜŰ]{1,5}-[A-ZÁÉÍÓÖŐÚÜŰ]{1,5}", s))
+
+def _v27_center_from_rect(rect):
+    try:
+        return ((float(rect.x0)+float(rect.x1))/2, (float(rect.y0)+float(rect.y1))/2)
+    except Exception:
+        try:
+            return ((float(rect[0])+float(rect[2]))/2, (float(rect[1])+float(rect[3]))/2)
+        except Exception:
+            return None
+
+def v27_zone_diagnostic(page, zone_candidates, parcel_rect, max_candidates=10, zoom=2.0):
+    import fitz, io
+    from PIL import Image, ImageDraw, ImageFont
+
+    parsed = []
+    for raw in zone_candidates or []:
+        txt, dist, rect, point = _v27_get_candidate_fields(raw)
+        if not _v27_plausible_zone_code(txt):
+            continue
+        if point is None and rect is not None:
+            point = _v27_center_from_rect(rect)
+        if point is None:
+            continue
+        try:
+            d = float(dist) if dist is not None else 1e99
+        except Exception:
+            d = 1e99
+        parsed.append((d, txt, point))
+
+    # duplikátumok megtartása csak eltérő hely esetén
+    parsed.sort(key=lambda x: x[0])
+    parsed = parsed[:max_candidates]
+
+    if not parsed:
+        return None, []
+
+    # kivágás: telek + jelöltek befoglaló környezete, margóval
+    pts = [p for _,_,p in parsed]
+    xs = [float(p[0]) for p in pts]
+    ys = [float(p[1]) for p in pts]
+    try:
+        xs += [float(parcel_rect.x0), float(parcel_rect.x1)]
+        ys += [float(parcel_rect.y0), float(parcel_rect.y1)]
+    except Exception:
+        xs += [float(parcel_rect[0]), float(parcel_rect[2])]
+        ys += [float(parcel_rect[1]), float(parcel_rect[3])]
+
+    x0,x1,y0,y1 = min(xs),max(xs),min(ys),max(ys)
+    margin = max(120.0, 0.12*max(x1-x0, y1-y0))
+    clip = fitz.Rect(max(0,x0-margin), max(0,y0-margin),
+                     min(page.rect.width,x1+margin), min(page.rect.height,y1+margin))
+
+    pix = page.get_pixmap(matrix=fitz.Matrix(zoom,zoom), clip=clip, alpha=False)
+    img = Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB")
+    draw = ImageDraw.Draw(img)
+
+    # parcel center: fekete célkereszt
+    try:
+        pcx=(float(parcel_rect.x0)+float(parcel_rect.x1))/2
+        pcy=(float(parcel_rect.y0)+float(parcel_rect.y1))/2
+    except Exception:
+        pcx=(float(parcel_rect[0])+float(parcel_rect[2]))/2
+        pcy=(float(parcel_rect[1])+float(parcel_rect[3]))/2
+
+    def to_img(p):
+        return ((float(p[0])-clip.x0)*zoom, (float(p[1])-clip.y0)*zoom)
+
+    cx,cy=to_img((pcx,pcy))
+    draw.ellipse((cx-10,cy-10,cx+10,cy+10), outline="black", width=4)
+    draw.line((cx-16,cy,cx+16,cy), fill="black", width=3)
+    draw.line((cx,cy-16,cx,cy+16), fill="black", width=3)
+
+    # jelöltek: piros kör + sorszám
+    for i,(d,txt,p) in enumerate(parsed,1):
+        x,y=to_img(p)
+        r=15
+        draw.ellipse((x-r,y-r,x+r,y+r), outline="red", width=5)
+        draw.text((x+r+4,y-r), str(i), fill="red")
+
+    return img, parsed
+
+
+# --- v2.7 UI ---
+# Csak akkor fut, ha a v2.6.1 változói már léteznek.
+try:
+    if "page" in globals() and "zone_candidates" in globals() and "vrect" in globals():
+        st.divider()
+        st.header("6. Övezeti jelöltek – vizuális diagnosztika")
+        st.info(
+            "A program itt még nem választ övezetet. A kiszűrt, legközelebbi "
+            "övezetikód-jelölteket sorszámozva rárajzolja a 2200/8 telek környezetére. "
+            "A fekete célkereszt a telek helyét jelzi."
+        )
+        _img27, _cand27 = v27_zone_diagnostic(page, zone_candidates, vrect, 10)
+        if _img27 is None:
+            st.warning("Nem maradt megjeleníthető övezetikód-jelölt a szűrés után.")
+        else:
+            st.image(_img27, use_container_width=True)
+            import pandas as pd
+            _rows=[]
+            for _i,(_d,_txt,_p) in enumerate(_cand27,1):
+                _rows.append({
+                    "Sorszám": _i,
+                    "Övezeti kód jelölt": _txt,
+                    "Távolság a hrsz.-tól": round(_d,1) if _d < 1e98 else None
+                })
+            st.dataframe(pd.DataFrame(_rows), use_container_width=True, hide_index=True)
+            st.caption(
+                "Diagnosztikai nézet: a sorszámok alapján ellenőrizhető, "
+                "melyik övezeti felirat tartozik ténylegesen a 2200/8 telekhez."
+            )
+except Exception as _e27:
+    st.warning(f"v2.7 vizuális övezeti diagnosztika nem tudott elindulni: {_e27}")
