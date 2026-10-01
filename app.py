@@ -5,6 +5,7 @@ import urllib.error
 import urllib.parse
 import datetime
 from html.parser import HTMLParser
+from urllib.parse import urljoin
 
 import fitz
 import streamlit as st
@@ -12,12 +13,12 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v4.1
-# NATÍV PDF HELYMEGHATÁROZÁS – ELLENŐRZÖTT ROTÁCIÓS LEKÉPEZÉS
+# TELEKELŐÍRÁS AI v4.2
+# NJT-MELLÉKLET FELDERÍTÉS + NATÍV PDF HELYMEGHATÁROZÁS
 # =========================================================
 
 st.set_page_config(
-    page_title="TelekElőírás AI v4.1",
+    page_title="TelekElőírás AI v4.2",
     page_icon="🏗️",
     layout="wide",
 )
@@ -619,6 +620,86 @@ class _HTMLTextExtractor(HTMLParser):
         )
 
 
+class _HTMLLinkExtractor(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.links = []
+        self._href = None
+        self._text = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() == "a":
+            self._href = dict(attrs).get("href")
+            self._text = []
+
+    def handle_data(self, data):
+        if self._href is not None:
+            self._text.append(data)
+
+    def handle_endtag(self, tag):
+        if tag.lower() == "a" and self._href is not None:
+            self.links.append((normalize_text(" ".join(self._text)), self._href))
+            self._href = None
+            self._text = []
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def fetch_njt_html(url):
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/4.2",
+            "Accept-Language": "hu-HU,hu;q=0.9",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        raw = resp.read()
+        charset = resp.headers.get_content_charset() or "utf-8"
+    return raw.decode(charset, errors="replace")
+
+
+def discover_njt_attachments(url):
+    """A jogszabály NJT-oldalán megjelenő melléklet-hivatkozásokat tárja fel.
+    Nem feltételez előre fájlnevet vagy oldalszámot.
+    """
+    html = fetch_njt_html(url)
+    parser = _HTMLLinkExtractor()
+    parser.feed(html)
+    out, seen = [], set()
+    for text, href in parser.links:
+        if not href:
+            continue
+        label = normalize_text(text)
+        hay = (label + " " + href).lower()
+        if not any(k in hay for k in ("melléklet", "melleklet", "attachment", ".pdf")):
+            continue
+        full = urljoin(url, href)
+        key = (label, full)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({"Megnevezés": label or "melléklet", "URL": full})
+    return out
+
+
+def expected_attachment_labels(njt_text):
+    """A rendeletszöveg záró részéből felismeri a név szerint felsorolt mellékleteket."""
+    patterns = [
+        r"1\.1\.\s*melléklet[^\n]{0,180}",
+        r"1\.2\.\s*melléklet[^\n]{0,180}",
+        r"2\.1\.\s*melléklet[^\n]{0,180}",
+        r"2\.2\.\s*melléklet[^\n]{0,180}",
+        r"2\.3\.\s*melléklet[^\n]{0,180}",
+        r"2\.4\.\s*melléklet[^\n]{0,180}",
+    ]
+    rows=[]
+    for pat in patterns:
+        m=re.search(pat, njt_text or "", re.I)
+        if m:
+            rows.append(normalize_text(m.group(0)))
+    return rows
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def fetch_njt_text(url):
     """NJT oldal letöltése és olvasható szöveggé alakítása."""
@@ -853,7 +934,7 @@ def render_reference_card(town, hrsz, zone=None, zone_verified=False):
             )
 
 st.title("TelekElőírás AI")
-st.caption("v4.1 • E-közmű telekazonosítás + NJT szabályozás + forrásolt telek-adatlap")
+st.caption("v4.2 • NJT melléklet-felderítés + E-közmű telekazonosítás + forrásolt telek-adatlap")
 
 with st.sidebar:
     st.header("Telek")
@@ -884,7 +965,7 @@ with st.sidebar:
         help="Csak teszteléshez. Nem helyettesíti az automatikus térbeli meghatározást.",
     ).strip()
 
-    run = st.button("v4.1 telekvizsgálat indítása", type="primary", use_container_width=True)
+    run = st.button("v4.2 telekvizsgálat indítása", type="primary", use_container_width=True)
 
 if not run:
     st.markdown(
@@ -915,10 +996,25 @@ source_status(
 )
 
 njt_text = ""
+njt_attachments = []
+expected = []
 try:
     with st.spinner("NJT rendeletszöveg betöltése…"):
         njt_text = fetch_njt_text(njt_url)
     source_status("NJT rendeletszöveg", "OK", f"{len(njt_text):,} karakter")
+    expected = expected_attachment_labels(njt_text)
+    if expected:
+        source_status("NJT mellékletjegyzék", "OK", f"{len(expected)} név szerint felismert melléklet")
+    try:
+        njt_attachments = discover_njt_attachments(njt_url)
+        source_status(
+            "NJT melléklet-hivatkozások",
+            "OK" if njt_attachments else "RÉSZBEN",
+            f"{len(njt_attachments)} közvetlen hivatkozás felismerve" if njt_attachments else "a mellékletnevek a rendeletszövegből felismerhetők, közvetlen letöltési link nem volt kinyerhető",
+        )
+    except Exception as e:
+        njt_attachments = []
+        source_status("NJT melléklet-hivatkozások", "HIBA", str(e))
 except Exception as e:
     source_status("NJT rendeletszöveg", "HIBA", str(e))
 
@@ -939,7 +1035,25 @@ if plan is not None:
     except Exception as e:
         source_status("Szabályozási terv", "HIBA", str(e))
 
-st.markdown("## 2. Telekazonosítás")
+st.markdown("## 2. NJT mellékletek automatikus felderítése")
+if expected:
+    st.write("A rendelet szövegében név szerint hivatkozott mellékletek:")
+    for item in expected:
+        st.write(f"• {item}")
+else:
+    st.info("A rendeletszövegből nem sikerült név szerint mellékletjegyzéket felismerni.")
+
+if njt_attachments:
+    st.dataframe(njt_attachments, use_container_width=True, hide_index=True)
+    st.caption("A program ezeket közvetlenül az NJT oldal HTML-jéből tárta fel; nincs előre beégetett melléklet-fájlnév.")
+else:
+    st.warning(
+        "Az NJT rendeletoldal szövege igazolja a mellékletek létét, de a jelenlegi HTML-ből nem sikerült "
+        "stabil közvetlen fájlhivatkozást kinyerni. Emiatt a program nem talál ki letöltési URL-t. "
+        "A kézi PDF-feltöltés továbbra is ellenőrzési tartalékút."
+    )
+
+st.markdown("## 3. Telekazonosítás")
 st.write(f"**{town} {clean_hrsz} hrsz.**")
 st.write(
     "Elsődleges telekforrás: **E-közmű / állami ingatlan-nyilvántartási térképi adat**. "
@@ -957,7 +1071,7 @@ if plan_doc is not None and hits:
         use_container_width=True,
     )
 
-st.markdown("## 3. Övezeti besorolás")
+st.markdown("## 4. Övezeti besorolás")
 zone = verified_zone or ""
 zone_verified = bool(verified_zone)
 
@@ -985,7 +1099,7 @@ else:
 
 render_reference_card(town, clean_hrsz, zone or None, zone_verified)
 
-st.markdown("## 4. NJT – vonatkozó jogi előírások")
+st.markdown("## 5. NJT – vonatkozó jogi előírások")
 if not njt_text:
     st.warning("Az NJT rendeletszöveg nem áll rendelkezésre.")
 else:
@@ -1043,7 +1157,7 @@ else:
     else:
         st.info("Övezetspecifikus előírásokat csak igazolt övezeti besorolás után alkalmazunk a telekre.")
 
-st.markdown("## 5. Tervi korlátozások")
+st.markdown("## 6. Tervi korlátozások")
 restriction_terms = [
     "szabályozási vonal",
     "építési vonal",
@@ -1067,7 +1181,7 @@ st.caption(
     "A telekspecifikus érintettséget térbeli metszéssel kell igazolni."
 )
 
-st.markdown("## 6. E-közmű – közműérintettségek")
+st.markdown("## 7. E-közmű – közműérintettségek")
 st.warning(
     "A v4.0 nem hív dokumentálatlan E-közmű belső végpontot. "
     "A modul elő van készítve arra, hogy hivatalos, programozottan hozzáférhető WMS/WFS/egyéb szolgáltatás "
@@ -1075,7 +1189,7 @@ st.warning(
 )
 st.link_button("Közműtérkép megnyitása", EKOZMU_MAP)
 
-st.markdown("## 7. Forrásolt összegzés")
+st.markdown("## 8. Forrásolt összegzés")
 summary_rows = [
     ["Telek", f"{town} {clean_hrsz}", "E-közmű / ingatlan-nyilvántartás", "ellenőrzendő a térképen"],
     ["Övezet", zone if zone else "nincs igazolva", "NJT szabályozási terv", "igazolt" if zone_verified else "további térbeli ellenőrzés"],
