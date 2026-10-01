@@ -769,22 +769,13 @@ def official_web_zone_search(town: str, hrsz: str):
     ]
     urls, seen = [], set()
     for q in queries:
-        search_url = "https://html.duckduckgo.com/html/?" + urllib.parse.urlencode({"q": q})
-        try:
-            req = urllib.request.Request(search_url, headers={"User-Agent":"Mozilla/5.0 TelekEloirasAI/4.4-free","Accept-Language":"hu-HU,hu;q=0.9"})
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                html = resp.read().decode(resp.headers.get_content_charset() or "utf-8", errors="replace")
-            parser = _HTMLLinkExtractor(); parser.feed(html)
-            for title, href in parser.links:
-                u = _clean_search_redirect(href)
-                if not u.startswith("http") or u in seen:
-                    continue
-                host = urllib.parse.urlparse(u).netloc.lower()
-                if not any(d in host for d in domains):
-                    continue
-                seen.add(u); urls.append((normalize_text(title), u))
-        except Exception:
-            continue
+        for u in _free_search_urls(q):
+            if not u.startswith("http") or u in seen:
+                continue
+            host=urllib.parse.urlparse(u).netloc.lower()
+            if not any(d in host for d in domains):
+                continue
+            seen.add(u); urls.append((host,u))
 
     zone_rx = re.compile(r'(?<![A-Za-z0-9ÁÉÍÓÖŐÚÜŰáéíóöőúüű])((?:Gip|Gksz|Gá|Ge|Gipe|Gipez|Lke|Lk|Lf|Ln|Vt|Üü|Üh|Köu|Kök|Köm|Má|Mk|Ev|Eg|Kst|Ksp|Kte|Kap|Ksz|Ke|Kcs|Kre|Kkm|Kmg|Kb)\s*(?:[/_-]\s*[A-Za-z0-9ÁÉÍÓÖŐÚÜŰáéíóöőúüű.-]+)+)', re.I)
     evidence=[]
@@ -998,75 +989,137 @@ def _clean_search_redirect(href):
     return full
 
 
+def _extract_search_result_urls(html, engine):
+    """Keresőtalálatok URL-jeinek kinyerése több ingyenes HTML/RSS forrásból."""
+    out=[]
+    if engine == "bing_rss":
+        # RSS-ben a <link> mezők közvetlen cél URL-ek.
+        for u in re.findall(r"<link>(https?://[^<]+)</link>", html, flags=re.I):
+            out.append(u.replace("&amp;", "&"))
+        return out
+    parser=_HTMLLinkExtractor(); parser.feed(html)
+    for _, href in parser.links:
+        if not href: continue
+        u=href
+        if engine == "duck":
+            u=_clean_search_redirect(href)
+        elif engine == "google":
+            full=urljoin("https://www.google.com", href)
+            pr=urllib.parse.urlparse(full)
+            qs=urllib.parse.parse_qs(pr.query)
+            if pr.path == "/url" and qs.get("q"):
+                u=qs["q"][0]
+            else:
+                u=full
+        elif engine == "bing":
+            u=urljoin("https://www.bing.com", href)
+        if u.startswith("http"):
+            out.append(u)
+    return out
+
+
+def _free_search_urls(query):
+    """API-kulcs nélküli, több keresőmotoros discovery.
+
+    Egyetlen szolgáltató blokkolása nem állítja le a HÉSZ-felderítést.
+    A kereső csak jelölt URL-t ad; a végső elfogadást az NJT-oldal tartalma dönti el.
+    """
+    q=urllib.parse.quote_plus(query)
+    endpoints=[
+        ("bing_rss", f"https://www.bing.com/search?format=rss&q={q}"),
+        ("bing", f"https://www.bing.com/search?q={q}"),
+        ("google", f"https://www.google.com/search?hl=hu&num=10&q={q}"),
+        ("duck", f"https://html.duckduckgo.com/html/?q={q}"),
+        ("duck", f"https://lite.duckduckgo.com/lite/?q={q}"),
+    ]
+    headers={
+        "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
+        "Accept-Language":"hu-HU,hu;q=0.9,en;q=0.7",
+        "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    }
+    out=[]; seen=set()
+    for engine,url in endpoints:
+        try:
+            req=urllib.request.Request(url,headers=headers)
+            with urllib.request.urlopen(req,timeout=15) as resp:
+                html=resp.read().decode(resp.headers.get_content_charset() or "utf-8",errors="replace")
+            for u in _extract_search_result_urls(html,engine):
+                u=u.replace("&amp;","&")
+                if u not in seen:
+                    seen.add(u); out.append(u)
+            # Ha egy motor már adott érdemi találatot, a többiek csak fallbackek.
+            if any("njt.jog.gov.hu/jogszabaly/" in x for x in out):
+                break
+        except Exception:
+            continue
+    return out
+
+
 @st.cache_data(show_spinner=False, ttl=21600)
 def discover_current_njt_hesz(town):
-    """A település neve alapján megkeresi az NJT-ben a HÉSZ/TÉSZ rendeletet.
+    """Hatályos helyi HÉSZ/TÉSZ felderítése API-kulcs nélkül.
 
-    Nem használ előre beégetett település–URL párost. A keresési találatokat
-    visszaellenőrzi az NJT-oldal tényleges szövegével, és csak NJT jogszabályoldalt
-    fogad el. Több erős jelölt esetén nem választ vakon.
+    Több ingyenes webes indexet használ kizárólag discoveryre, majd MINDEN jelöltet
+    az NJT saját jogszabályoldalának tartalmával validál. Nem választ nem hivatalos
+    találatot, és nem használ településhez előre beégetett jogszabály-URL-t.
     """
-    town = normalize_text(town).strip()
+    town=normalize_text(town).strip()
     if not town:
-        return {"status": "HIBA", "url": "", "title": "", "candidates": [], "detail": "Hiányzó településnév."}
+        return {"status":"HIBA","url":"","title":"","candidates":[],"detail":"Hiányzó településnév."}
 
-    queries = [
+    queries=[
         f'site:njt.jog.gov.hu/jogszabaly "{town}" "Építési Szabályzat"',
         f'site:njt.jog.gov.hu/jogszabaly "{town}" "helyi építési szabályzat"',
-        f'site:njt.jog.gov.hu/jogszabaly "{town}" HÉSZ',
+        f'site:njt.jog.gov.hu/jogszabaly "{town}" "Szabályozási Terve"',
+        f'site:njt.jog.gov.hu/jogszabaly "{town}" "TÉSZ"',
+        f'site:njt.jog.gov.hu/jogszabaly "{town}" önkormányzati rendelet építési',
     ]
-    urls = []
-    seen = set()
+    urls=[]; seen=set()
     for q in queries:
-        search_url = "https://html.duckduckgo.com/html/?" + urllib.parse.urlencode({"q": q})
-        try:
-            req = urllib.request.Request(search_url, headers={"User-Agent": "Mozilla/5.0 TelekEloirasAI/4.4", "Accept-Language": "hu-HU,hu;q=0.9"})
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                html = resp.read().decode(resp.headers.get_content_charset() or "utf-8", errors="replace")
-            parser = _HTMLLinkExtractor(); parser.feed(html)
-            for _, href in parser.links:
-                u = _clean_search_redirect(href)
-                if "njt.jog.gov.hu/jogszabaly/" not in u:
-                    continue
-                u = u.split("#", 1)[0].split("?", 1)[0]
-                # történeti állapot (.2 stb.) helyett az alap jogszabályoldalt preferáljuk
-                u = re.sub(r"(https://njt\.jog\.gov\.hu/jogszabaly/[^/?#]+?)\.\d+$", r"\1", u)
-                if u not in seen:
-                    seen.add(u); urls.append(u)
-        except Exception:
-            continue
+        for u in _free_search_urls(q):
+            if "njt.jog.gov.hu/jogszabaly/" not in u:
+                continue
+            u=u.split("#",1)[0].split("?",1)[0]
+            # történeti állapot (.2, .3...) helyett a kanonikus jogszabályoldal
+            u=re.sub(r"(https://njt\.jog\.gov\.hu/jogszabaly/[^/?#]+?)\.\d+$",r"\1",u)
+            if u not in seen:
+                seen.add(u); urls.append(u)
 
-    # Közvetlen NJT kereső-fallback: a nyilvános webes indexből érkező jelöltek validálása.
-    candidates = []
-    town_low = town.lower()
-    for u in urls[:12]:
+    candidates=[]; town_low=town.lower()
+    for u in urls[:25]:
         try:
-            txt = fetch_njt_text(u)
+            txt=fetch_njt_text(u)
         except Exception:
             continue
-        low = txt.lower()
-        score = 0
-        if town_low in low: score += 5
-        if "építési szabályzat" in low: score += 5
+        low=txt.lower(); head=low[:5000]
+        score=0
+        if town_low in head: score += 8
+        elif town_low in low: score += 4
+        if "építési szabályzat" in low: score += 7
         if "helyi építési szabályzat" in low: score += 2
-        if "szabályozási terv" in low: score += 2
-        if "1.1. melléklet" in low or "1. melléklet" in low: score += 1
-        # módosító rendelet önmagában ne előzze meg az egységes HÉSZ-oldalt
-        if "módosításáról" in low[:1800]: score -= 4
-        title = normalize_text(txt[:350])
-        if score >= 8:
-            candidates.append({"url": u, "title": title, "score": score})
+        if "szabályozási terv" in low: score += 3
+        if "1.1. melléklet" in low or "1. melléklet" in low: score += 2
+        if "övezetei" in low or "építési övezetei" in low: score += 2
+        if "módosításáról" in head: score -= 6
+        if "hatályát veszti" in head and "építési szabályzat" not in low: score -= 4
+        title=normalize_text(txt[:450])
+        if score >= 12:
+            candidates.append({"url":u,"title":title,"score":score})
 
-    candidates.sort(key=lambda x: x["score"], reverse=True)
+    # URL szerint deduplikálás, legerősebb pontszám megtartásával
+    uniq={}
+    for c in candidates:
+        if c["url"] not in uniq or c["score"]>uniq[c["url"]]["score"]:
+            uniq[c["url"]]=c
+    candidates=sorted(uniq.values(),key=lambda x:x["score"],reverse=True)
     if not candidates:
-        return {"status": "NINCS", "url": "", "title": "", "candidates": [], "detail": "Nem találtam kellően igazolt NJT HÉSZ/TÉSZ-oldalt."}
+        return {"status":"NINCS","url":"","title":"","candidates":[],"detail":"A nyilvános keresőindexekből nem érkezett validálható NJT HÉSZ/TÉSZ-találat. Ez keresési hozzáférési hiba, nem azt jelenti, hogy nincs hatályos HÉSZ."}
 
-    best_score = candidates[0]["score"]
-    tied = [c for c in candidates if c["score"] == best_score]
-    # Ugyanannak a jogszabálynak duplikált URL-jeit kiszűrtük; valódi holtversenynél jelezzen.
-    if len(tied) > 1:
-        return {"status": "TÖBB JELÖLT", "url": "", "title": "", "candidates": tied, "detail": "Több azonos erősségű hatályos HÉSZ/TÉSZ-jelölt található; automatikus választás helyett ellenőrzés szükséges."}
-    return {"status": "OK", "url": candidates[0]["url"], "title": candidates[0]["title"], "candidates": candidates, "detail": "NJT-oldal tartalma alapján visszaellenőrizve."}
+    best=candidates[0]["score"]
+    tied=[c for c in candidates if c["score"]==best]
+    if len(tied)>1:
+        return {"status":"TÖBB JELÖLT","url":"","title":"","candidates":tied,"detail":"Több azonos erősségű, NJT-tartalommal igazolt HÉSZ/TÉSZ-jelölt van; automatikus választás helyett ellenőrzés szükséges."}
+    return {"status":"OK","url":candidates[0]["url"],"title":candidates[0]["title"],"candidates":candidates,"detail":"Ingyenes webes discovery után az NJT saját tartalmával visszaellenőrizve."}
 
 EKOZMU_MAP = "https://ekozmu.e-epites.hu/lakossag/#/lakossag/kozmuterkep"
 
@@ -1161,7 +1214,7 @@ def render_reference_card(town, hrsz, zone=None, zone_verified=False):
             )
 
 st.title("TelekElőírás AI")
-st.caption("v4.4 • automatikus HÉSZ/NJT + ingyenes hivatalos webes övezetkutatás + hrsz. keresés + forrásolt telek-adatlap")
+st.caption("v4.4 • automatikus HÉSZ/NJT + többmotoros ingyenes webes felderítés + hrsz. keresés + forrásolt telek-adatlap")
 
 with st.sidebar:
     st.header("Telek")
