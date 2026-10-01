@@ -1362,7 +1362,7 @@ def _v51_search_web(query, timeout=14):
     Nincs API-kulcs. Sikertelenség esetén üres listát ad.
     """
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.1; +public-web-search)",
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.2; +public-web-search)",
         "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.6",
     }
     endpoints = [
@@ -1411,7 +1411,7 @@ def _v51_candidate_queries(town):
 
 def _v51_fetch_page(url, timeout=18):
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.1)",
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.2)",
         "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
     }
     r = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
@@ -1579,10 +1579,303 @@ if "discover_current_njt_hesz" in globals():
     _legacy_discover_current_njt_hesz = discover_current_njt_hesz
 discover_current_njt_hesz = discover_current_njt_hesz_v51_with_legacy
 
+
+# =========================================================
+# v5.2 – NJT SAJÁT ÖNKORMÁNYZATI RENDELETKERESŐJE AZ ELSŐDLEGES FORRÁS
+# A program először NEM Google/Bing/DDG találati oldalt kapar.
+# Közvetlenül az OR.NJT hivatalos önkormányzati rendeletkeresőjét próbálja
+# településre + címre + hatályosságra szűrni, majd a találat céloldalát validálja.
+# A v5.1 webes kereső csak tartalék marad.
+# =========================================================
+
+from urllib.parse import urlencode
+
+_OR_NJT_SEARCH = "https://or.njt.hu/onkorm"
+
+def _v52_http_get(url, params=None, timeout=22):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.2; official-NJT-client)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
+        "Cache-Control": "no-cache",
+    }
+    r = requests.get(url, params=params, headers=headers, timeout=timeout, allow_redirects=True)
+    r.raise_for_status()
+    return r
+
+def _v52_http_post(url, data=None, timeout=22):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.2; official-NJT-client)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Origin": "https://or.njt.hu",
+        "Referer": _OR_NJT_SEARCH,
+    }
+    r = requests.post(url, data=data, headers=headers, timeout=timeout, allow_redirects=True)
+    r.raise_for_status()
+    return r
+
+def _v52_is_hesz_title(title):
+    t = normalize_text(title).lower()
+    if "építési szabályzat" not in t and "helyi építési szabályzat" not in t:
+        return False
+    # A módosító rendelet önmagában ne legyen elsődleges alaprendelet.
+    if "módosításáról" in t or "módosítás" in t:
+        return False
+    return True
+
+def _v52_extract_official_results(html, town):
+    """OR.NJT keresési eredményoldalból hivatalos rendelet-linkek."""
+    soup = BeautifulSoup(html or "", "html.parser")
+    out, seen = [], set()
+    town_l = normalize_text(town).lower()
+
+    for a in soup.find_all("a", href=True):
+        href = urljoin("https://or.njt.hu", a.get("href", ""))
+        title = normalize_text(a.get_text(" ", strip=True))
+        blob = (title + " " + normalize_text(a.parent.get_text(" ", strip=True) if a.parent else "")).lower()
+        if "or.njt.hu" not in href:
+            continue
+        if not ("/onkormanyzati-rendelet/" in href or "/eli/" in href):
+            continue
+        if town_l and town_l not in blob and "építési szabályzat" not in blob:
+            continue
+        key = href.split("#")[0]
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({"title": title, "url": key, "source": "OR.NJT rendeletkereső"})
+    return out
+
+def _v52_find_town_option(soup, town):
+    """Megkeresi a település opcióját az NJT kereső űrlapjában."""
+    town_l = normalize_text(town).lower()
+    matches = []
+    for sel in soup.find_all("select"):
+        name = sel.get("name") or sel.get("id") or ""
+        for opt in sel.find_all("option"):
+            label = normalize_text(opt.get_text(" ", strip=True))
+            if town_l == label.lower() or town_l in label.lower():
+                matches.append({
+                    "select": sel,
+                    "name": name,
+                    "value": opt.get("value", ""),
+                    "label": label,
+                })
+    if not matches:
+        return None
+    # Pontos településnév előnyben.
+    matches.sort(key=lambda x: (normalize_text(x["label"]).lower() != town_l, len(x["label"])))
+    return matches[0]
+
+def _v52_submit_njt_form(base_html, base_url, town):
+    """
+    Az NJT saját HTML-űrlapját használja. Nem feltételezi előre a mezőneveket:
+    a település-selectet és a cím/szókereső mezőt a DOM-ból azonosítja.
+    """
+    soup = BeautifulSoup(base_html or "", "html.parser")
+    town_opt = _v52_find_town_option(soup, town)
+    if not town_opt:
+        return None, {"stage": "town-option", "detail": "A település nem volt felismerhető az NJT kereső űrlapjában."}
+
+    form = town_opt["select"].find_parent("form")
+    if form is None:
+        # Egyes NJT-verziók kliensoldali útvonalat építenek. Ilyenkor
+        # legalább a település belső azonosítóját visszaadjuk a következő próbához.
+        return None, {
+            "stage": "no-form",
+            "town_id": town_opt["value"],
+            "detail": "Településazonosító megvan, de hagyományos HTML form nem található."
+        }
+
+    data = {}
+    # Hidden és alapértelmezett mezők megtartása.
+    for inp in form.find_all("input"):
+        name = inp.get("name")
+        if not name:
+            continue
+        typ = (inp.get("type") or "text").lower()
+        if typ in ("submit", "button", "image", "file"):
+            continue
+        if typ in ("checkbox", "radio") and not inp.has_attr("checked"):
+            continue
+        data[name] = inp.get("value", "")
+
+    for sel in form.find_all("select"):
+        name = sel.get("name")
+        if not name:
+            continue
+        chosen = sel.find("option", selected=True)
+        if chosen is not None:
+            data[name] = chosen.get("value", "")
+
+    data[town_opt["name"]] = town_opt["value"]
+
+    # Cím/szókereső mező automatikus felismerése.
+    for inp in form.find_all("input"):
+        name = inp.get("name") or ""
+        ident = (name + " " + (inp.get("id") or "") + " " +
+                 (inp.get("placeholder") or "") + " " + (inp.get("aria-label") or "")).lower()
+        if any(k in ident for k in ("cím", "cim", "title", "szókeres", "szokeres", "search")):
+            if (inp.get("type") or "text").lower() in ("text", "search", ""):
+                data[name] = "építési szabályzat"
+                break
+
+    # "csak hatályos" checkbox – ha felismerhető, kapcsoljuk be.
+    for inp in form.find_all("input"):
+        if (inp.get("type") or "").lower() != "checkbox":
+            continue
+        name = inp.get("name")
+        ident = ((name or "") + " " + (inp.get("id") or "") + " " +
+                 (inp.get("aria-label") or "")).lower()
+        parent_txt = normalize_text(inp.parent.get_text(" ", strip=True) if inp.parent else "").lower()
+        if "hatályos" in ident or "hatályos" in parent_txt:
+            if name:
+                data[name] = inp.get("value") or "1"
+
+    action = urljoin(base_url, form.get("action") or base_url)
+    method = (form.get("method") or "get").lower()
+    try:
+        if method == "post":
+            r = _v52_http_post(action, data=data)
+        else:
+            r = _v52_http_get(action, params=data)
+        return r, {"stage": "form-submit", "town_id": town_opt["value"], "method": method}
+    except Exception as e:
+        return None, {"stage": "form-submit-error", "town_id": town_opt["value"], "detail": str(e)[:240]}
+
+def _v52_route_candidates_from_town_id(town_id):
+    """
+    OR.NJT jelenlegi keresője útvonal-paraméteres találati oldalt is használ.
+    A DOM-ból kinyert településazonosítóval néhány dokumentáltan megfigyelhető
+    útvonalalakot próbálunk; a találatot utána mindig tartalmilag validáljuk.
+    """
+    if not town_id:
+        return []
+    tid = str(town_id).strip()
+    return [
+        f"https://or.njt.hu/onkorm/-:5:{tid}:-:-:1:-:1:-/1/100",
+        f"https://or.njt.hu/onkorm/-:-:{tid}:-:-:1:-:1:-/1/100",
+        f"https://or.njt.hu/onkorm/-:5:{tid}:-:-:-:-:1:-/1/100",
+    ]
+
+def discover_current_njt_hesz_v52(town):
+    diagnostics = []
+    candidates = []
+
+    # 1. KÖZVETLENÜL az NJT saját rendeletkeresője.
+    try:
+        landing = _v52_http_get(_OR_NJT_SEARCH)
+        diagnostics.append({"stage": "NJT kereső megnyitása", "status": landing.status_code, "url": landing.url})
+
+        # Ha a kezdőoldal már tartalmaz találatot (ritka), azt is feldolgozzuk.
+        candidates.extend(_v52_extract_official_results(landing.text, town))
+
+        submitted, meta = _v52_submit_njt_form(landing.text, landing.url, town)
+        diagnostics.append(meta)
+        if submitted is not None:
+            candidates.extend(_v52_extract_official_results(submitted.text, town))
+
+        # Ha az NJT felület JS/útvonal alapú, a DOM-ból kiolvasott település-ID-vel
+        # közvetlenül a hivatalos találati útvonalakat próbáljuk.
+        town_id = meta.get("town_id") if isinstance(meta, dict) else None
+        if town_id:
+            for route in _v52_route_candidates_from_town_id(town_id):
+                try:
+                    rr = _v52_http_get(route)
+                    hits = _v52_extract_official_results(rr.text, town)
+                    diagnostics.append({"stage": "NJT route", "url": rr.url, "hits": len(hits)})
+                    candidates.extend(hits)
+                    if hits:
+                        break
+                except Exception as e:
+                    diagnostics.append({"stage": "NJT route hiba", "url": route, "detail": str(e)[:160]})
+    except Exception as e:
+        diagnostics.append({"stage": "NJT közvetlen kereső hiba", "detail": str(e)[:240]})
+
+    # Deduplikálás.
+    dedup = {}
+    for c in candidates:
+        key = c["url"].split("?")[0].rstrip("/")
+        if key not in dedup:
+            dedup[key] = c
+    candidates = list(dedup.values())
+
+    # 2. A hivatalos találatok CÉLOLDALÁNAK validálása.
+    validated = []
+    for item in candidates[:50]:
+        try:
+            page = _v51_fetch_page(item["url"])
+            score, reasons = _v51_score_hesz_page(town, page)
+            title = page.get("title") or item.get("title", "")
+            # alaprendelet előnyben; módosító csak diagnosztikai jelölt
+            if _v52_is_hesz_title(title):
+                score += 35
+            elif "módosítás" in normalize_text(title).lower():
+                score -= 35
+            if score >= 55:
+                validated.append({
+                    "title": title,
+                    "url": page["url"],
+                    "score": score,
+                    "reasons": ", ".join(reasons),
+                    "source": item.get("source", "OR.NJT"),
+                    "text": page.get("text", ""),
+                })
+        except Exception as e:
+            diagnostics.append({"stage": "NJT céloldal validálási hiba", "url": item["url"], "detail": str(e)[:160]})
+
+    validated.sort(key=lambda x: x["score"], reverse=True)
+    base = [c for c in validated if _v52_is_hesz_title(c["title"])]
+    if base:
+        best = base[0]
+        return {
+            "status": "OK",
+            "url": best["url"],
+            "title": best["title"],
+            "score": best["score"],
+            "reasons": best["reasons"],
+            "candidates": validated[:10],
+            "diagnostics": diagnostics,
+            "finder": "OR.NJT hivatalos rendeletkereső",
+        }
+
+    # 3. TARTALÉK: a v5.1 többmotoros nyilvános webes keresés.
+    # Ez már nem elsődleges logika.
+    fallback = globals().get("_v52_v51_fallback")
+    if callable(fallback):
+        try:
+            old = fallback(town)
+            if isinstance(old, dict) and old.get("status") in ("OK", "TÖBB JELÖLT"):
+                old["finder"] = "webes tartalékkeresés"
+                old["diagnostics"] = diagnostics + old.get("diagnostics", [])
+                return old
+        except Exception as e:
+            diagnostics.append({"stage": "webes fallback hiba", "detail": str(e)[:200]})
+
+    return {
+        "status": "NINCS",
+        "url": "",
+        "title": "",
+        "candidates": validated[:10],
+        "diagnostics": diagnostics,
+        "detail": (
+            "Az NJT hivatalos önkormányzati rendeletkeresőjéből sem sikerült "
+            "automatikusan validált HÉSZ/TÉSZ-alaprendeletet kinyerni. "
+            "Ez technikai hozzáférési/feldolgozási hiba, nem a HÉSZ hiányának állítása."
+        ),
+    }
+
+# v5.1 keresőt csak fallbackként őrizzük meg.
+_v52_v51_fallback = discover_current_njt_hesz
+discover_current_njt_hesz = discover_current_njt_hesz_v52
+
+
 def run_v5():
     st.title("TelekElőírás AI")
     st.caption(
-        "v5.1 • telek → hatályos HÉSZ/TÉSZ → szabályozási terv → övezet → "
+        "v5.2 • telek → hatályos HÉSZ/TÉSZ → szabályozási terv → övezet → "
         "telekspecifikus előírások → forrásolt döntéstámogató adatlap"
     )
 
