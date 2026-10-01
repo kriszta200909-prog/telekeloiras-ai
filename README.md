@@ -2,7 +2,7 @@
 
 Streamlit Community Cloud-ra feltölthető változat.
 
-## Aktuális verzió: v4.4
+## Aktuális verzió: v6.1
 
 A v4.4 célja, hogy a vizsgálat végén közvetlenül erre a kérdésre adjon forrásolt választ:
 
