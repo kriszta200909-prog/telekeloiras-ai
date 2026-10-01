@@ -1,3 +1,10 @@
+# =========================================================
+# TELEKELŐÍRÁS AI v5.0
+# Tiszta új vezérlési réteg a bevált v4.x feldolgozó függvények fölött
+# Cél: "Mit lehet és mit nem lehet ezen a konkrét telken csinálni,
+#       és ezt melyik hatályos hivatalos forrás mondja?"
+# =========================================================
+
 import io
 import re
 import urllib.request
@@ -15,15 +22,11 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v4.4
+# TELEKELŐÍRÁS AI v5.0
 # NJT-MELLÉKLET FELDERÍTÉS + NATÍV PDF HELYMEGHATÁROZÁS
 # =========================================================
 
-st.set_page_config(
-    page_title="TelekElőírás AI v4.4",
-    page_icon="🏗️",
-    layout="wide",
-)
+st.set_page_config(page_title="TelekElőírás AI v5.0", page_icon="🏗️", layout="wide")
 
 
 
@@ -650,7 +653,7 @@ def fetch_njt_html(url):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/4.4",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/5.0",
             "Accept-Language": "hu-HU,hu;q=0.9",
         },
     )
@@ -699,7 +702,7 @@ def fetch_pdf_bytes(url):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/4.4",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/5.0",
             "Accept": "application/pdf,*/*;q=0.8",
         },
     )
@@ -797,7 +800,7 @@ def official_web_zone_search(town: str, hrsz: str):
                         if zones:
                             evidence.append({"zone":zones[0],"url":u,"title":title,"detail":f"PDF {page_no}. oldal: hrsz és övezeti kód egy szövegkörnyezetben"})
             else:
-                req=urllib.request.Request(u,headers={"User-Agent":"Mozilla/5.0 TelekEloirasAI/4.4-free","Accept-Language":"hu-HU,hu;q=0.9"})
+                req=urllib.request.Request(u,headers={"User-Agent":"Mozilla/5.0 TelekEloirasAI/5.0","Accept-Language":"hu-HU,hu;q=0.9"})
                 with urllib.request.urlopen(req,timeout=20) as resp:
                     raw=resp.read()
                     ctype=(resp.headers.get('Content-Type') or '').lower()
@@ -1213,374 +1216,347 @@ def render_reference_card(town, hrsz, zone=None, zone_verified=False):
                 "besorolásként, amíg a telek és az övezethatár térbeli kapcsolata nincs bizonyítva."
             )
 
-st.title("TelekElőírás AI")
-st.caption("v4.4 • automatikus HÉSZ/NJT + többmotoros ingyenes webes felderítés + hrsz. keresés + forrásolt telek-adatlap")
 
-with st.sidebar:
-    st.header("Telek")
-    town = st.text_input("Település", value="Tiszaújváros")
-    hrsz = st.text_input("Helyrajzi szám", value="2200/8")
 
-    st.header("Források állapota")
-    st.caption("○ NJT – a hatályos HÉSZ/TÉSZ automatikus keresése a település alapján")
-    st.caption("○ E-közmű – telekazonosítás / kézi térképi ellenőrzés")
-    st.link_button("E-közmű térkép megnyitása", EKOZMU_MAP)
-    st.caption(
-        "Az E-közmű/ingatlan-nyilvántartási térkép a telekazonosítás elsődleges forrása. "
-        "A program nem használ dokumentálatlan belső API-végpontot."
-    )
+# =========================================================
+# v5.0 – EGYSÉGES FELHASZNÁLÓI FOLYAMAT
+# =========================================================
 
-    st.header("Térképi forrás")
-    plan = st.file_uploader(
-        "NJT szabályozási terv / ellenőrzött terv-PDF (opcionális)",
-        type=["pdf"],
-        key="plan_v4",
-        help="Amíg az NJT nagy térképi mellékletének automatikus letöltése nincs stabilizálva, ezzel ellenőrizhető a térbeli övezeti kapcsolat.",
-    )
+def _v5_open_uploaded_pdf(uploaded):
+    if uploaded is None:
+        return None
+    raw = uploaded.getvalue()
+    return fitz.open(stream=raw, filetype="pdf")
 
-    st.header("Referencia-ellenőrzés")
-    verified_zone = st.text_input(
-        "Kézzel igazolt övezeti kód (opcionális)",
-        value="",
-        placeholder="pl. Gip/3",
-        help="Csak teszteléshez. Nem helyettesíti az automatikus térbeli meghatározást.",
-    ).strip()
 
-    run = st.button("Telekvizsgálat indítása", type="primary", use_container_width=True)
-
-if not run:
-    st.markdown(
-        """
-### Forráshierarchia
-**1. E-közmű / állami ingatlan-nyilvántartás** → telek, hrsz., aktuális telekhatár  
-**2. NJT szabályozási terv** → övezet és tervi korlátozások  
-**3. NJT HÉSZ/TÉSZ + mellékletek** → beépítési paraméterek és szöveges előírások  
-**4. E-közmű** → közműérintettségek  
-**5. Egyéb hatósági források** → telekspecifikus korlátozások
-        """
-    )
-    st.stop()
-
-town = town.strip()
-hrsz = hrsz.strip()
-clean_hrsz = re.sub(r"\s+", "", hrsz)
-
-if not town or not clean_hrsz:
-    st.error("A település és a helyrajzi szám kötelező.")
-    st.stop()
-
-st.markdown("## 1. Forrásellenőrzés")
-source_status(
-    "E-közmű / ingatlan-nyilvántartási telekazonosítás",
-    "RÉSZBEN",
-    "hivatalos térképi forrás; nyilvánosan dokumentált telekpolygon-API-t a program nem feltételez",
-)
-
-njt_text = ""
-njt_attachments = []
-expected = []
-njt_url = ""
-
-with st.spinner(f"Hatályos helyi építési szabályzat keresése az NJT-ben: {town}…"):
-    hesz_result = discover_current_njt_hesz(town)
-
-if hesz_result["status"] == "OK":
-    njt_url = hesz_result["url"]
-    source_status("NJT – hatályos HÉSZ/TÉSZ automatikus keresése", "OK", hesz_result["detail"])
-    st.link_button("Megtalált NJT forrás megnyitása", njt_url)
-elif hesz_result["status"] == "TÖBB JELÖLT":
-    source_status("NJT – hatályos HÉSZ/TÉSZ automatikus keresése", "RÉSZBEN", hesz_result["detail"])
-    st.dataframe([{"Jelölt": c["title"][:180], "URL": c["url"]} for c in hesz_result["candidates"]], use_container_width=True, hide_index=True)
-else:
-    source_status("NJT – hatályos HÉSZ/TÉSZ automatikus keresése", "HIBA", hesz_result["detail"])
-
-try:
-    if not njt_url:
-        raise RuntimeError("Nincs automatikusan igazolt NJT HÉSZ/TÉSZ forrás; a program nem alkalmaz találomra kiválasztott rendeletet.")
-    with st.spinner("NJT rendeletszöveg betöltése…"):
-        njt_text = fetch_njt_text(njt_url)
-    source_status("NJT rendeletszöveg", "OK", f"{len(njt_text):,} karakter")
-    expected = expected_attachment_labels(njt_text)
-    if expected:
-        source_status("NJT mellékletjegyzék", "OK", f"{len(expected)} név szerint felismert melléklet")
+def _v5_safe_call(name, *args, **kwargs):
+    fn = globals().get(name)
+    if not callable(fn):
+        return None
     try:
-        njt_attachments = discover_njt_attachments(njt_url)
-        source_status(
-            "NJT melléklet-hivatkozások",
-            "OK" if njt_attachments else "RÉSZBEN",
-            f"{len(njt_attachments)} közvetlen hivatkozás felismerve" if njt_attachments else "a mellékletnevek a rendeletszövegből felismerhetők, közvetlen letöltési link nem volt kinyerhető",
-        )
-    except Exception as e:
-        njt_attachments = []
-        source_status("NJT melléklet-hivatkozások", "HIBA", str(e))
-except Exception as e:
-    source_status("NJT rendeletszöveg", "HIBA", str(e))
+        return fn(*args, **kwargs)
+    except Exception:
+        return None
 
-plan_doc = None
-zone_doc = None
-hits = []
-plan_source = ""
 
-# v4.3: az NJT-ben ténylegesen megtalált 1.1 és 1.2 mellékletet automatikusan használjuk.
-plan_url = attachment_by_label(njt_attachments, "1.1. melléklet")
-zone_url = attachment_by_label(njt_attachments, "1.2. melléklet")
+def _v5_zone_from_spatial(plan_doc, hrsz, hesz_doc=None):
+    """A telek helyét és a közeli teljes alövezeti kódokat kapcsolja össze."""
+    if plan_doc is None:
+        return {"status": "missing_plan", "zone": "", "candidates": [], "hit": None}
 
-if plan_url:
-    try:
-        with st.spinner("NJT 1.1. szabályozási terv automatikus betöltése… (nagy PDF)"):
-            plan_doc, plan_size = open_pdf_from_url(plan_url)
-        plan_source = "NJT 1.1. melléklet – automatikusan betöltve"
-        source_status("NJT 1.1. szabályozási terv", "OK", f"{len(plan_doc)} oldal · {plan_size/1024/1024:.1f} MB")
-    except Exception as e:
-        source_status("NJT 1.1. szabályozási terv", "HIBA", str(e))
+    hits = find_hrsz(plan_doc, normalize_hrsz(hrsz))
+    if not hits:
+        return {"status": "parcel_not_found", "zone": "", "candidates": [], "hit": None}
 
-if zone_url:
-    try:
-        with st.spinner("NJT 1.2. övezeti melléklet automatikus betöltése…"):
-            zone_doc, zone_size = open_pdf_from_url(zone_url)
-        source_status("NJT 1.2. övezeti melléklet", "OK", f"{len(zone_doc)} oldal · {zone_size/1024/1024:.1f} MB")
-    except Exception as e:
-        source_status("NJT 1.2. övezeti melléklet", "HIBA", str(e))
-
-# A kézzel feltöltött terv csak tartalék/diagnosztikai felülbírálás.
-if plan is not None:
-    try:
-        if plan_doc is not None:
-            plan_doc.close()
-        plan_doc = fitz.open(stream=plan.getvalue(), filetype="pdf")
-        plan_source = "kézzel feltöltött ellenőrző terv-PDF"
-        source_status("Szabályozási terv – kézi felülbírálás", "OK", f"{len(plan_doc)} oldal")
-    except Exception as e:
-        source_status("Szabályozási terv – kézi PDF", "HIBA", str(e))
-
-if plan_doc is not None:
-    try:
-        hits = find_hrsz(plan_doc, clean_hrsz)
-        if hits:
-            source_status(
-                "Szabályozási terv – hrsz. térbeli találat",
-                "OK",
-                f"{hits[0]['page_number'] + 1}. oldal · {len(hits)} natív találat · {plan_source}",
-            )
-        else:
-            source_status("Szabályozási terv – hrsz. térbeli találat", "NINCS", "a PDF natív szövegrétegében nem található")
-    except Exception as e:
-        source_status("Szabályozási terv – hrsz. keresés", "HIBA", str(e))
-
-st.markdown("## 2. NJT mellékletek automatikus felderítése")
-if expected:
-    st.write("A rendelet szövegében név szerint hivatkozott mellékletek:")
-    for item in expected:
-        st.write(f"• {item}")
-else:
-    st.info("A rendeletszövegből nem sikerült név szerint mellékletjegyzéket felismerni.")
-
-if njt_attachments:
-    st.dataframe(njt_attachments, use_container_width=True, hide_index=True)
-    st.caption("A program ezeket közvetlenül az NJT oldal HTML-jéből tárta fel; nincs előre beégetett melléklet-fájlnév.")
-else:
-    st.warning(
-        "Az NJT rendeletoldal szövege igazolja a mellékletek létét, de a jelenlegi HTML-ből nem sikerült "
-        "stabil közvetlen fájlhivatkozást kinyerni. Emiatt a program nem talál ki letöltési URL-t. "
-        "A kézi PDF-feltöltés továbbra is ellenőrzési tartalékút."
-    )
-
-st.markdown("## 3. Telekazonosítás")
-st.write(f"**{town} {clean_hrsz} hrsz.**")
-st.write(
-    "Elsődleges telekforrás: **E-közmű / állami ingatlan-nyilvántartási térképi adat**. "
-    "A program jelenleg nem állít elő telekpolygont nem dokumentált szolgáltatásból."
-)
-st.link_button("Telek ellenőrzése az E-közműben", EKOZMU_MAP)
-
-if plan_doc is not None and hits:
     hit = hits[0]
     page = plan_doc[hit["page_number"]]
-    vr = visible_rect(page, hit["pdf_rect"])
-    st.image(
-        parcel_crop(page, vr, scale=0.10, zoom=0.75),
-        caption=f"{town} {clean_hrsz} – szabályozási tervi környezet",
-        use_container_width=True,
-    )
+    vh = visible_rect(page, hit["pdf_rect"])
 
-st.markdown("## 4. Övezeti besorolás")
-zone = verified_zone or ""
-zone_verified = bool(verified_zone)
+    full_codes = full_zone_codes_from_docs(plan_doc, hesz_doc)
+    candidates = spatial_full_zone_candidates(page, vh, full_codes, radius_factor=160)
 
-if zone_verified:
-    st.success(
-        f"Referencia-ellenőrzésként megadott, térképen igazolt övezet: **{zone}**. "
-        "Ez a mező tesztadat; a végleges cél az automatikus térbeli meghatározás."
-    )
-elif plan_doc is not None and hits:
-    # A régi közelségi keresést csak diagnosztikaként használjuk.
-    dictionary = build_zone_dictionary(plan_doc, zone_doc)
-    page = plan_doc[hits[0]["page_number"]]
-    vh = visible_rect(page, hits[0]["pdf_rect"])
-    allowed = [r["Övezeti kód"] for r in dictionary if r.get("Bizonyosság") in ("erős", "közepes")]
-    full_codes = full_zone_codes_from_docs(zone_doc, plan_doc)
-    candidates = spatial_full_zone_candidates(page, vh, full_codes, radius_factor=180)
     if not candidates:
+        # fallback a dokumentumokból felépített gyökkód-szótárra
+        dictionary = build_zone_dictionary(plan_doc, hesz_doc)
+        allowed = [r["Övezeti kód"] for r in dictionary
+                   if r.get("Bizonyosság") in ("erős", "közepes")]
         candidates = spatial_zone_candidates(page, vh, allowed, radius_factor=90)
-    if candidates:
-        auto_zone = candidates[0]['Övezeti kód']
-        zone = auto_zone
-        st.warning(
-            f"Automatikusan felismert legközelebbi övezeti jelölt: **{auto_zone}** "
-            f"(PDF-felirat: {candidates[0]['Felirat']}, relatív távolság: {candidates[0]['Távolság']}). "
-            "Ez még jelölt, nem jogilag igazolt besorolás: a következő lépés a tényleges övezethatár-geometria vizsgálata."
-        )
-        st.image(
-            marked_zone_crop(page, vh, candidates, scale=0.20, zoom=0.85),
-            caption="Fekete célkereszt: keresett hrsz. • piros keretek: közeli övezeti feliratok",
-            use_container_width=True,
-        )
-    else:
-        st.info("A hrsz. közvetlen közelében nincs megbízható övezeti bélyeg. Ez nagy ipari telkeknél normális lehet.")
-else:
-    st.info("Az övezet automatikus térbeli meghatározásához szabályozási tervi geometria szükséges.")
 
-# v4.4: webes fallback, ha a PDF-alapú vizsgálat nem adott igazolt övezetet.
-web_zone_result = None
-if not zone_verified:
-    with st.spinner(f"Ingyenes hivatalos webes forráskutatás az övezetre: {town} {clean_hrsz}…"):
-        web_zone_result = official_web_zone_search(town, clean_hrsz)
+    zone = candidates[0]["Övezeti kód"] if candidates else ""
+    return {
+        "status": "candidate" if zone else "zone_not_found",
+        "zone": zone,
+        "candidates": candidates,
+        "hit": hit,
+    }
 
-    if web_zone_result.get("status") == "verified" and web_zone_result.get("zone"):
-        zone = web_zone_result["zone"].strip()
-        zone_verified = True
-        st.success(f"Hivatalos webes forrásból igazolt övezet: **{zone}**. {web_zone_result.get('reason','')}")
-    elif web_zone_result.get("zone"):
-        if not zone:
-            zone = web_zone_result["zone"].strip()
-        st.warning(f"Hivatalos webes forrás övezeti jelöltje: **{web_zone_result['zone']}** ({web_zone_result.get('confidence','')} bizonyosság). {web_zone_result.get('reason','')}")
-    elif web_zone_result.get("status") == "error":
-        st.warning(f"A webes övezetkeresés hibát adott: {web_zone_result.get('reason','')}")
-    else:
-        st.info(f"A webes forráskutatás sem talált kellően igazolt övezeti kódot. {web_zone_result.get('reason','')}")
 
-    if web_zone_result and (web_zone_result.get("evidence") or web_zone_result.get("sources")):
-        with st.expander("Ingyenes hivatalos webes övezetkutatás – bizonyítékok és források", expanded=False):
-            for e in web_zone_result.get("evidence", []):
-                if isinstance(e, dict):
-                    st.write(f"• {e.get('detail','')} — {e.get('zone','')}")
-                    if e.get('url'):
-                        st.markdown(f"  [Forrás megnyitása]({e['url']})")
-                else:
-                    st.write("• " + str(e))
+def _v5_source_link(label, url):
+    if url:
+        st.markdown(f"[{label}]({url})")
 
-render_reference_card(town, clean_hrsz, zone or None, zone_verified)
 
-st.markdown("## 5. NJT – vonatkozó jogi előírások")
-if not njt_text:
-    st.warning("Az NJT rendeletszöveg nem áll rendelkezésre.")
-else:
-    # Forrásstruktúra – nem csak övezeti szókeresés.
-    structural_terms = [
-        "építési övezet vagy övezet határa",
-        "építési övezet vagy övezet besorolása",
-        "telkenként betartandó beépítési mutatók",
-        "védősáv",
-        "hidrogeológiai",
-        "veszélyességi övezet",
-        "beültetési kötelezettség",
-    ]
-    checks = [{"Vizsgált szabályozási elem": t, "NJT-ben": "igen" if t.lower() in njt_text.lower() else "nem"}
-              for t in structural_terms]
-    st.dataframe(checks, use_container_width=True, hide_index=True)
+def _v5_extract_decision_rows(njt_text, zone):
+    """Forráshű döntéstámogató kivonat. Nem talál ki hiányzó adatot."""
+    if not njt_text or not zone:
+        return [], {}
 
-    if zone:
-        root_zone = re.split(r"[/_-]", zone, maxsplit=1)[0]
-        specific = njt_snippets(njt_text, zone, radius=850, max_items=10)
-        general = njt_snippets(njt_text, root_zone, radius=850, max_items=20)
-        combined = []
-        seen = set()
-        for label, arr in (("alövezet", specific), ("övezetcsoport", general)):
-            for s in arr:
-                if s in seen:
-                    continue
-                seen.add(s)
-                combined.append((label, score_njt_snippet(s), s))
-        combined.sort(key=lambda x: -x[1])
+    table_params, contexts = parse_zone_table_context(njt_text, zone)
+    prose_params = extract_basic_zone_params_from_text(njt_text, zone)
+    params = dict(prose_params)
+    params.update(table_params)
 
-        st.markdown(f"### {zone} – jogszabályi találatok")
-        if combined:
-            for i, (kind, score, s) in enumerate(combined[:8], start=1):
-                with st.expander(f"{i}. {kind} · relevancia {score}", expanded=(i <= 3)):
-                    st.write(s)
-        else:
-            st.warning(f"A {zone} / {root_zone} kódhoz nem találtam szöveges NJT-környezetet.")
+    rows = []
+    for key, value in params.items():
+        rows.append({
+            "Kérdés": key,
+            "Válasz": value,
+            "Minősítés": "forrásból kinyert adat",
+            "Forrás": "hatályos HÉSZ/TÉSZ – NJT",
+        })
 
-        params = extract_basic_zone_params_from_text(njt_text, zone)
-        st.markdown("### Strukturált paraméterek")
-        if params:
-            st.dataframe(
-                [{"Paraméter": k, "Érték": v, "Forrás": "NJT rendeletszöveg"} for k, v in params.items()],
-                use_container_width=True,
-                hide_index=True,
-            )
-        else:
-            st.info(
-                "A rendeletszövegből nem nyerhető ki biztonságosan minden számszerű paraméter. "
-                "Ezek elsődleges forrása az NJT övezeti melléklete."
-            )
+    # Rendeltetési / tiltó mondatok csak akkor kerülnek ki, ha ténylegesen szerepelnek
+    # a zónakód közeli szövegkörnyezetében.
+    snippets = njt_snippets(njt_text, zone, radius=1100, max_items=30)
+    seen = set()
+    for sn in snippets:
+        for sentence in re.split(r"(?<=[.!?;])\s+", sn):
+            low = sentence.lower()
+            if not any(k in low for k in (
+                "elhelyezhető", "nem helyezhető", "megengedett",
+                "tilos", "rendeltetés", "kialakítható", "létesíthető"
+            )):
+                continue
+            clean = normalize_text(sentence)
+            if len(clean) < 25 or clean in seen:
+                continue
+            seen.add(clean)
+            status = "NEM LEHET / korlátozott" if any(
+                k in low for k in ("nem helyezhető", "tilos")
+            ) else "LEHET / feltételesen alkalmazható"
+            rows.append({
+                "Kérdés": "Rendeltetés / használat",
+                "Válasz": clean,
+                "Minősítés": status,
+                "Forrás": "hatályos HÉSZ/TÉSZ – NJT",
+            })
+            if len(rows) >= 16:
+                break
+        if len(rows) >= 16:
+            break
+    return rows, params
 
-        show_zone_parameter_card(njt_text, zone)
-    else:
-        st.info("Övezetspecifikus előírásokat csak igazolt övezeti besorolás után alkalmazunk a telekre.")
 
-st.markdown("## 6. Tervi korlátozások")
-restriction_terms = [
-    "szabályozási vonal",
-    "építési vonal",
-    "beültetési kötelezettség",
-    "védőterület",
-    "védősáv",
-    "hidrogeológiai védőterület",
-    "veszélyességi övezet",
-    "rekultivációra kötelezett terület",
-    "kötött funkciójú",
-]
-if njt_text:
-    st.dataframe(
-        [{"Korlátozás típusa": t, "A TÉSZ szabályozási rendszerében szerepel":
-          "igen" if t.lower() in njt_text.lower() else "nem"} for t in restriction_terms],
-        use_container_width=True,
-        hide_index=True,
+def run_v5():
+    st.title("TelekElőírás AI")
+    st.caption(
+        "v5.0 • telek → hatályos HÉSZ/TÉSZ → szabályozási terv → övezet → "
+        "telekspecifikus előírások → forrásolt döntéstámogató adatlap"
     )
-st.caption(
-    "Az, hogy egy korlátozástípus szerepel a TÉSZ-ben, még nem jelenti azt, hogy a konkrét telket érinti. "
-    "A telekspecifikus érintettséget térbeli metszéssel kell igazolni."
-)
 
-st.markdown("## 7. E-közmű – közműérintettségek")
-st.warning(
-    "A v4.0 nem hív dokumentálatlan E-közmű belső végpontot. "
-    "A modul elő van készítve arra, hogy hivatalos, programozottan hozzáférhető WMS/WFS/egyéb szolgáltatás "
-    "esetén a telekpolygonnal térbeli metszést végezzen."
-)
-st.link_button("Közműtérkép megnyitása", EKOZMU_MAP)
+    with st.sidebar:
+        st.header("Telek")
+        town = st.text_input("Település", value="Tiszaújváros")
+        hrsz = st.text_input("Helyrajzi szám", value="2200/8")
 
-st.markdown("## 8. Forrásolt összegzés")
-summary_rows = [
-    ["Telek", f"{town} {clean_hrsz}", "E-közmű / ingatlan-nyilvántartás", "ellenőrzendő a térképen"],
-    ["Övezet", zone if zone else "nincs igazolva", "NJT szabályozási terv", "igazolt" if zone_verified else "további térbeli ellenőrzés"],
-    ["Jogi előírások", "NJT rendeletszöveg betöltve" if njt_text else "nem elérhető", "NJT", "forrásolt"],
-    ["Közműérintettség", "még nincs automatikusan lekérdezve", "E-közmű", "következő integráció"],
-]
-st.dataframe(
-    [{"Adat": a, "Eredmény": b, "Elsődleges forrás": c, "Bizonyosság": d}
-     for a,b,c,d in summary_rows],
-    use_container_width=True,
-    hide_index=True,
-)
+        st.header("Térképi forrás")
+        plan_upload = st.file_uploader(
+            "Szabályozási terv PDF (ha az NJT melléklet nem tölthető le automatikusan)",
+            type=["pdf"],
+            key="v5_plan",
+        )
+        st.caption(
+            "A kézi PDF csak tartalék. A program elsőként automatikusan keresi "
+            "a hatályos hivatalos forrást."
+        )
 
-st.caption(
-    "A TelekElőírás AI nem helyettesíti a hatósági vagy tervezői jogi ellenőrzést. "
-    "A cél minden állítást visszakövethető hivatalos forráshoz és bizonyossági szinthez kötni."
-)
+        manual_zone = st.text_input(
+            "Kézzel igazolt övezeti kód (csak ellenőrzéshez, opcionális)",
+            value="",
+            placeholder="pl. Gip/3",
+        )
+        start = st.button("Telekvizsgálat indítása", type="primary", use_container_width=True)
 
-if plan_doc is not None:
-    plan_doc.close()
-if zone_doc is not None:
-    zone_doc.close()
+        st.divider()
+        st.markdown("**Hivatalos térképi ellenőrzés**")
+        st.link_button("E-közmű térkép megnyitása", EKOZMU_MAP, use_container_width=True)
+
+    if not start:
+        st.info(
+            "Add meg a települést és a helyrajzi számot, majd indítsd el a vizsgálatot. "
+            "A program nem tekint övezeti besorolásnak pusztán egy közeli feliratot."
+        )
+        return
+
+    if not town.strip() or not normalize_hrsz(hrsz):
+        st.error("A település és a helyrajzi szám megadása kötelező.")
+        return
+
+    # 1. HÉSZ/TÉSZ
+    st.header("1. Hatályos hivatalos forrás felderítése")
+    with st.spinner("Hatályos HÉSZ/TÉSZ keresése és NJT-validálása…"):
+        hesz = discover_current_njt_hesz(town)
+
+    njt_url = hesz.get("url", "") if isinstance(hesz, dict) else ""
+    if hesz.get("status") == "OK":
+        st.success("Hatályos HÉSZ/TÉSZ-jelölt megtalálva és az NJT tartalmával visszaellenőrizve.")
+        _v5_source_link("NJT – hivatalos HÉSZ/TÉSZ megnyitása", njt_url)
+    elif hesz.get("status") == "TÖBB JELÖLT":
+        st.warning("Több hivatalos HÉSZ/TÉSZ-jelölt maradt. Automatikusan nem választok közülük.")
+        for c in hesz.get("candidates", [])[:5]:
+            _v5_source_link(c.get("title", "NJT találat"), c.get("url", ""))
+    else:
+        st.error(
+            "A hatályos HÉSZ/TÉSZ automatikus felderítése most nem adott "
+            "kellően igazolt NJT-találatot. Ez keresési hozzáférési hiba is lehet; "
+            "nem jelenti azt, hogy nincs hatályos szabályzat."
+        )
+
+    njt_text = ""
+    if njt_url:
+        try:
+            njt_text = fetch_njt_text(njt_url)
+        except Exception as e:
+            st.warning(f"Az NJT szövegét nem sikerült betölteni: {e}")
+
+    # 2. Mellékletek
+    st.header("2. Szabályozási terv és mellékletek")
+    attachments = []
+    if njt_url:
+        try:
+            attachments = discover_njt_attachments(njt_url)
+        except Exception:
+            attachments = []
+
+    if attachments:
+        st.success(f"{len(attachments)} hivatalos melléklet-hivatkozást találtam.")
+        st.dataframe(attachments, width="stretch", hide_index=True)
+    else:
+        st.warning(
+            "Az NJT HTML-ből nem sikerült stabil közvetlen melléklet-hivatkozást kinyerni. "
+            "Ezért a feltöltött szabályozási terv használható térbeli ellenőrzésre."
+        )
+
+    plan_doc = _v5_open_uploaded_pdf(plan_upload)
+    hesz_doc = None
+
+    # 3. Telek
+    st.header("3. Telekazonosítás")
+    st.write(f"**{town} {normalize_hrsz(hrsz)} hrsz.**")
+    if plan_doc is None:
+        st.info(
+            "A telek térbeli helyét szabályozási terv nélkül nem állítom be találgatással. "
+            "Ha az NJT melléklet közvetlenül nem tölthető le, töltsd fel a hivatalos "
+            "szabályozási terv PDF-jét a bal oldalon."
+        )
+        spatial = {"status": "missing_plan", "zone": "", "candidates": [], "hit": None}
+    else:
+        spatial = _v5_zone_from_spatial(plan_doc, hrsz, hesz_doc)
+        if spatial["hit"]:
+            pno = spatial["hit"]["page_number"] + 1
+            st.success(f"A helyrajzi szám megtalálva a szabályozási terv {pno}. PDF-oldalán.")
+            page = plan_doc[spatial["hit"]["page_number"]]
+            vh = visible_rect(page, spatial["hit"]["pdf_rect"])
+            st.image(parcel_crop(page, vh, scale=0.10, zoom=0.75),
+                     caption="A helyrajzi szám környezete a szabályozási terven",
+                     width="stretch")
+        else:
+            st.error("A helyrajzi számot nem találtam meg a feltöltött szabályozási terv natív szövegrétegében.")
+
+    # 4. Övezet
+    st.header("4. A konkrét telek övezete")
+    auto_zone = spatial.get("zone", "")
+    zone = manual_zone.strip() or auto_zone
+
+    if manual_zone.strip():
+        st.warning(
+            f"Kézzel megadott ellenőrzési övezeti kód: **{manual_zone.strip()}**. "
+            "Ezt a program nem tekinti automatikusan térben igazolt besorolásnak."
+        )
+    elif auto_zone:
+        st.success(f"Legközelebbi dokumentumalapú övezeti jelölt: **{auto_zone}**.")
+        st.caption(
+            "A közeli felirat önmagában nem azonos a telekpolygon és az övezetpolygon "
+            "geometriai metszésével; ezért ezt addig jelöltként kezeljük, amíg a térbeli "
+            "besorolás egyértelműen nem igazolható."
+        )
+    else:
+        st.warning("A konkrét telek övezete jelenleg nincs kellően igazolva.")
+
+    if spatial.get("candidates"):
+        st.dataframe(
+            [{k: v for k, v in r.items() if k != "_rect"}
+             for r in spatial["candidates"][:12]],
+            width="stretch",
+            hide_index=True,
+        )
+
+    # 5. Övezeti előírások
+    st.header("5. Mit mond a hatályos szabályzat?")
+    decision_rows, params = _v5_extract_decision_rows(njt_text, zone)
+
+    if not zone:
+        st.warning("Övezeti kód nélkül nem kapcsolok övezetspecifikus előírást a telekhez.")
+    elif not njt_text:
+        st.warning("A hatályos NJT-szöveg nem áll rendelkezésre, ezért jogi paramétert nem állítok.")
+    elif decision_rows:
+        st.dataframe(decision_rows, width="stretch", hide_index=True)
+    else:
+        st.warning(
+            f"A **{zone}** kódhoz nem sikerült kellően strukturált előírást kinyerni. "
+            "A program nem egészíti ki feltételezéssel."
+        )
+
+    # 6. Korlátozások
+    st.header("6. Telekspecifikus korlátozások")
+    st.info(
+        "Védősáv, védőterület, hidrogeológiai védőterület, veszélyességi övezet, "
+        "szabályozási/építési vonal és más térbeli korlátozás csak akkor minősül "
+        "telekspecifikusnak, ha a telekkel való térbeli érintettség igazolható. "
+        "A szabályzatban való puszta előfordulás nem elegendő."
+    )
+
+    # 7. Közmű
+    st.header("7. E-közmű – közműérintettségek")
+    st.warning(
+        "A program nem használ dokumentálatlan E-közmű belső API-végpontot. "
+        "A közműérintettség addig kézi/hivatalos térképi ellenőrzést igényel, "
+        "amíg nyilvánosan dokumentált gépi szolgáltatás nem áll rendelkezésre."
+    )
+    st.link_button("E-közmű térkép megnyitása", EKOZMU_MAP)
+
+    # 8. Döntéstámogató válasz
+    st.header("8. Mit lehet és mit nem lehet ezen a konkrét telken?")
+    spatially_verified = bool(auto_zone) and not bool(manual_zone.strip())
+    source_verified = bool(njt_url and njt_text)
+
+    if spatially_verified and source_verified and decision_rows:
+        st.success(
+            "A program talált dokumentumalapú övezeti kapcsolatot és hozzá hivatalos "
+            "NJT-forrást. Az alábbi adatok forrásolt döntéstámogató eredmények; "
+            "a térbeli korlátozásokat ettől még külön kell ellenőrizni."
+        )
+        st.dataframe(decision_rows, width="stretch", hide_index=True)
+    else:
+        missing = []
+        if not spatially_verified:
+            missing.append("egyértelműen igazolt telek–övezet kapcsolat")
+        if not source_verified:
+            missing.append("automatikusan igazolt hatályos NJT-forrás")
+        if not decision_rows:
+            missing.append("strukturált övezeti előírás")
+        st.warning(
+            "A konkrét telekre vonatkozó végleges „lehet / nem lehet” válasz még nem "
+            "adható ki megbízhatóan. Hiányzik: **" + "; ".join(missing) + "**."
+        )
+
+    # 9. Forráslap
+    st.header("9. Forrásolt telek-adatlap")
+    summary = [
+        {"Adat": "Telek", "Eredmény": f"{town} {normalize_hrsz(hrsz)}",
+         "Elsődleges forrás": "E-közmű / ingatlan-nyilvántartás",
+         "Bizonyosság": "térképen ellenőrzendő"},
+        {"Adat": "Hatályos HÉSZ/TÉSZ",
+         "Eredmény": hesz.get("title", "") if hesz.get("status") == "OK" else "nincs automatikusan igazolva",
+         "Elsődleges forrás": "NJT", "Bizonyosság": hesz.get("status", "NINCS")},
+        {"Adat": "Övezet", "Eredmény": zone or "nincs igazolva",
+         "Elsődleges forrás": "szabályozási terv",
+         "Bizonyosság": "dokumentumalapú jelölt" if auto_zone else "nincs"},
+        {"Adat": "Övezeti paraméterek",
+         "Eredmény": f"{len(params)} strukturált adat" if params else "nincs kellően kinyert adat",
+         "Elsődleges forrás": "NJT HÉSZ/TÉSZ",
+         "Bizonyosság": "forrásolt" if params and source_verified else "ellenőrzendő"},
+        {"Adat": "Közműérintettség", "Eredmény": "kézi térképi ellenőrzés",
+         "Elsődleges forrás": "E-közmű", "Bizonyosság": "még nincs automatizálva"},
+    ]
+    st.dataframe(summary, width="stretch", hide_index=True)
+
+    st.caption(
+        "A TelekElőírás AI döntéstámogató eszköz. Nem helyettesíti a hatósági, "
+        "tervezői vagy jogi ellenőrzést. A program csak olyan telekspecifikus állítást "
+        "tesz, amelyhez az alkalmazott forrás és az igazolás módja megadható."
+    )
+
+
+if __name__ == "__main__":
+    run_v5()
