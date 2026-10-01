@@ -1362,7 +1362,7 @@ def _v51_search_web(query, timeout=14):
     Nincs API-kulcs. Sikertelenség esetén üres listát ad.
     """
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.2; +public-web-search)",
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.0; +public-web-search)",
         "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.6",
     }
     endpoints = [
@@ -1411,7 +1411,7 @@ def _v51_candidate_queries(town):
 
 def _v51_fetch_page(url, timeout=18):
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.2)",
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.0)",
         "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
     }
     r = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
@@ -1594,7 +1594,7 @@ _OR_NJT_SEARCH = "https://or.njt.hu/onkorm"
 
 def _v52_http_get(url, params=None, timeout=22):
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.2; official-NJT-client)",
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.0; official-NJT-client)",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
         "Cache-Control": "no-cache",
@@ -1605,7 +1605,7 @@ def _v52_http_get(url, params=None, timeout=22):
 
 def _v52_http_post(url, data=None, timeout=22):
     headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/5.2; official-NJT-client)",
+        "User-Agent": "Mozilla/5.0 (compatible; TelekEloirasAI/6.0; official-NJT-client)",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
         "Content-Type": "application/x-www-form-urlencoded",
@@ -1872,10 +1872,198 @@ _v52_v51_fallback = discover_current_njt_hesz
 discover_current_njt_hesz = discover_current_njt_hesz_v52
 
 
+
+# =========================================================
+# v6.0 – VALIDÁLT HÉSZ-FORRÁSINDEX + RUNTIME NJT-ELLENŐRZÉS
+#
+# Architektúra:
+# 1) település -> validált NJT alaprendelet URL (cache/index)
+# 2) runtime közvetlen NJT-letöltés és tartalmi ellenőrzés
+# 3) mellékletek automatikus kinyerése a rendeletoldal HTML-jéből
+# 4) ismeretlen településnél a korábbi automatikus felderítő lánc marad fallback
+#
+# FONTOS: az index nem telekspecifikus szabályt éget be. Csak a hivatalos
+# alaprendelet forrásazonosítóját cache-eli. A tényleges előírásokat mindig
+# a hivatalos NJT-forrásból kell kiolvasni.
+# =========================================================
+
+V60_HESZ_SOURCE_INDEX = {
+    "tiszaújváros": {
+        "municipality": "Tiszaújváros",
+        "title": "Tiszaújváros Építési Szabályzatáról",
+        "regulation": "11/2018. (VI.12.) önkormányzati rendelet",
+        "url": "https://or.njt.hu/onkormanyzati-rendelet/2018-11-SP-1228",
+        "official_domain": "or.njt.hu",
+        "index_status": "webes kereséssel azonosított, hivatalos NJT-forrás",
+    }
+}
+
+def _v60_key(s):
+    return normalize_text(s or "").strip().lower()
+
+def _v60_fetch_official_njt(url):
+    """
+    Közvetlenül a konkrét, már azonosított NJT rendeletoldalt tölti le.
+    Itt nincs keresőmotor és nincs NJT keresőfelület.
+    """
+    try:
+        r = _v52_http_get(url, timeout=25)
+        html = r.text or ""
+        soup = BeautifulSoup(html, "html.parser")
+        txt = normalize_text(soup.get_text(" ", strip=True))
+        title = normalize_text(soup.title.get_text(" ", strip=True) if soup.title else "")
+        return {
+            "ok": r.status_code == 200 and len(txt) > 500,
+            "status_code": r.status_code,
+            "url": r.url,
+            "html": html,
+            "text": txt,
+            "title": title,
+            "error": "",
+        }
+    except Exception as e:
+        return {
+            "ok": False, "status_code": None, "url": url,
+            "html": "", "text": "", "title": "", "error": str(e)
+        }
+
+def _v60_validate_indexed_hesz(town, meta, page):
+    t = _v60_key(town)
+    body = _v60_key(page.get("text", ""))
+    title = _v60_key(page.get("title", ""))
+    checks = {
+        "település": t in body or t in title,
+        "építési szabályzat": ("építési szabályzat" in body or "építési szabályzat" in title),
+        "rendeletazonosító": _v60_key(meta.get("regulation", "").split("önkormányzati")[0].strip())[:7] in body,
+        "NJT-domain": "or.njt.hu" in page.get("url", ""),
+    }
+    ok = checks["település"] and checks["építési szabályzat"] and checks["NJT-domain"]
+    return ok, checks
+
+def _v60_extract_attachments(html, base_url):
+    """
+    Az NJT rendeletoldalon található melléklet/PDF hivatkozások kinyerése.
+    Nem feltételez előre fájlnevet.
+    """
+    soup = BeautifulSoup(html or "", "html.parser")
+    items, seen = [], set()
+    for a in soup.find_all("a", href=True):
+        href = urljoin(base_url, a.get("href", ""))
+        label = normalize_text(a.get_text(" ", strip=True))
+        parent = normalize_text(a.parent.get_text(" ", strip=True) if a.parent else "")
+        blob = (label + " " + parent + " " + href).lower()
+        if not (
+            href.lower().endswith(".pdf")
+            or "/document/" in href.lower()
+            or "/download/" in href.lower()
+            or "melléklet" in blob
+            or "melleklet" in blob
+        ):
+            continue
+        if href in seen:
+            continue
+        seen.add(href)
+        items.append({"name": label or parent[:120] or "NJT melléklet", "url": href})
+    return items
+
+def _v60_named_annexes_from_text(text):
+    """
+    A rendeletszövegből a mellékletek szemantikus jegyzéke.
+    Ez akkor is működik, ha a HTML-ben a PDF linket az NJT kliensoldali kód rejti.
+    """
+    s = normalize_text(text or "")
+    patterns = [
+        r"1\.1\.\s*melléklet[^.;]{0,180}",
+        r"1\.2\.\s*melléklet[^.;]{0,180}",
+        r"2\.1\.\s*melléklet[^.;]{0,180}",
+        r"2\.2\.\s*melléklet[^.;]{0,180}",
+        r"2\.3\.\s*melléklet[^.;]{0,180}",
+        r"2\.4\.\s*melléklet[^.;]{0,180}",
+    ]
+    out = []
+    for p in patterns:
+        m = re.search(p, s, flags=re.I)
+        if m:
+            out.append(normalize_text(m.group(0)))
+    return out
+
+# Save the old v5.2 discovery as fallback for towns not yet indexed.
+_v60_old_discover = discover_current_njt_hesz
+
+def discover_current_njt_hesz_v60(town):
+    key = _v60_key(town)
+    meta = V60_HESZ_SOURCE_INDEX.get(key)
+
+    if meta:
+        page = _v60_fetch_official_njt(meta["url"])
+        if page["ok"]:
+            valid, checks = _v60_validate_indexed_hesz(town, meta, page)
+            if valid:
+                attachments = _v60_extract_attachments(page["html"], page["url"])
+                named_annexes = _v60_named_annexes_from_text(page["text"])
+                return {
+                    "status": "OK",
+                    "url": page["url"],
+                    "title": meta["title"],
+                    "regulation": meta["regulation"],
+                    "score": 100,
+                    "reasons": "validált forrásindex + közvetlen NJT tartalmi ellenőrzés",
+                    "finder": "TelekElőírás HÉSZ-forrásindex → NJT",
+                    "text": page["text"],
+                    "html": page["html"],
+                    "attachments": attachments,
+                    "named_annexes": named_annexes,
+                    "validation": checks,
+                    "index_status": meta["index_status"],
+                    "candidates": [],
+                    "diagnostics": [{
+                        "stage": "v6.0 forrásindex",
+                        "status": "OK",
+                        "url": page["url"],
+                        "checks": checks,
+                    }],
+                }
+        # Az indexben szereplő forrás ismert, de a runtime letöltés épp hibázik.
+        # Nem állítjuk, hogy nincs HÉSZ: visszaadjuk az ismert hivatalos forrást,
+        # de külön jelezzük, hogy a pillanatnyi újraellenőrzés sikertelen.
+        return {
+            "status": "INDEX_OK_RUNTIME_HIBA",
+            "url": meta["url"],
+            "title": meta["title"],
+            "regulation": meta["regulation"],
+            "finder": "TelekElőírás HÉSZ-forrásindex",
+            "text": "",
+            "html": "",
+            "attachments": [],
+            "named_annexes": [],
+            "validation": {},
+            "index_status": meta["index_status"],
+            "candidates": [],
+            "diagnostics": [{
+                "stage": "v6.0 közvetlen NJT újraellenőrzés",
+                "status": "HIBA",
+                "url": meta["url"],
+                "detail": page.get("error") or f"HTTP {page.get('status_code')}",
+            }],
+            "detail": (
+                "A hivatalos NJT-forrás az indexben azonosítva van, de a Streamlit "
+                "futási környezetből a pillanatnyi közvetlen NJT-letöltés nem sikerült."
+            ),
+        }
+
+    # Ismeretlen település: automatikus felderítés a korábbi lánccal.
+    old = _v60_old_discover(town)
+    if isinstance(old, dict):
+        old["finder"] = old.get("finder", "automatikus felderítés") + " (v6.0 fallback)"
+    return old
+
+discover_current_njt_hesz = discover_current_njt_hesz_v60
+
+
 def run_v5():
     st.title("TelekElőírás AI")
     st.caption(
-        "v5.2 • telek → hatályos HÉSZ/TÉSZ → szabályozási terv → övezet → "
+        "v6.0 • telek → validált HÉSZ-forrás → NJT → szabályozási terv → övezet → telekspecifikus előírások → szabályozási terv → övezet → "
         "telekspecifikus előírások → forrásolt döntéstámogató adatlap"
     )
 
