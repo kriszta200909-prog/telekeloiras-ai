@@ -7,19 +7,19 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v2.7
+# TELEKELŐÍRÁS AI v2.8
 # NATÍV PDF HELYMEGHATÁROZÁS – ELLENŐRZÖTT ROTÁCIÓS LEKÉPEZÉS
 # =========================================================
 
 st.set_page_config(
-    page_title="TelekElőírás AI v2.7",
+    page_title="TelekElőírás AI v2.8",
     page_icon="🏗️",
     layout="wide",
 )
 
 
 
-# --- v2.7: övezeti jelöltek diagnosztikája ---
+# --- v2.8: övezeti jelöltek diagnosztikája ---
 import re as _zone_re
 import math as _zone_math
 
@@ -159,7 +159,7 @@ def find_hrsz(doc, hrsz: str):
 
 def visible_rect(page, pdf_rect):
     """
-    FONTOS v2.7:
+    FONTOS v2.8:
     A search_for() találatára NEM alkalmazunk page.transformation_matrix-ot.
 
     A vizsgált Tiszaújváros CAD-PDF-ben a keresési találat koordinátája
@@ -246,14 +246,14 @@ def parcel_crop(page, visible_hit, scale=0.10, zoom=0.75):
 
 st.title("TelekElőírás AI")
 st.caption(
-    "v2.7 • natív PDF-szövegkeresés • helyes rotation_matrix leképezés • "
+    "v2.8 • natív PDF-szövegkeresés • helyes rotation_matrix leképezés • "
     "OCR nélkül • telekhely-ellenőrzési verzió"
 )
 
 with st.sidebar:
     st.header("Tesztforrások")
     st.info(
-        "A v2.7 célja kizárólag a telek helyének biztos meghatározása. "
+        "A v2.8 célja kizárólag a telek helyének biztos meghatározása. "
         "A helyrajzi számot a PDF kereshető szövegrétegében keresi, majd a "
         "találatot közvetlenül page.rotation_matrix-szal vetíti a látható tervlapra. "
         "page.transformation_matrix nincs használva."
@@ -285,7 +285,7 @@ town = c1.text_input("Település", "Tiszaújváros")
 hrsz = c2.text_input("Helyrajzi szám", "2200/8")
 
 if st.button(
-    "v2.7 övezeti diagnosztika indítása",
+    "v2.8 övezeti diagnosztika indítása",
     type="primary",
     use_container_width=True,
 ):
@@ -384,13 +384,13 @@ if st.button(
 
 
 # ============================================================
-# v2.7 – övezeti jelöltek vizuális diagnosztikája
+# v2.8 – övezeti jelöltek vizuális diagnosztikája
 # ============================================================
-# A v2.7 által előállított zone_candidates listát használja.
+# A v2.8 által előállított zone_candidates listát használja.
 # Nem választ automatikusan övezetet: a legközelebbi értelmes
 # jelölteket sorszámozva rárajzolja a tervre.
 
-def _v27_get_candidate_fields(item):
+def _v28_get_candidate_fields(item):
     """Toleráns mezőkiolvasás dict / tuple jelöltekhez."""
     if isinstance(item, dict):
         txt = item.get("text") or item.get("code") or item.get("label") or ""
@@ -406,21 +406,32 @@ def _v27_get_candidate_fields(item):
         return txt, dist, rect, point
     return "", None, None, None
 
-def _v27_plausible_zone_code(s):
+def _v28_plausible_zone_code(s):
+    """Konzervatív övezetikód-szűrő; szöveges/utca/méret jellegű találatok kizárása."""
     import re
     s = (s or "").strip()
-    if not s or len(s) > 18:
+    if not s or len(s) > 16:
         return False
-    # Legalább egy nagybetű és kötőjeles/kód-jellegű szerkezet.
-    # Kizárja a tipikus szöveges hamis pozitívokat (park, utca, Kálmán, acél...).
-    if not re.search(r"[A-ZÁÉÍÓÖŐÚÜŰ]", s):
-        return False
-    if re.search(r"[a-záéíóöőúüű]{3,}", s):
-        return False
-    return bool(re.fullmatch(r"[A-ZÁÉÍÓÖŐÚÜŰ0-9]+(?:[-/][A-ZÁÉÍÓÖŐÚÜŰ0-9]+)+", s) or
-                re.fullmatch(r"[A-ZÁÉÍÓÖŐÚÜŰ]{1,5}-[A-ZÁÉÍÓÖŐÚÜŰ]{1,5}", s))
 
-def _v27_center_from_rect(rect):
+    # Tipikus zajszavak és mondatszerű töredékek kizárása.
+    low = s.lower()
+    banned = ("park", "utca", "út", "híd", "acél", "pvc", "kálmán",
+              "zoltán", "ipari", "telep", "tér", "sor")
+    if any(w in low for w in banned):
+        return False
+
+    # Kisbetűs szöveg ne legyen kód.
+    if re.search(r"[a-záéíóöőúüű]", s):
+        return False
+
+    # Valódi kódjelleg: nagybetű/szám blokkok kötőjellel.
+    # Példák: V-0-0, V-1-0, KM-P, A-2-5.
+    return bool(re.fullmatch(
+        r"[A-ZÁÉÍÓÖŐÚÜŰ]{1,5}(?:-[A-ZÁÉÍÓÖŐÚÜŰ0-9]{1,5}){1,4}",
+        s
+    ))
+
+def _v28_center_from_rect(rect):
     try:
         return ((float(rect.x0)+float(rect.x1))/2, (float(rect.y0)+float(rect.y1))/2)
     except Exception:
@@ -429,17 +440,17 @@ def _v27_center_from_rect(rect):
         except Exception:
             return None
 
-def v27_zone_diagnostic(page, zone_candidates, parcel_rect, max_candidates=10, zoom=2.0):
+def v28_zone_diagnostic(page, zone_candidates, parcel_rect, max_candidates=10, zoom=2.0):
     import fitz, io
     from PIL import Image, ImageDraw, ImageFont
 
     parsed = []
     for raw in zone_candidates or []:
-        txt, dist, rect, point = _v27_get_candidate_fields(raw)
-        if not _v27_plausible_zone_code(txt):
+        txt, dist, rect, point = _v28_get_candidate_fields(raw)
+        if not _v28_plausible_zone_code(txt):
             continue
         if point is None and rect is not None:
-            point = _v27_center_from_rect(rect)
+            point = _v28_center_from_rect(rect)
         if point is None:
             continue
         try:
@@ -501,8 +512,8 @@ def v27_zone_diagnostic(page, zone_candidates, parcel_rect, max_candidates=10, z
     return img, parsed
 
 
-# --- v2.7 UI ---
-# Csak akkor fut, ha a v2.7 változói már léteznek.
+# --- v2.8 UI ---
+# Csak akkor fut, ha a v2.8 változói már léteznek.
 try:
     if "page" in globals() and "zone_candidates" in globals() and "vrect" in globals():
         st.divider()
@@ -512,7 +523,7 @@ try:
             "övezetikód-jelölteket sorszámozva rárajzolja a 2200/8 telek környezetére. "
             "A fekete célkereszt a telek helyét jelzi."
         )
-        _img27, _cand27 = v27_zone_diagnostic(page, zone_candidates, vrect, 10)
+        _img27, _cand27 = v28_zone_diagnostic(page, zone_candidates, vrect, 10)
         if _img27 is None:
             st.warning("Nem maradt megjeleníthető övezetikód-jelölt a szűrés után.")
         else:
@@ -531,4 +542,50 @@ try:
                 "melyik övezeti felirat tartozik ténylegesen a 2200/8 telekhez."
             )
 except Exception as _e27:
-    st.warning(f"v2.7 vizuális övezeti diagnosztika nem tudott elindulni: {_e27}")
+    st.warning(f"v2.8 vizuális övezeti diagnosztika nem tudott elindulni: {_e27}")
+
+
+
+# ============================================================
+# v2.8 – integrált övezeti jelölt-térkép
+# ============================================================
+# Ugyanazt a page / vrect / zone_candidates adatot használja,
+# amelyből az 5. pont táblázata készült. Nem végez új OCR-t.
+
+st.divider()
+st.header("6. Övezeti jelöltek – térképi ellenőrzés")
+st.info(
+    "A program a már megtalált 2200/8 telek környezetében csak a kódszerű "
+    "övezeti feliratokat tartja meg, majd a legközelebbi jelölteket "
+    "sorszámozva rárajzolja ugyanarra a tervre. Itt még nincs automatikus "
+    "övezeti besorolás."
+)
+
+try:
+    _img28, _cand28 = v28_zone_diagnostic(page, zone_candidates, vrect, 12)
+
+    if _img28 is None or not _cand28:
+        st.warning(
+            "A 40 nyers találatból nem maradt olyan jelölt, amely megfelel "
+            "az övezetikód-szűrésnek és térképi koordinátája is van."
+        )
+    else:
+        st.image(_img28, use_container_width=True)
+
+        import pandas as pd
+        _rows28 = []
+        for _i, (_d, _txt, _p) in enumerate(_cand28, 1):
+            _rows28.append({
+                "Térképi sorszám": _i,
+                "Övezeti kód jelölt": _txt,
+                "Távolság a 2200/8-tól": round(_d, 1) if _d < 1e98 else None,
+            })
+        st.dataframe(pd.DataFrame(_rows28), use_container_width=True, hide_index=True)
+        st.caption(
+            "A fekete célkereszt a 2200/8 telek helye. "
+            "A piros számozott jelölések a szűrt övezetikód-jelöltek helyei. "
+            "A következő lépésben csak a vizuálisan megfelelő jelölt alapján "
+            "építünk automatikus besorolást."
+        )
+except Exception as _e28:
+    st.error(f"v2.8 térképi diagnosztika hiba: {_e28}")
