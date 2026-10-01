@@ -7,12 +7,12 @@ from PIL import Image, ImageDraw
 
 
 # =========================================================
-# TELEKELŐÍRÁS AI v3.0
+# TELEKELŐÍRÁS AI v3.1
 # NATÍV PDF HELYMEGHATÁROZÁS – ELLENŐRZÖTT ROTÁCIÓS LEKÉPEZÉS
 # =========================================================
 
 st.set_page_config(
-    page_title="TelekElőírás AI v3.0",
+    page_title="TelekElőírás AI v3.1",
     page_icon="🏗️",
     layout="wide",
 )
@@ -150,14 +150,9 @@ def parcel_crop(page, visible_hit, scale=0.10, zoom=0.75):
 
 
 # =========================================================
-# v3.0 – NATÍV PDF DOKUMENTUMFELDERÍTÉS
+# v3.1 – ÖVEZETI JELKULCS / SZÓTÁR FELDERÍTÉS
 # NINCS FIX OLDALSZÁM, NINCS OCR
 # =========================================================
-
-ZONE_ROOTS = (
-    "GIP", "GKSZ", "KG", "K", "VT", "V", "LKE", "LF", "LK", "L", "ÜÜ",
-    "ÜH", "KÖU", "KÖK", "KÖM", "EV", "EG", "MÁ", "MK", "VÍZ", "V"
-)
 
 def normalize_text(s):
     return re.sub(r"\s+", " ", str(s or "")).strip()
@@ -168,39 +163,166 @@ def extract_page_text(page):
     except Exception:
         return ""
 
-def page_has_any(text, terms):
-    low = text.lower()
-    return any(t.lower() in low for t in terms)
+# Tudatosan nem engedünk tetszőleges műszaki feliratokat.
+# A regex a településrendezési övezeti jelölések tipikus alapalakjait keresi.
+ZONE_TOKEN_RX = re.compile(
+    r"(?<![A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű0-9])"
+    r"(?:Gip|Gksz|Gá|Ge|Gipe|Gipez|"
+    r"Lke|Lk|Lf|Ln|Vt|"
+    r"Üü|Üh|"
+    r"Köu|Kök|Köm|"
+    r"Má|Mk|"
+    r"Ev|Eg|"
+    r"Kst|Ksp|Kte|Kap|Ksz|Ke|Kcs|Kre|Kkm|Kmg|Kb)"
+    r"(?:[/_-][A-Za-z0-9ÁÉÍÓÖŐÚÜŰáéíóöőúüű.-]+)*"
+    r"(?![A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű0-9])",
+    re.IGNORECASE,
+)
 
-def classify_context(text):
-    """Tartalom alapján osztályoz, nem oldalszám alapján."""
-    low = text.lower()
-    scores = {
-        "övezeti jelölés / jelmagyarázat": 0,
-        "általános övezeti előírás": 0,
-        "beépítési mutató / táblázat": 0,
+# Tipikus nem-övezeti műszaki/szelvény jelölések.
+REJECT_PATTERNS = [
+    re.compile(r"^(?:V|A)-\d+-\d+$", re.I),             # pl. V-0-0, V-1-0
+    re.compile(r"^(?:DK|D)\s*\d+", re.I),               # csőátmérő jelölések
+    re.compile(r"\b(?:KPE|PVC|ACÉL|VEZETÉK)\b", re.I),  # közmű
+]
+
+LEGEND_WORDS = (
+    "jelmagyarázat", "területfelhasználás", "övezeti jel",
+    "építési övezet", "övezet jele", "területfelhasználás jele",
+)
+LEGAL_WORDS = (
+    "§", "elhelyezhető", "nem helyezhető", "rendeltetés",
+    "beépítettség", "zöldfelület", "épületmagasság",
+    "építménymagasság", "legkisebb telek", "szintterületi",
+    "előírás", "építési övezet",
+)
+
+def canonical_zone(token):
+    t = normalize_text(token).strip(".,;:()[]{}")
+    if not t:
+        return ""
+    # A gyököt egységesítjük, az alövezeti rész megmarad.
+    parts = re.split(r"([/_-])", t)
+    root = parts[0].lower()
+    roots = {
+        "gip":"Gip", "gksz":"Gksz", "gá":"Gá", "ge":"Ge",
+        "gipe":"Gipe", "gipez":"Gipez",
+        "lke":"Lke", "lk":"Lk", "lf":"Lf", "ln":"Ln", "vt":"Vt",
+        "üü":"Üü", "üh":"Üh", "köu":"Köu", "kök":"Kök", "köm":"Köm",
+        "má":"Má", "mk":"Mk", "ev":"Ev", "eg":"Eg",
+        "kst":"Kst", "ksp":"Ksp", "kte":"Kte", "kap":"Kap",
+        "ksz":"Ksz", "ke":"Ke", "kcs":"Kcs", "kre":"Kre",
+        "kkm":"Kkm", "kmg":"Kmg", "kb":"Kb",
     }
+    if root not in roots:
+        return ""
+    return roots[root] + "".join(parts[1:])
 
-    for w in ("jelmagyarázat", "övezet", "övezeti jel", "területfelhasználás"):
-        if w in low:
-            scores["övezeti jelölés / jelmagyarázat"] += 2
+def is_rejected_label(token):
+    return any(rx.search(token or "") for rx in REJECT_PATTERNS)
 
-    for w in ("előírás", "általános", "ipari gazdasági", "gazdasági terület",
-              "rendeltetés", "elhelyezhető", "nem helyezhető"):
-        if w in low:
-            scores["általános övezeti előírás"] += 2
+def zone_tokens(text):
+    out = []
+    for m in ZONE_TOKEN_RX.finditer(text or ""):
+        tok = canonical_zone(m.group(0))
+        if tok and not is_rejected_label(tok):
+            out.append(tok)
+    return out
 
-    for w in ("beépítési", "beépítettség", "építménymagasság", "épületmagasság",
-              "legkisebb telek", "zöldfelület", "szintterületi", "oldalkert",
-              "előkert", "hátsókert", "%"):
-        if w in low:
-            scores["beépítési mutató / táblázat"] += 2
+def page_role(text, tokens):
+    low = (text or "").lower()
+    legend_score = sum(3 for w in LEGEND_WORDS if w in low)
+    legal_score = sum(2 for w in LEGAL_WORDS if w.lower() in low)
+    unique = len(set(tokens))
+    # Sok különböző övezeti jel egy oldalon erős jelkulcs/jelmagyarázat-jel.
+    if unique >= 8:
+        legend_score += 5
+    elif unique >= 4:
+        legend_score += 2
+    if legend_score >= max(legal_score, 3):
+        return "jelkulcs / övezeti jelölések", legend_score
+    if legal_score >= 3:
+        return "övezeti előírás / szabályozási szöveg", legal_score
+    return "egyéb övezeti előfordulás", max(legend_score, legal_score)
 
-    label, score = max(scores.items(), key=lambda kv: kv[1])
-    return label if score > 0 else "egyéb találat", score
+def build_zone_dictionary(plan_doc, hesz_doc=None):
+    evidence = {}
+
+    def add(doc, source_name):
+        for pno in range(len(doc)):
+            txt = extract_page_text(doc[pno])
+            toks = zone_tokens(txt)
+            if not toks:
+                continue
+            role, role_score = page_role(txt, toks)
+            for tok in toks:
+                root = re.split(r"[/_-]", tok, maxsplit=1)[0]
+                e = evidence.setdefault(root, {
+                    "Kód": root,
+                    "Összes előfordulás": 0,
+                    "Szabályozási terv": 0,
+                    "HÉSZ/TÉSZ": 0,
+                    "Jelkulcs-oldalak": set(),
+                    "Előírás-oldalak": set(),
+                    "_score": 0,
+                })
+                e["Összes előfordulás"] += 1
+                e[source_name] += 1
+                if role == "jelkulcs / övezeti jelölések":
+                    e["Jelkulcs-oldalak"].add(pno + 1)
+                    e["_score"] += 4 + role_score
+                elif role == "övezeti előírás / szabályozási szöveg":
+                    e["Előírás-oldalak"].add(pno + 1)
+                    e["_score"] += 3 + role_score
+                else:
+                    e["_score"] += 1
+
+    add(plan_doc, "Szabályozási terv")
+    if hesz_doc is not None:
+        add(hesz_doc, "HÉSZ/TÉSZ")
+
+    rows = []
+    for e in evidence.values():
+        # Ha ugyanaz a gyök mindkét dokumentumban szerepel, az különösen erős bizonyíték.
+        cross = e["Szabályozási terv"] > 0 and e["HÉSZ/TÉSZ"] > 0
+        confidence = e["_score"] + (10 if cross else 0)
+        if cross and confidence >= 16:
+            level = "erős"
+        elif confidence >= 10:
+            level = "közepes"
+        else:
+            level = "gyenge"
+        rows.append({
+            "Övezeti kód": e["Kód"],
+            "Bizonyosság": level,
+            "Szabályozási terv előfordulás": e["Szabályozási terv"],
+            "HÉSZ/TÉSZ előfordulás": e["HÉSZ/TÉSZ"],
+            "Jelkulcs-oldalak": ", ".join(map(str, sorted(e["Jelkulcs-oldalak"]))),
+            "Előírás-oldalak": ", ".join(map(str, sorted(e["Előírás-oldalak"]))),
+            "_score": confidence,
+        })
+    rows.sort(key=lambda r: (-r["_score"], r["Övezeti kód"].lower()))
+    return rows
+
+def find_legend_pages(doc):
+    rows = []
+    for pno in range(len(doc)):
+        txt = extract_page_text(doc[pno])
+        toks = zone_tokens(txt)
+        if not toks:
+            continue
+        role, score = page_role(txt, toks)
+        if role == "jelkulcs / övezeti jelölések":
+            rows.append({
+                "Oldal": pno + 1,
+                "Pontszám": score,
+                "Különböző övezeti kódok": len(set(toks)),
+                "Felismert kódok": ", ".join(sorted(set(toks))[:40]),
+            })
+    rows.sort(key=lambda r: (-r["Pontszám"], -r["Különböző övezeti kódok"], r["Oldal"]))
+    return rows
 
 def snippets_around(text, needle, radius=260):
-    """Keresési találatok rövid szövegkörnyezete."""
     out = []
     if not text or not needle:
         return out
@@ -219,46 +341,37 @@ def snippets_around(text, needle, radius=260):
             break
     return out
 
-def discover_zone_terms(doc):
-    """
-    A teljes PDF-ben előforduló, tipikus övezeti gyököket számlálja.
-    Ez NEM dönti el a telek övezetét; csak a dokumentum szókészletét deríti fel.
-    """
-    counts = {}
-    pages = {}
-    rx = re.compile(r"\b(?:Gip|Gksz|Köu|Kök|Köm|Lke|Lf|Lk|Vt|Má|Mk|Ev|Eg|K|V)(?:[-/][A-Za-z0-9ÁÉÍÓÖŐÚÜŰáéíóöőúüű]+)*\b",
-                    re.IGNORECASE)
-    for pno in range(len(doc)):
-        txt = extract_page_text(doc[pno])
-        for m in rx.finditer(txt):
-            raw = normalize_text(m.group(0))
-            key = raw.upper()
-            counts[key] = counts.get(key, 0) + 1
-            pages.setdefault(key, set()).add(pno + 1)
-    result = []
-    for key, cnt in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
-        result.append({
-            "Kifejezés": key,
-            "Előfordulás": cnt,
-            "Oldalak": ", ".join(map(str, sorted(pages[key])[:20])),
-        })
-    return result
+def classify_context(text):
+    low = (text or "").lower()
+    scores = {
+        "övezeti jelölés / jelmagyarázat": 0,
+        "általános övezeti előírás": 0,
+        "beépítési mutató / táblázat": 0,
+    }
+    for w in LEGEND_WORDS:
+        if w in low:
+            scores["övezeti jelölés / jelmagyarázat"] += 3
+    for w in ("előírás", "ipari gazdasági", "gazdasági terület",
+              "rendeltetés", "elhelyezhető", "nem helyezhető", "§"):
+        if w in low:
+            scores["általános övezeti előírás"] += 2
+    for w in ("beépítési", "beépítettség", "építménymagasság", "épületmagasság",
+              "legkisebb telek", "zöldfelület", "szintterületi", "oldalkert",
+              "előkert", "hátsókert", "%"):
+        if w in low:
+            scores["beépítési mutató / táblázat"] += 2
+    label, score = max(scores.items(), key=lambda kv: kv[1])
+    return label if score > 0 else "egyéb találat", score
 
 def search_term_in_document(doc, term):
-    """Natív PDF-szövegkeresés a teljes dokumentumban, tartalmi osztályozással."""
     rows = []
     for pno in range(len(doc)):
         page = doc[pno]
-        rects = page.search_for(term)
-        if not rects:
-            # Egyes CAD/PDF-ekben a search_for és a kinyert text eltérően viselkedhet.
-            txt = extract_page_text(page)
-            if term.lower() not in txt.lower():
-                continue
         txt = extract_page_text(page)
-        snippets = snippets_around(txt, term)
-        if not snippets:
-            snippets = [normalize_text(txt[:700])]
+        rects = page.search_for(term)
+        if not rects and term.lower() not in txt.lower():
+            continue
+        snippets = snippets_around(txt, term) or [normalize_text(txt[:700])]
         for snip in snippets[:4]:
             cls, score = classify_context(snip)
             rows.append({
@@ -267,57 +380,64 @@ def search_term_in_document(doc, term):
                 "Pontszám": score,
                 "Szövegkörnyezet": snip,
             })
-    # fontosabb tartalmi találatok előre, de az oldalszámot csak megjelenítjük
     rows.sort(key=lambda r: (-r["Pontszám"], r["Oldal"]))
     return rows
 
 def show_document_discovery(plan_doc, hesz_doc=None):
-    st.markdown("## 5. Dokumentumszerkezet felderítése")
+    st.markdown("## 4. Övezeti jelkulcs automatikus felderítése")
     st.info(
-        "Ez a verzió nem használ fix oldalszámokat. A teljes kereshető PDF-szövegréteget "
-        "vizsgálja, és azt deríti fel, hol találhatók övezeti jelölések, általános "
-        "előírások és beépítési mutatók. A 14., 56. és 123. oldal nincs belekódolva."
+        "A v3.1 nem ismer előre oldalszámot. A teljes natív PDF-szövegrétegből keresi meg "
+        "azokat az oldalakat, amelyek jelkulcsnak vagy övezeti jelölés-listának látszanak. "
+        "A közmű- és szelvényfeliratokat (például DK 150 KPE, V-0-0, V-1-0) nem tekinti övezeti kódnak."
     )
+
+    legend_rows = find_legend_pages(plan_doc)
+    if legend_rows:
+        st.success(f"{len(legend_rows)} lehetséges jelkulcs/övezeti jelölés oldalt találtam.")
+        st.dataframe(legend_rows[:30], use_container_width=True, hide_index=True)
+    else:
+        st.warning("Nem találtam kellően erős jelkulcs-oldal jelöltet.")
+
+    st.markdown("## 5. Felismert övezeti kódok – ellenőrzött szótár")
+    dictionary = build_zone_dictionary(plan_doc, hesz_doc)
+    visible = [{k:v for k,v in r.items() if k != "_score"} for r in dictionary]
+    if visible:
+        st.dataframe(visible, use_container_width=True, hide_index=True)
+    else:
+        st.warning("Nem sikerült övezeti kódszótárat felépíteni.")
+
+    gip = next((r for r in dictionary if r["Övezeti kód"].lower() == "gip"), None)
+    if gip:
+        st.success(
+            "A Gip övezeti jelölést a program önállóan felismerte a dokumentumokból. "
+            f"Bizonyosság: {gip['Bizonyosság']}."
+        )
+
+    st.markdown("## 6. Kiválasztott övezeti kód tartalmi vizsgálata")
+    st.caption(
+        "Ez még nem jelenti azt, hogy a keresett telek övezete ez a kód. "
+        "Itt csak azt ellenőrizzük, hogy a felismert kódhoz hol találhatók jelölések, "
+        "általános előírások és beépítési mutatók."
+    )
+    default_term = "Gip" if gip else (dictionary[0]["Övezeti kód"] if dictionary else "")
+    zone_term = st.text_input(
+        "Vizsgálandó övezeti kifejezés",
+        value=default_term,
+        key="zone_term_v31",
+    ).strip()
 
     docs = [("Szabályozási terv", plan_doc)]
     if hesz_doc is not None:
         docs.append(("HÉSZ/TÉSZ", hesz_doc))
 
-    for name, doc in docs:
-        with st.expander(f"{name} – felismert övezeti kifejezések", expanded=True):
-            terms = discover_zone_terms(doc)
-            if terms:
-                st.dataframe(terms[:80], use_container_width=True, hide_index=True)
-            else:
-                st.warning("Nem találtam tipikus övezeti kifejezést a natív szövegrétegben.")
-
-    st.markdown("## 6. Övezeti kifejezés vizsgálata")
-    st.caption(
-        "A tesztmezőben most ellenőrizhetjük a dokumentumban szereplő övezeti kifejezést. "
-        "A program a teljes PDF-ben keresi, és tartalom alapján próbálja elkülöníteni "
-        "a jelölést, az általános előírást és a beépítési mutatókat."
-    )
-    zone_term = st.text_input(
-        "Vizsgálandó övezeti kifejezés",
-        value="GIP",
-        key="zone_term_v30",
-    ).strip()
-
     if zone_term:
         all_rows = []
         for name, doc in docs:
-            rows = search_term_in_document(doc, zone_term)
-            for r in rows:
-                r = {"Forrás": name, **r}
-                all_rows.append(r)
+            for r in search_term_in_document(doc, zone_term):
+                all_rows.append({"Forrás": name, **r})
 
-        if not all_rows:
-            st.warning(f"A(z) {zone_term} kifejezést egyik feltöltött PDF natív szövegrétegében sem találtam.")
-        else:
-            st.success(f"{len(all_rows)} releváns szövegkörnyezetet találtam a(z) {zone_term} kifejezéshez.")
-            st.dataframe(all_rows, use_container_width=True, hide_index=True)
-
-            st.markdown("### Tartalomtípusonként")
+        if all_rows:
+            st.success(f"{len(all_rows)} szövegkörnyezetet találtam a(z) {zone_term} kifejezéshez.")
             groups = {}
             for r in all_rows:
                 groups.setdefault(r["Típus"], []).append(r)
@@ -333,19 +453,20 @@ def show_document_discovery(plan_doc, hesz_doc=None):
                     for r in groups[typ][:12]:
                         st.markdown(f"**{r['Forrás']} • {r['Oldal']}. oldal**")
                         st.write(r["Szövegkörnyezet"])
-
+        else:
+            st.warning(f"A(z) {zone_term} kifejezést nem találtam.")
 
 st.title("TelekElőírás AI")
 st.caption(
-    "v3.0 • natív PDF-keresés • stabil telekhely • dokumentumszerkezet-felderítés • OCR nélkül"
+    "v3.1 • natív PDF-keresés • automatikus övezeti jelkulcs-felderítés • OCR nélkül"
 )
 
 with st.sidebar:
     st.header("Tesztforrások")
     st.info(
-        "A v3.0 megtartja az ellenőrzött telekhely-meghatározást, és a teljes PDF kereshető "
-        "szövegrétegében felderíti az övezeti jelölések, általános előírások és beépítési "
-        "mutatók lehetséges helyeit. Fix oldalszámokat nem használ. "
+        "A v3.1 megtartja az ellenőrzött telekhely-meghatározást, és a teljes PDF kereshető "
+        "szövegrétegéből automatikusan felderíti a jelkulcs-oldalakat és az övezeti kódokat. "
+        "Fix oldalszámokat nem használ, és kiszűri a tipikus közmű- és szelvényjelöléseket. "
         "A helyrajzi számot a PDF kereshető szövegrétegében keresi, majd a "
         "találatot közvetlenül page.rotation_matrix-szal vetíti a látható tervlapra. "
         "page.transformation_matrix nincs használva."
@@ -377,7 +498,7 @@ town = c1.text_input("Település", "Tiszaújváros")
 hrsz = c2.text_input("Helyrajzi szám", "2200/8")
 
 if st.button(
-    "v3.0 dokumentumfelderítés indítása",
+    "v3.1 övezeti jelkulcs felderítés indítása",
     type="primary",
     use_container_width=True,
 ):
