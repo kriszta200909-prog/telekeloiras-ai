@@ -1,4 +1,4 @@
-# TelekElőírás AI v11.0
+# TelekElőírás AI v12.0
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -20,7 +20,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v11.0",
+    page_title="TelekElőírás AI v12.0",
     page_icon="🏗️",
     layout="wide",
 )
@@ -72,7 +72,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/11.0",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/12.0",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -301,51 +301,85 @@ def is_official_njt_url(url):
 
 
 def discover_budapest_district(hrsz):
-    """Budapesti hrsz.-hez kerületi jelöltet keres.
+    """Budapesti hrsz.-hez kerületi jelöltet keres nyilvános forrásokból.
 
-    A találat csak keresési segédadat. A kerület és a telek végleges
-    azonosítását hivatalos térképi/NJT forrásnak kell alátámasztania.
+    HTML mellett PDF-ek natív szövegrétegét is vizsgálja (OCR nélkül).
+    A találat keresési segédadat; a végleges telekazonosítást hivatalos
+    térképi/NJT forrással kell alátámasztani.
     """
     h = normalize_hrsz(hrsz)
-    compact_h = h.replace("/", "").replace(" ", "")
+    compact_h = re.sub(r"[\s/.-]+", "", h).casefold()
+
     queries = [
-        f'"{h}" "helyrajzi szám" Budapest kerület',
-        f'"{h}" hrsz Budapest kerület',
+        f'"{h}" "Budapest" "kerület"',
+        f'"{h}" "helyrajzi szám" Budapest',
+        f'"{h}" hrsz Budapest',
+        f'"{h}" site:kormanyhivatalok.hu Budapest',
         f'"{h}" site:budapest.hu',
-        f'"{h}" site:*.budapest.hu',
         f'"{h}" site:e-epites.hu',
     ]
 
-    roman = r"(?:XXIII|XXII|XXI|XVIII|XVII|XVI|XIV|XIII|XII|VIII|VII|III|XIX|XV|XI|IX|VI|IV|II|XX|X|V|I)"
+    roman = r"(?:XXIII|XXII|XXI|XX|XIX|XVIII|XVII|XVI|XV|XIV|XIII|XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I)"
     district_patterns = [
-        rf"\b({roman})\.?\s*kerület\b",
-        rf"\bBudapest\s+({roman})\.?\s*kerület\b",
+        rf"\bBudapest\s+({roman})\.?\s*ker(?:ület|\.)\b",
+        rf"\b({roman})\.?\s*ker(?:ület|\.)\b",
     ]
 
+    def hrsz_present(plain):
+        compact_plain = re.sub(r"[\s/.-]+", "", plain).casefold()
+        return compact_h in compact_plain
+
+    def find_in_context(plain, source_url):
+        if not hrsz_present(plain):
+            return None
+
+        # Először a hrsz. közvetlen környezetében keresünk kerületet.
+        hrsz_pat = re.escape(h).replace(r"/", r"\s*/\s*")
+        hm = re.search(hrsz_pat, plain, flags=re.I)
+        windows = []
+        if hm:
+            windows.append(plain[max(0, hm.start()-1500): min(len(plain), hm.end()+1500)])
+        windows.append(plain[:250000])
+
+        for window in windows:
+            for pattern in district_patterns:
+                m = re.search(pattern, window, flags=re.I)
+                if m:
+                    return m.group(1).upper() + ". kerület", source_url
+        return None
+
+    seen = set()
     for q in queries:
-        for u in _search_web(q)[:15]:
+        for u in _search_web(q)[:20]:
+            if u in seen:
+                continue
+            seen.add(u)
             try:
-                raw, final, status, charset, content_type = http_get(u, timeout=8)
+                raw, final, status, charset, content_type = http_get(u, timeout=10)
                 if status >= 400:
                     continue
 
-                # PDF-et itt nem próbálunk HTML-ként feldolgozni.
-                if raw.startswith(b"%PDF") or "application/pdf" in (content_type or "").casefold():
-                    continue
+                is_pdf = raw.startswith(b"%PDF") or "application/pdf" in (content_type or "").casefold()
+                if is_pdf:
+                    try:
+                        doc = fitz.open(stream=raw, filetype="pdf")
+                        pages = []
+                        for i, page in enumerate(doc):
+                            if i >= 100:
+                                break
+                            pages.append(page.get_text("text") or "")
+                        plain = "\n".join(pages)
+                    except Exception:
+                        continue
+                else:
+                    html = raw.decode(charset or "utf-8", errors="replace")[:700000]
+                    parser = HTMLCollector()
+                    parser.feed(html)
+                    plain = parser.text()
 
-                html = raw.decode(charset or "utf-8", errors="replace")[:400000]
-                parser = HTMLCollector()
-                parser.feed(html)
-                plain = parser.text()
-
-                compact_plain = re.sub(r"\s+", "", plain).replace("/", "")
-                if compact_h not in compact_plain:
-                    continue
-
-                for pattern in district_patterns:
-                    m = re.search(pattern, plain, flags=re.I)
-                    if m:
-                        return m.group(1).upper() + ". kerület", final
+                found = find_in_context(plain, final)
+                if found:
+                    return found
             except Exception:
                 pass
 
@@ -727,29 +761,44 @@ def extract_rules(njt_text, zone):
 # ---------------------------------------------------------------------
 
 def choose_plan_attachment(attachments):
+    """Szabályozási terv jelölt kiválasztása az NJT mellékletekből."""
     if not attachments:
         return None
 
     scored = []
     for row in attachments:
         label = key_text(row.get("Megnevezés", ""))
-        url = row.get("URL", "")
+        url = (row.get("URL") or "").casefold()
         score = 0
 
         if "szabalyozasi terv" in label:
-            score += 10
-        if "szabalyozasi" in label:
+            score += 12
+        elif "szabalyozasi" in label:
+            score += 7
+
+        if "tervlap" in label:
             score += 5
-        if "terv" in label:
-            score += 2
-        if ".pdf" in url.casefold():
+        elif "terv" in label:
+            score += 3
+
+        if any(x in label for x in ("terkep", "szelveny")):
+            score += 3
+
+        if ".pdf" in url:
             score += 1
 
-        # Egy puszta PDF-link önmagában nem bizonyítja, hogy szabályozási terv.
+        # Biztosan nem szabályozási terv.
+        if any(x in label for x in ("akadalymentes", "nyilatkozat")):
+            score -= 20
+
         scored.append((score, row))
 
     scored.sort(key=lambda x: x[0], reverse=True)
-    return scored[0][1] if scored and scored[0][0] >= 5 else None
+
+    # A v11 5 pontos küszöbe valós NJT tervmellékletet is kizárhatott.
+    # Itt továbbra is kell tervi jelleg, de nem követeljük meg a teljes
+    # "szabályozási terv" kifejezést.
+    return scored[0][1] if scored and scored[0][0] >= 4 else None
 
 
 def try_auto_plan(attachments):
@@ -910,8 +959,8 @@ def zone_table_rows(zone_table_text, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v11.0 • dinamikus NJT-forrásfelderítés • Budapest kerületi előszűrés • "
-        "szabályozási terv + övezeti paramétertábla • OCR nélkül"
+        "v12.0 • hrsz.-alapú telekazonosítás • Budapest kerületfelderítés • "
+        "NJT szabályozási terv + övezeti paramétertábla • OCR nélkül"
     )
 
     with st.sidebar:
@@ -1089,7 +1138,7 @@ def main():
     elif spatial["status"] == "parcel_not_found":
         st.error(
             "A helyrajzi számot nem találtam meg a szabályozási terv natív "
-            "szövegrétegében. A v11.0 nem használ OCR-t. Ha a terv rajzi PDF, "
+            "szövegrétegében. A v12.0 nem használ OCR-t. Ha a terv rajzi PDF, "
             "ellenőrizd a telket az E-közmű/hivatalos térképen, és szükség esetén "
             "add meg kézzel az ellenőrzött övezeti kódot."
         )
