@@ -1,4 +1,4 @@
-# TelekElőírás AI v7.1
+# TelekElőírás AI v9.0
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -20,7 +20,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v7.1",
+    page_title="TelekElőírás AI v9.0",
     page_icon="🏗️",
     layout="wide",
 )
@@ -72,7 +72,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/7.1",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/9.0",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -623,6 +623,145 @@ def try_auto_plan(attachments):
         return None, candidate.get("URL", ""), f"{type(exc).__name__}: {exc}"
 
 
+
+# ---------------------------------------------------------------------
+# 1.2 melléklet – övezeti paramétertábla
+# ---------------------------------------------------------------------
+
+def choose_zone_table_attachment(attachments):
+    """Az NJT mellékletek közül az 1.2 övezeti táblázat legjobb jelöltje."""
+    if not attachments:
+        return None
+
+    scored = []
+    for row in attachments:
+        label = key_text(row.get("Megnevezés", ""))
+        url = row.get("URL", "")
+        score = 0
+        if "1.2" in label or "1_2" in label or "1-2" in label:
+            score += 12
+        if "epitesi ovezetei" in label or "ovezetei" in label:
+            score += 8
+        if "melleklet" in label:
+            score += 2
+        if ".pdf" in url.casefold():
+            score += 1
+        scored.append((score, row))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return scored[0][1] if scored and scored[0][0] >= 8 else None
+
+
+def pdf_native_text(doc):
+    if doc is None:
+        return ""
+    return "\n".join(page.get_text("text") or "" for page in doc)
+
+
+def load_zone_table(attachments):
+    candidate = choose_zone_table_attachment(attachments)
+    if not candidate:
+        return None, "", "", "Az 1.2 mellékletet nem sikerült egyértelműen azonosítani."
+
+    try:
+        raw, final_url = download_pdf(candidate["URL"])
+        doc = open_pdf_bytes(raw)
+        native = pdf_native_text(doc)
+        if len(clean_text(native)) < 100:
+            return doc, final_url, native, "Az 1.2 PDF natív szövegrétege túl kevés adatot tartalmaz."
+        return doc, final_url, native, ""
+    except Exception as exc:
+        return None, candidate.get("URL", ""), "", f"{type(exc).__name__}: {exc}"
+
+
+def zone_code_variants(zone):
+    z = clean_text(zone)
+    if not z:
+        return []
+    return list(dict.fromkeys([
+        z,
+        z.replace("/", " / "),
+        z.replace("/", "/ "),
+        z.replace("/", " /"),
+    ]))
+
+
+def zone_table_context(zone_table_text, zone, radius=700):
+    if not zone_table_text or not zone:
+        return ""
+    low = zone_table_text.casefold()
+    for variant in zone_code_variants(zone):
+        pos = low.find(variant.casefold())
+        if pos >= 0:
+            return clean_text(zone_table_text[max(0, pos-radius):pos+radius])
+    return ""
+
+
+def parse_zone_table_parameters(zone_table_text, zone):
+    """
+    Óvatos kinyerés az 1.2 mellékletből.
+    Csak címkézett mintát fogadunk el automatikus adatként.
+    """
+    context = zone_table_context(zone_table_text, zone)
+    if not context:
+        return {}, ""
+
+    result = {}
+    patterns = {
+        "Legnagyobb beépítettség": [
+            r"(?:legnagyobb|max(?:imális)?)\s+beépítettség[^0-9]{0,80}(\d{1,3}(?:[.,]\d+)?)\s*%?",
+            r"beépítettség[^0-9]{0,80}(\d{1,3}(?:[.,]\d+)?)\s*%?",
+        ],
+        "Legkisebb zöldfelület": [
+            r"(?:legkisebb|min(?:imális)?)\s+zöldfelület[^0-9]{0,80}(\d{1,3}(?:[.,]\d+)?)\s*%?",
+            r"zöldfelület[^0-9]{0,80}(\d{1,3}(?:[.,]\d+)?)\s*%?",
+        ],
+        "Legkisebb telekterület": [
+            r"(?:legkisebb|min(?:imális)?)\s+telek(?:terület|méret)[^0-9]{0,80}(\d[\d\s]*(?:[.,]\d+)?)\s*m?[²2]?",
+            r"telek(?:terület|méret)[^0-9]{0,80}(\d[\d\s]*(?:[.,]\d+)?)\s*m?[²2]?",
+        ],
+        "Legnagyobb épületmagasság": [
+            r"(?:legnagyobb|max(?:imális)?)\s+(?:épület|építmény)magasság[^0-9]{0,80}(\d{1,3}(?:[.,]\d+)?)\s*m?",
+            r"(?:épület|építmény)magasság[^0-9]{0,80}(\d{1,3}(?:[.,]\d+)?)\s*m?",
+        ],
+    }
+
+    for label, alternatives in patterns.items():
+        for pattern in alternatives:
+            match = re.search(pattern, context, flags=re.I)
+            if match:
+                result[label] = clean_text(match.group(1))
+                break
+
+    for mode in ("szabadon álló", "oldalhatáron álló", "zártsorú", "ikres", "kialakult"):
+        if mode.casefold() in context.casefold():
+            result["Beépítési mód"] = mode
+            break
+
+    return result, context
+
+
+def zone_table_rows(zone_table_text, zone):
+    params, context = parse_zone_table_parameters(zone_table_text, zone)
+    units = {
+        "Legnagyobb beépítettség": "%",
+        "Legkisebb zöldfelület": "%",
+        "Legkisebb telekterület": "m²",
+        "Legnagyobb épületmagasság": "m",
+        "Beépítési mód": "",
+    }
+    rows = []
+    for label, value in params.items():
+        rows.append({
+            "Előírás": label,
+            "Érték": f"{value} {units.get(label, '')}".strip(),
+            "Forrás": "NJT – 1.2 melléklet",
+            "Bizonyosság": "a keresett övezeti kód PDF-szövegkörnyezetéből",
+        })
+    return rows, params, context
+
+
+
 # ---------------------------------------------------------------------
 # Felület
 # ---------------------------------------------------------------------
@@ -630,7 +769,7 @@ def try_auto_plan(attachments):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v7.1 • OCR nélkül • NJT → szabályozási terv → telek → övezet → előírások"
+        "v9.0 • NJT 1.1 szabályozási terv + 1.2 övezeti paramétertábla • OCR nélkül"
     )
 
     with st.sidebar:
@@ -772,6 +911,20 @@ def main():
         elif auto_plan_error:
             st.caption(f"Automatikus PDF-letöltés nem sikerült: {auto_plan_error}")
 
+    zone_table_doc = None
+    zone_table_source = ""
+    zone_table_text = ""
+    zone_table_error = ""
+
+    if attachments:
+        with st.spinner("1.2 övezeti paramétertábla betöltése…"):
+            zone_table_doc, zone_table_source, zone_table_text, zone_table_error = load_zone_table(attachments)
+
+        if zone_table_doc and zone_table_text:
+            st.success("Az 1.2 melléklet övezeti paramétertáblája automatikusan betöltődött.")
+        elif zone_table_error:
+            st.caption(f"1.2 melléklet: {zone_table_error}")
+
     # 3. Telek
     st.header("3. Telekazonosítás")
     st.write(f"**{town} {normalize_hrsz(hrsz)} hrsz.**")
@@ -786,7 +939,7 @@ def main():
     elif spatial["status"] == "parcel_not_found":
         st.error(
             "A helyrajzi számot nem találtam meg a szabályozási terv natív "
-            "szövegrétegében. A v7.1 nem használ OCR-t."
+            "szövegrétegében. A v9.0 nem használ OCR-t."
         )
     else:
         hit = spatial["hit"]
@@ -843,22 +996,41 @@ def main():
 
     njt_text = page.get("text", "")
     rows, params, contexts = extract_rules(njt_text, zone)
+    table_rows, table_params, table_context = zone_table_rows(zone_table_text, zone)
 
     if not zone:
         st.warning("Övezeti kód nélkül nem kapcsolok övezetspecifikus előírást a telekhez.")
-    elif not njt_text:
-        st.warning("Nincs feldolgozható NJT-szöveg, ezért övezeti előírást nem állítok.")
-    elif rows:
-        st.dataframe(rows, hide_index=True, use_container_width=True)
-        with st.expander("NJT forráskörnyezet – ellenőrzéshez"):
-            for i, context in enumerate(contexts[:5], 1):
-                st.markdown(f"**{i}. találat**")
-                st.write(context)
     else:
-        st.warning(
-            f"A **{zone}** kódhoz nem sikerült kellően strukturált előírást "
-            "kinyerni. A program nem egészíti ki feltételezéssel."
-        )
+        if table_rows:
+            st.subheader("1.2 melléklet – övezeti paraméterek")
+            st.dataframe(table_rows, hide_index=True, use_container_width=True)
+            if zone_table_source:
+                st.caption(f"Forrás: {zone_table_source}")
+            with st.expander("1.2 melléklet – nyers forráskörnyezet"):
+                st.write(table_context)
+        elif zone_table_text:
+            st.warning(
+                f"Az 1.2 melléklet betöltődött, de a **{zone}** kódhoz nem tudtam "
+                "biztonságosan címkézett paramétereket kinyerni. Nem találgatok."
+            )
+
+        if not njt_text:
+            st.warning("Nincs feldolgozható NJT-szöveg a további övezeti szabályokhoz.")
+        elif rows:
+            st.subheader("HÉSZ szöveges előírásai")
+            st.dataframe(rows, hide_index=True, use_container_width=True)
+            with st.expander("NJT forráskörnyezet – ellenőrzéshez"):
+                for i, context in enumerate(contexts[:5], 1):
+                    st.markdown(f"**{i}. találat**")
+                    st.write(context)
+        elif not table_rows:
+            st.warning(
+                f"A **{zone}** kódhoz nem sikerült kellően strukturált előírást "
+                "kinyerni. A program nem egészíti ki feltételezéssel."
+            )
+
+    combined_params = dict(params)
+    combined_params.update(table_params)
 
     # 6. Korlátozások
     st.header("6. Telekspecifikus korlátozások")
@@ -902,9 +1074,9 @@ def main():
         },
         {
             "Adat": "Övezeti paraméterek",
-            "Eredmény": f"{len(params)} strukturált adat" if params else "nincs",
+            "Eredmény": f"{len(combined_params)} strukturált adat" if combined_params else "nincs",
             "Forrás": "NJT HÉSZ/TÉSZ",
-            "Bizonyosság": "forrásszövegből kinyert" if params else "nincs adat",
+            "Bizonyosság": "NJT / 1.2 mellékletből kinyert" if combined_params else "nincs adat",
         },
         {
             "Adat": "Közműérintettség",
