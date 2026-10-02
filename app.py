@@ -1,4 +1,4 @@
-# TelekElőírás AI v9.0
+# TelekElőírás AI v10.0
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -20,7 +20,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v9.0",
+    page_title="TelekElőírás AI v10.0",
     page_icon="🏗️",
     layout="wide",
 )
@@ -72,7 +72,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/9.0",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/10.0",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -251,15 +251,130 @@ def validate_njt_source(town, meta, page):
     town_key = key_text(town)
 
     checks = {
-        "NJT-domain": "njt.jog.gov.hu" in page.get("url", ""),
-        "település": town_key in body,
+        "NJT-domain": is_official_njt_url(page.get("url", "")),
+        "település": town_key in body or (key_text(town) == "budapest" and "budapest" in body),
         "építési szabályzat": (
             "epitesi szabalyzat" in body
             or "helyi epitesi szabalyzat" in body
+            or "keruleti epitesi szabalyzat" in body
         ),
     }
     return all(checks.values()), checks
 
+
+
+# ---------------------------------------------------------------------
+# Dinamikus hivatalos forrásfelderítés (v10)
+# ---------------------------------------------------------------------
+
+def _search_web(query, timeout=20):
+    """Nyilvános kereső HTML találatai. Csak jelöltkeresésre; jogi forrásként
+    kizárólag utólag validált NJT-találat fogadható el.
+    """
+    url = "https://html.duckduckgo.com/html/?q=" + urllib.parse.quote(query)
+    try:
+        raw, _, status, charset, _ = http_get(url, timeout=timeout)
+        if status >= 400:
+            return []
+        html = raw.decode(charset or "utf-8", errors="replace")
+        # DuckDuckGo redirect URL-ek és közvetlen URL-ek kigyűjtése
+        hrefs = re.findall(r'href=["\']([^"\']+)["\']', html, flags=re.I)
+        out = []
+        for href in hrefs:
+            href = href.replace("&amp;", "&")
+            if "uddg=" in href:
+                qs = urllib.parse.parse_qs(urllib.parse.urlparse(href).query)
+                href = qs.get("uddg", [href])[0]
+            href = urllib.parse.unquote(href)
+            if href.startswith("//"):
+                href = "https:" + href
+            if href.startswith("http") and href not in out:
+                out.append(href)
+        return out[:30]
+    except Exception:
+        return []
+
+
+def is_official_njt_url(url):
+    host = (urllib.parse.urlparse(url).hostname or "").casefold()
+    return host in {"njt.jog.gov.hu", "or.njt.hu", "njt.hu"} or host.endswith(".njt.hu")
+
+
+def discover_budapest_district(hrsz):
+    """Budapesti hrsz.-hez kerületi jelöltet keres nyilvános webtalálatokból.
+    Nem tekinti bizonyítottnak: csak a további NJT-keresést szűkíti.
+    """
+    h = normalize_hrsz(hrsz)
+    queries = [
+        f'"{h}" hrsz Budapest kerület',
+        f'"{h}" "helyrajzi szám" Budapest',
+    ]
+    roman = r"(?:I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI|XVII|XVIII|XIX|XX|XXI|XXII|XXIII)"
+    for q in queries:
+        urls = _search_web(q)
+        for u in urls[:12]:
+            try:
+                raw, final, status, charset, _ = http_get(u, timeout=8)
+                if status >= 400:
+                    continue
+                text = raw.decode(charset or "utf-8", errors="replace")[:300000]
+                plain = re.sub(r"<[^>]+>", " ", text)
+                if h.replace("/", "") not in plain.replace("/", "").replace(" ", ""):
+                    continue
+                m = re.search(rf"\b({roman})\.?\s*kerület\b", plain, flags=re.I)
+                if m:
+                    return m.group(1).upper() + ". kerület", final
+            except Exception:
+                pass
+    return "", ""
+
+
+def discover_njt_source(town, hrsz):
+    """Településhez automatikusan keres HÉSZ/KÉSZ NJT-jelöltet.
+    A kereső csak felderít; a találatot fetch + tartalmi validáció követi.
+    """
+    place = clean_text(town)
+    district = ""
+    district_evidence = ""
+    if key_text(place) == "budapest":
+        district, district_evidence = discover_budapest_district(hrsz)
+        if district:
+            place = f"Budapest {district}"
+
+    queries = [
+        f'site:or.njt.hu "{place}" "építési szabályzat"',
+        f'site:njt.jog.gov.hu "{place}" "építési szabályzat"',
+        f'site:or.njt.hu "{place}" HÉSZ',
+    ]
+    candidates = []
+    for q in queries:
+        for u in _search_web(q):
+            if is_official_njt_url(u) and u not in candidates:
+                candidates.append(u)
+
+    # Legfeljebb néhány hivatalos találatot kérünk le, hogy ne legyen lassú.
+    town_terms = [key_text(town)]
+    if district:
+        town_terms += [key_text(district), key_text(place)]
+    for u in candidates[:8]:
+        page = fetch_njt_page(u)
+        if not page.get("ok"):
+            continue
+        body = key_text(page.get("text", ""))
+        is_building_rule = ("epitesi szabalyzat" in body or "helyi epitesi szabalyzat" in body)
+        place_ok = any(term and term in body for term in town_terms)
+        if is_building_rule and place_ok:
+            title = clean_text(page.get("text", "").split("\n")[0])[:180] or "Automatikusan felderített NJT-forrás"
+            return {
+                "municipality": town,
+                "title": title,
+                "regulation": "",
+                "url": page.get("url") or u,
+                "source": "automatikus NJT-forrásfelderítés",
+                "district": district,
+                "district_evidence": district_evidence,
+            }, page
+    return None, {}
 
 # ---------------------------------------------------------------------
 # PDF kezelés
@@ -769,7 +884,7 @@ def zone_table_rows(zone_table_text, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v9.0 • NJT 1.1 szabályozási terv + 1.2 övezeti paramétertábla • OCR nélkül"
+        "v10.0 • dinamikus NJT-forrásfelderítés + 1.1 szabályozási terv + 1.2 övezeti paramétertábla • OCR nélkül"
     )
 
     with st.sidebar:
@@ -839,9 +954,16 @@ def main():
     checks = {}
     attachments = []
 
+    if meta is None:
+        with st.spinner("Hivatalos NJT-forrás automatikus felderítése…"):
+            meta, page = discover_njt_source(town, hrsz)
+        if meta and meta.get("district"):
+            st.info(f"Budapesti kerületi jelölt a forráskereséshez: **{meta['district']}**. Ez keresési segédadat; a jogi forrás az NJT.")
+
     if meta:
         with st.spinner("NJT-forrás ellenőrzése…"):
-            page = fetch_njt_page(meta["url"])
+            if not page:
+                page = fetch_njt_page(meta["url"])
             source_valid, checks = validate_njt_source(town, meta, page)
 
         if source_valid:
@@ -873,8 +995,9 @@ def main():
             attachments = discover_attachments(page)
     else:
         st.warning(
-            "Ehhez a településhez még nincs validált forrás az alkalmazás "
-            "forrásindexében. A Haladó beállításoknál megadható a hivatalos NJT URL."
+            "Nem sikerült automatikusan olyan hivatalos NJT HÉSZ/KÉSZ-forrást találni, "
+            "amelyet tartalmilag is ellenőrizni tudtam. A Haladó beállításoknál továbbra is "
+            "megadható a hivatalos NJT URL."
         )
 
     # 2. Mellékletek
@@ -939,7 +1062,7 @@ def main():
     elif spatial["status"] == "parcel_not_found":
         st.error(
             "A helyrajzi számot nem találtam meg a szabályozási terv natív "
-            "szövegrétegében. A v9.0 nem használ OCR-t."
+            "szövegrétegében. A v10.0 nem használ OCR-t."
         )
     else:
         hit = spatial["hit"]
