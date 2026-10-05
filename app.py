@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.4
+# TelekElőírás AI v15.5
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -23,7 +23,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.4",
+    page_title="TelekElőírás AI v15.5",
     page_icon="🏗️",
     layout="wide",
 )
@@ -38,6 +38,14 @@ HESZ_INDEX = {
         "title": "Tiszaújváros Építési Szabályzatáról",
         "regulation": "11/2018. (VI.12.) önkormányzati rendelet",
         "url": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228",
+    },
+    # Budapest XII. kerület – Dél-Hegyvidék KÉSZ. A hivatkozás az NJT
+    # egységes szerkezetben megjelenített, hatályos szövegére mutat.
+    "budapest xii. kerulet": {
+        "municipality": "Budapest XII. kerület",
+        "title": "Dél-Hegyvidék Kerületi Építési Szabályzat",
+        "regulation": "36/2021. (XII. 14.) önkormányzati rendelet",
+        "url": "https://njt.jog.gov.hu/jogszabaly/2021-36-SP-5Y261",
     },
 }
 
@@ -75,7 +83,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.4",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.5",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -533,7 +541,7 @@ KSH_CODES = {
 
 def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.4",
+        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.5",
         "Accept": "application/json, text/plain, */*",
         "Referer": "https://www.oeny.hu/",
     })
@@ -635,7 +643,7 @@ def _minerva_opener(jar, verify_tls=True):
 def _minerva_bootstrap_attempt(verify_tls=True):
     jar = http.cookiejar.CookieJar()
     opener = _minerva_opener(jar, verify_tls=verify_tls)
-    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.4", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
+    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.5", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
     req = urllib.request.Request(MINERVA_XII_ENTRY, headers=headers)
     with opener.open(req, timeout=30) as resp:
         raw = resp.read(); entry_status = getattr(resp, "status", 200); html = _decode_http_response(resp, raw)
@@ -1311,7 +1319,12 @@ def main():
     # 1. NJT
     st.header("1. Hatályos hivatalos forrás")
 
-    meta = source_for_town(town, manual_njt_url)
+    # Budapesten a HÉSZ/KÉSZ kerületi jogszabály, ezért a már OÉNY-nel
+    # ellenőrzött kerületet is bevonjuk a forráskulcsba.
+    source_place = town
+    if key_text(town) == "budapest" and budapest_district:
+        source_place = f"Budapest {budapest_district}"
+    meta = source_for_town(source_place, manual_njt_url)
     page = {}
     source_valid = False
     checks = {}
