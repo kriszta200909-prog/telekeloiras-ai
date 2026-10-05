@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.3
+# TelekElőírás AI v15.4
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -13,6 +13,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import http.cookiejar
+import ssl
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
@@ -22,7 +23,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.3",
+    page_title="TelekElőírás AI v15.4",
     page_icon="🏗️",
     layout="wide",
 )
@@ -74,7 +75,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.3",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.4",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -532,7 +533,7 @@ KSH_CODES = {
 
 def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.3",
+        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.4",
         "Accept": "application/json, text/plain, */*",
         "Referer": "https://www.oeny.hu/",
     })
@@ -597,7 +598,7 @@ def geometry_summary(geom):
 
 
 # ---------------------------------------------------------------------
-# XII. kerületi MINERVA / MapGuide kapcsolat (v15.3)
+# XII. kerületi MINERVA / MapGuide kapcsolat (v15.4)
 # ---------------------------------------------------------------------
 MINERVA_XII_ENTRY = "https://minerva.bp12ker.hu/minerva/bp12ker/internet.php"
 MINERVA_XII_BASE = "https://minerva.bp12ker.hu"
@@ -621,12 +622,20 @@ def _extract_minerva_bootstrap(html):
         raise RuntimeError("A MINERVA válaszából nem sikerült SESSION azonosítót kinyerni.")
     return session, viewer_url
 
-@st.cache_data(show_spinner=False, ttl=900)
-def minerva_xii_bootstrap():
-    # Saját cookie-tár: nem használ böngészőből másolt sessiont vagy tokent.
+def _minerva_opener(jar, verify_tls=True):
+    # A MINERVA publikus, csak olvasott térképi forrás. Egyes hosztokon a
+    # tanúsítvány-lánc nem épül fel a Render CA-tárából. Először mindig
+    # szabályos TLS-ellenőrzéssel próbálunk; csak CERTIFICATE_VERIFY_FAILED
+    # esetén engedünk célzott, MINERVA-only visszaesést.
+    handlers = [urllib.request.HTTPCookieProcessor(jar)]
+    if not verify_tls:
+        handlers.append(urllib.request.HTTPSHandler(context=ssl._create_unverified_context()))
+    return urllib.request.build_opener(*handlers)
+
+def _minerva_bootstrap_attempt(verify_tls=True):
     jar = http.cookiejar.CookieJar()
-    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
-    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.3", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
+    opener = _minerva_opener(jar, verify_tls=verify_tls)
+    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.4", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
     req = urllib.request.Request(MINERVA_XII_ENTRY, headers=headers)
     with opener.open(req, timeout=30) as resp:
         raw = resp.read(); entry_status = getattr(resp, "status", 200); html = _decode_http_response(resp, raw)
@@ -635,7 +644,28 @@ def minerva_xii_bootstrap():
     with opener.open(req2, timeout=30) as resp2:
         viewer_raw = resp2.read(); viewer_status = getattr(resp2, "status", 200); viewer_html = _decode_http_response(resp2, viewer_raw)
     mapdef_seen = ("XII/map/internet.MapDefinition" in viewer_html or "XII%2Fmap%2Finternet.MapDefinition" in viewer_html or "MAPDEFINITION" in viewer_html.upper())
-    return {"ok": entry_status == 200 and viewer_status == 200, "entry_status": entry_status, "viewer_status": viewer_status, "session_created": bool(session), "mapdefinition_seen": mapdef_seen}
+    return {
+        "ok": entry_status == 200 and viewer_status == 200,
+        "entry_status": entry_status,
+        "viewer_status": viewer_status,
+        "session_created": bool(session),
+        "mapdefinition_seen": mapdef_seen,
+        "tls_verified": verify_tls,
+    }
+
+@st.cache_data(show_spinner=False, ttl=900)
+def minerva_xii_bootstrap():
+    try:
+        return _minerva_bootstrap_attempt(verify_tls=True)
+    except urllib.error.URLError as exc:
+        reason = getattr(exc, "reason", None)
+        msg = str(exc)
+        is_cert_error = isinstance(reason, ssl.SSLCertVerificationError) or "CERTIFICATE_VERIFY_FAILED" in msg
+        if not is_cert_error:
+            raise
+        # Csak a nyilvános MINERVA hostra, olvasási célból. Nem továbbítunk
+        # felhasználói tokent, jelszót vagy böngésző-cookie-t.
+        return _minerva_bootstrap_attempt(verify_tls=False)
 
 def minerva_xii_status_for_parcel(parcel_api):
     result = {"supported": True, "parcel_geometry": False, "bootstrap": False, "runtime_map": False, "zone": "", "detail": ""}
@@ -646,7 +676,7 @@ def minerva_xii_status_for_parcel(parcel_api):
     try:
         boot = minerva_xii_bootstrap()
         result["bootstrap"] = bool(boot.get("session_created")); result["runtime_map"] = bool(boot.get("mapdefinition_seen"))
-        result["detail"] = f"internet.php HTTP {boot.get('entry_status')}; ajaxviewer HTTP {boot.get('viewer_status')}; saját session: {'igen' if result['bootstrap'] else 'nem'}; runtime map nyom: {'igen' if result['runtime_map'] else 'nem'}."
+        result["detail"] = f"internet.php HTTP {boot.get('entry_status')}; ajaxviewer HTTP {boot.get('viewer_status')}; saját session: {'igen' if result['bootstrap'] else 'nem'}; runtime map nyom: {'igen' if result['runtime_map'] else 'nem'}; TLS ellenőrzés: {'igen' if boot.get('tls_verified') else 'MINERVA-only fallback'}."
     except Exception as exc:
         result["detail"] = f"MINERVA kapcsolat nem sikerült: {exc}"
     return result
