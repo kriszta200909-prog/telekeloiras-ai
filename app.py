@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.5
+# TelekElőírás AI v15.6
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -14,6 +14,8 @@ import urllib.parse
 import urllib.request
 import http.cookiejar
 import ssl
+import math
+import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
@@ -23,7 +25,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.5",
+    page_title="TelekElőírás AI v15.6",
     page_icon="🏗️",
     layout="wide",
 )
@@ -83,7 +85,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.5",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.6",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -541,7 +543,7 @@ KSH_CODES = {
 
 def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.5",
+        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.6",
         "Accept": "application/json, text/plain, */*",
         "Referer": "https://www.oeny.hu/",
     })
@@ -588,7 +590,9 @@ def public_parcel_geometry(ksh_code, hrsz):
     q = urllib.parse.urlencode({"kshCode": ksh_code, "lotNumber": h})
     search_url = f"{HRSZ_API_BASE}/search?{q}"
     data = _json_get(search_url)
-    record = _find_parcel_record(data, h) or data
+    record = _find_parcel_record(data, h)
+    if record is None:
+        raise RuntimeError("A kereső nem adott pontosan egyező HRSZ-rekordot.")
     parcel_id = _extract_id(record)
     if not parcel_id:
         raise RuntimeError("A HRSZ-kereső válaszából nem sikerült ingatlan-azonosítót kinyerni.")
@@ -643,7 +647,7 @@ def _minerva_opener(jar, verify_tls=True):
 def _minerva_bootstrap_attempt(verify_tls=True):
     jar = http.cookiejar.CookieJar()
     opener = _minerva_opener(jar, verify_tls=verify_tls)
-    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.5", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
+    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.6", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
     req = urllib.request.Request(MINERVA_XII_ENTRY, headers=headers)
     with opener.open(req, timeout=30) as resp:
         raw = resp.read(); entry_status = getattr(resp, "status", 200); html = _decode_http_response(resp, raw)
@@ -659,6 +663,7 @@ def _minerva_bootstrap_attempt(verify_tls=True):
         "session_created": bool(session),
         "mapdefinition_seen": mapdef_seen,
         "tls_verified": verify_tls,
+        "session": session,
     }
 
 @st.cache_data(show_spinner=False, ttl=900)
@@ -675,18 +680,145 @@ def minerva_xii_bootstrap():
         # felhasználói tokent, jelszót vagy böngésző-cookie-t.
         return _minerva_bootstrap_attempt(verify_tls=False)
 
-def minerva_xii_status_for_parcel(parcel_api):
-    result = {"supported": True, "parcel_geometry": False, "bootstrap": False, "runtime_map": False, "zone": "", "detail": ""}
-    if not parcel_api:
-        result["detail"] = "Az OÉNY telekgeometria nem áll rendelkezésre."; return result
-    bbox, gtype = geometry_summary(parcel_api.get("geometry", {}))
-    result["parcel_geometry"] = bool(bbox) and bool(gtype)
+def _xml_text(node, name):
+    for child in node.iter():
+        if child.tag.rsplit("}", 1)[-1] == name:
+            return (child.text or "").strip()
+    return ""
+
+
+def _mapagent_xml(session, operation, **params):
+    data = urllib.parse.urlencode({
+        "OPERATION": operation, "VERSION": "1.0.0", "SESSION": session,
+        **params,
+    }).encode("utf-8")
+    def request(verify):
+        opener = _minerva_opener(http.cookiejar.CookieJar(), verify)
+        req = urllib.request.Request(MINERVA_MAPAGENT, data=data, headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "TelekEloirasAI/15.6",
+        })
+        with opener.open(req, timeout=20) as response:
+            raw = response.read(8 * 1024 * 1024 + 1)
+        if len(raw) > 8 * 1024 * 1024:
+            raise RuntimeError("A térképi válasz meghaladja a feldolgozási korlátot.")
+        root = ET.fromstring(raw)
+        if root.tag.rsplit("}", 1)[-1] == "Exception":
+            raise RuntimeError(_xml_text(root, "Message") or "MapGuide lekérdezési hiba")
+        return root
     try:
+        return request(True)
+    except urllib.error.URLError as exc:
+        if isinstance(exc.reason, ssl.SSLCertVerificationError):
+            return request(False)
+        raise
+
+
+def parcel_polygon_wkt(geometry):
+    """Valódi telekgyűrűk; a bounding box nem helyettesíti a telket."""
+    outline = geometry.get("outline", {})
+    kind = outline.get("type")
+    polygons = outline.get("coordinates", [])
+    if kind == "Polygon":
+        polygons = [polygons]
+    elif kind != "MultiPolygon":
+        raise ValueError("Polygon/MultiPolygon telekgeometria szükséges.")
+    if not polygons:
+        raise ValueError("A telek koordinátalistája üres.")
+    rendered = []
+    for polygon in polygons:
+        rings = []
+        if not polygon:
+            raise ValueError("Üres telekpolygon.")
+        for ring in polygon:
+            if len(ring) < 4 or ring[0][:2] != ring[-1][:2]:
+                raise ValueError("Hibás vagy nem zárt telekgyűrű.")
+            points = []
+            for point in ring:
+                x, y = float(point[0]), float(point[1])
+                if not math.isfinite(x) or not math.isfinite(y):
+                    raise ValueError("Nem véges telekkoordináta.")
+                # Az OÉNY bemeneti geometriájának EOV tartománya.
+                if not (400000 <= x <= 950000 and 0 <= y <= 400000):
+                    raise ValueError("A telek koordinátái nem az elvárt EOV tartományban vannak.")
+                points.append(f"{x:.8f} {y:.8f}")
+            rings.append("(" + ",".join(points) + ")")
+        rendered.append("(" + ",".join(rings) + ")")
+    return "MULTIPOLYGON (" + ",".join(rendered) + ")"
+
+
+def _feature_properties(root):
+    records = []
+    for feature in root.iter():
+        if feature.tag.rsplit("}", 1)[-1] != "Feature":
+            continue
+        props = {}
+        for prop in feature:
+            if prop.tag.rsplit("}", 1)[-1] == "Property":
+                props[_xml_text(prop, "Name")] = _xml_text(prop, "Value")
+        if props:
+            records.append(props)
+    return records
+
+
+def minerva_zone_candidates(session, geometry, query=_mapagent_xml):
+    wkt = parcel_polygon_wkt(geometry)
+    mapdef = query(session, "GETRESOURCECONTENT", RESOURCEID=MINERVA_MAPDEFINITION)
+    candidates, errors = [], []
+    layers = [n for n in mapdef.iter() if n.tag.rsplit("}", 1)[-1] == "MapLayer"]
+    # Csak az övezeti rétegekhez fordulunk; a térképi megjelenítés önmagában
+    # nem bizonyítja, hogy az adott réteg a hatályos NJT melléklete.
+    selected = [n for n in layers if any(t in key_text(_xml_text(n, "Name")) for t in ("ovezet", "kesz", "szabalyozas"))]
+    if not selected:
+        raise RuntimeError("A térképdefinícióban nem található azonosítható övezeti réteg.")
+    for layer in selected[:12]:
+        name = _xml_text(layer, "Name")
+        try:
+            definition = query(session, "GETRESOURCECONTENT", RESOURCEID=_xml_text(layer, "ResourceId"))
+            vector = next((n for n in definition.iter() if n.tag.rsplit("}", 1)[-1] == "VectorLayerDefinition"), None)
+            if vector is None:
+                continue
+            resource = _xml_text(vector, "ResourceId")
+            feature_class = _xml_text(vector, "FeatureName")
+            geom_name = _xml_text(vector, "Geometry")
+            if not resource or not feature_class or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", geom_name):
+                raise ValueError("A réteg forrása vagy geometriai mezője nem értelmezhető.")
+            contexts = query(session, "GETSPATIALCONTEXTS", RESOURCEID=resource, ACTIVEONLY="1")
+            crs = " ".join(contexts.itertext()).upper()
+            if not any(token in crs for token in ("23700", "HD72", "HUNGARIAN_UNIFIED", "EOV")):
+                raise ValueError("A réteg EOV koordinátarendszere nem igazolható.")
+            result = query(session, "SELECTFEATURES", RESOURCEID=resource,
+                           CLASSNAME=feature_class,
+                           FILTER=f"{geom_name} INTERSECTS GeomFromText('{wkt}')")
+            for props in _feature_properties(result):
+                for field, value in props.items():
+                    if any(t in key_text(field) for t in ("ovezet", "zone", "kod", "jel")) and ZONE_PATTERN.fullmatch(value):
+                        candidates.append({"Övezeti kód": value, "Réteg": name,
+                                           "Forrás": resource, "Mező": field})
+        except Exception as exc:
+            errors.append(f"{name}: {exc}")
+    unique = {tuple(row.items()): row for row in candidates}
+    return list(unique.values()), errors
+
+
+def minerva_xii_status_for_parcel(parcel_api):
+    result = {"supported": True, "parcel_geometry": False, "bootstrap": False,
+              "runtime_map": False, "zone": "", "candidates": [], "detail": ""}
+    if not parcel_api:
+        result["detail"] = "Az OÉNY telekgeometria nem áll rendelkezésre."
+        return result
+    try:
+        geometry = parcel_api.get("geometry", {})
+        parcel_polygon_wkt(geometry)
+        result["parcel_geometry"] = True
         boot = minerva_xii_bootstrap()
-        result["bootstrap"] = bool(boot.get("session_created")); result["runtime_map"] = bool(boot.get("mapdefinition_seen"))
-        result["detail"] = f"internet.php HTTP {boot.get('entry_status')}; ajaxviewer HTTP {boot.get('viewer_status')}; saját session: {'igen' if result['bootstrap'] else 'nem'}; runtime map nyom: {'igen' if result['runtime_map'] else 'nem'}; TLS ellenőrzés: {'igen' if boot.get('tls_verified') else 'MINERVA-only fallback'}."
+        result["bootstrap"] = bool(boot.get("session_created"))
+        result["runtime_map"] = bool(boot.get("mapdefinition_seen"))
+        candidates, errors = minerva_zone_candidates(boot["session"], geometry)
+        result["candidates"] = candidates
+        result["detail"] = f"Telekpolygon térbeli lekérdezése: {len(candidates)} övezeti találat. " + " | ".join(errors)
     except Exception as exc:
-        result["detail"] = f"MINERVA kapcsolat nem sikerült: {exc}"
+        result["detail"] = f"MINERVA térbeli lekérdezés: {type(exc).__name__}: {exc}"
     return result
 
 
@@ -1302,6 +1434,7 @@ def main():
     else:
         st.info("Ehhez a településhez/kerülethez még nincs ellenőrzött HRSZ-kereső kód a v15-ben.")
 
+    minerva_diag = {}
     # 0/B. XII. kerületi publikus MINERVA kapcsolat
     if key_text(town) == "budapest" and key_text(budapest_district) in {"xii. kerulet", "12. kerulet"}:
         st.subheader("0/B. MINERVA térinformatikai kapcsolat")
@@ -1314,7 +1447,11 @@ def main():
         st.caption(minerva_diag.get("detail", ""))
         if minerva_diag.get("parcel_geometry"):
             st.write("**OÉNY → MINERVA térbeli lekérdezés bemenete:** telek MultiPolygon/bounding box rendelkezésre áll.")
-        st.info("A következő automatizálási pont a hatályos KÉSZ övezeti objektumának térbeli lekérdezése. A program bizonyíték nélkül nem ír ki övezeti kódot.")
+        if minerva_diag.get("candidates"):
+            st.dataframe(minerva_diag["candidates"], hide_index=True)
+            st.warning("A telekpolygonnal metsző réteg övezeti találatai rendelkezésre állnak. A réteg hatályos NJT-melléklethez tartozása még ellenőrzendő; ezért ezekből nem képezek automatikusan hatályos előírást.")
+        elif minerva_diag.get("bootstrap"):
+            st.warning("A kapcsolat létrejött, de a térbeli lekérdezés nem adott igazolt övezeti találatot. A részletek fent olvashatók.")
 
     # 1. NJT
     st.header("1. Hatályos hivatalos forrás")
