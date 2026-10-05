@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.2
+# TelekElőírás AI v15.3
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -12,6 +12,7 @@ import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
+import http.cookiejar
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
@@ -21,7 +22,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.2",
+    page_title="TelekElőírás AI v15.3",
     page_icon="🏗️",
     layout="wide",
 )
@@ -73,7 +74,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.0",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.3",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -531,7 +532,7 @@ KSH_CODES = {
 
 def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.0",
+        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.3",
         "Accept": "application/json, text/plain, */*",
         "Referer": "https://www.oeny.hu/",
     })
@@ -593,6 +594,63 @@ def geometry_summary(geom):
     outline = geom.get("outline") or {}
     gtype = outline.get("type", "") if isinstance(outline, dict) else ""
     return bbox, gtype
+
+
+# ---------------------------------------------------------------------
+# XII. kerületi MINERVA / MapGuide kapcsolat (v15.3)
+# ---------------------------------------------------------------------
+MINERVA_XII_ENTRY = "https://minerva.bp12ker.hu/minerva/bp12ker/internet.php"
+MINERVA_XII_BASE = "https://minerva.bp12ker.hu"
+MINERVA_MAPAGENT = "https://minerva.bp12ker.hu/minerva/mapagent/mapagent.fcgi"
+MINERVA_MAPNAME = "internet"
+MINERVA_MAPDEFINITION = "Library://XII/map/internet.MapDefinition"
+
+def _decode_http_response(resp, raw):
+    charset = resp.headers.get_content_charset() or "utf-8"
+    return raw.decode(charset, errors="replace")
+
+def _extract_minerva_bootstrap(html):
+    m = re.search(r"src=[\"']([^\"']*ajaxviewer\.php\?[^\"']+)[\"']", html, flags=re.I)
+    if not m:
+        raise RuntimeError("Az internet.php válaszában nem található ajaxviewer.php hivatkozás.")
+    viewer = m.group(1).replace("&amp;", "&")
+    viewer_url = urllib.parse.urljoin(MINERVA_XII_ENTRY, viewer)
+    qs = urllib.parse.parse_qs(urllib.parse.urlsplit(viewer_url).query)
+    session = (qs.get("SESSION") or qs.get("session") or [""])[0]
+    if not session:
+        raise RuntimeError("A MINERVA válaszából nem sikerült SESSION azonosítót kinyerni.")
+    return session, viewer_url
+
+@st.cache_data(show_spinner=False, ttl=900)
+def minerva_xii_bootstrap():
+    # Saját cookie-tár: nem használ böngészőből másolt sessiont vagy tokent.
+    jar = http.cookiejar.CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.3", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
+    req = urllib.request.Request(MINERVA_XII_ENTRY, headers=headers)
+    with opener.open(req, timeout=30) as resp:
+        raw = resp.read(); entry_status = getattr(resp, "status", 200); html = _decode_http_response(resp, raw)
+    session, viewer_url = _extract_minerva_bootstrap(html)
+    req2 = urllib.request.Request(viewer_url, headers={**headers, "Referer": MINERVA_XII_ENTRY})
+    with opener.open(req2, timeout=30) as resp2:
+        viewer_raw = resp2.read(); viewer_status = getattr(resp2, "status", 200); viewer_html = _decode_http_response(resp2, viewer_raw)
+    mapdef_seen = ("XII/map/internet.MapDefinition" in viewer_html or "XII%2Fmap%2Finternet.MapDefinition" in viewer_html or "MAPDEFINITION" in viewer_html.upper())
+    return {"ok": entry_status == 200 and viewer_status == 200, "entry_status": entry_status, "viewer_status": viewer_status, "session_created": bool(session), "mapdefinition_seen": mapdef_seen}
+
+def minerva_xii_status_for_parcel(parcel_api):
+    result = {"supported": True, "parcel_geometry": False, "bootstrap": False, "runtime_map": False, "zone": "", "detail": ""}
+    if not parcel_api:
+        result["detail"] = "Az OÉNY telekgeometria nem áll rendelkezésre."; return result
+    bbox, gtype = geometry_summary(parcel_api.get("geometry", {}))
+    result["parcel_geometry"] = bool(bbox) and bool(gtype)
+    try:
+        boot = minerva_xii_bootstrap()
+        result["bootstrap"] = bool(boot.get("session_created")); result["runtime_map"] = bool(boot.get("mapdefinition_seen"))
+        result["detail"] = f"internet.php HTTP {boot.get('entry_status')}; ajaxviewer HTTP {boot.get('viewer_status')}; saját session: {'igen' if result['bootstrap'] else 'nem'}; runtime map nyom: {'igen' if result['runtime_map'] else 'nem'}."
+    except Exception as exc:
+        result["detail"] = f"MINERVA kapcsolat nem sikerült: {exc}"
+    return result
+
 
 # ---------------------------------------------------------------------
 # PDF kezelés
@@ -1205,6 +1263,20 @@ def main():
             st.error(f"A nyilvános HRSZ-lekérdezés nem sikerült: {exc}")
     else:
         st.info("Ehhez a településhez/kerülethez még nincs ellenőrzött HRSZ-kereső kód a v15-ben.")
+
+    # 0/B. XII. kerületi publikus MINERVA kapcsolat
+    if key_text(town) == "budapest" and key_text(budapest_district) in {"xii. kerulet", "12. kerulet"}:
+        st.subheader("0/B. MINERVA térinformatikai kapcsolat")
+        with st.spinner("Publikus MINERVA kapcsolat ellenőrzése…"):
+            minerva_diag = minerva_xii_status_for_parcel(parcel_api)
+        if minerva_diag.get("bootstrap"):
+            st.success("A program saját anonim MINERVA-sessiont hozott létre; nem használ böngészőből másolt sessiont vagy tokent.")
+        else:
+            st.warning("A MINERVA publikus session automatikus létrehozása ezen a futtatási környezeten még nem sikerült.")
+        st.caption(minerva_diag.get("detail", ""))
+        if minerva_diag.get("parcel_geometry"):
+            st.write("**OÉNY → MINERVA térbeli lekérdezés bemenete:** telek MultiPolygon/bounding box rendelkezésre áll.")
+        st.info("A következő automatizálási pont a hatályos KÉSZ övezeti objektumának térbeli lekérdezése. A program bizonyíték nélkül nem ír ki övezeti kódot.")
 
     # 1. NJT
     st.header("1. Hatályos hivatalos forrás")
