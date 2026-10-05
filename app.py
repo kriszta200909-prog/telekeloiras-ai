@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.8
+# TelekElőírás AI v15.9
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.8",
+    page_title="TelekElőírás AI v15.9",
     page_icon="🏗️",
     layout="wide",
 )
@@ -86,7 +86,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.8",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.9",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -544,7 +544,7 @@ KSH_CODES = {
 
 def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.8",
+        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.9",
         "Accept": "application/json, text/plain, */*",
         "Referer": "https://www.oeny.hu/",
     })
@@ -648,7 +648,7 @@ def _minerva_opener(jar, verify_tls=True):
 def _minerva_bootstrap_attempt(verify_tls=True):
     jar = http.cookiejar.CookieJar()
     opener = _minerva_opener(jar, verify_tls=verify_tls)
-    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.8", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
+    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.9", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
     req = urllib.request.Request(MINERVA_XII_ENTRY, headers=headers)
     with opener.open(req, timeout=30) as resp:
         raw = resp.read(); entry_status = getattr(resp, "status", 200); html = _decode_http_response(resp, raw)
@@ -697,7 +697,7 @@ def _mapagent_xml(session, operation, **params):
         opener = _minerva_opener(http.cookiejar.CookieJar(), verify)
         req = urllib.request.Request(MINERVA_MAPAGENT, data=data, headers={
             "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "TelekEloirasAI/15.8",
+            "User-Agent": "TelekEloirasAI/15.9",
         })
         try:
             with opener.open(req, timeout=20) as response:
@@ -781,7 +781,7 @@ def select_minerva_zone_layers(layers):
     for layer in layers:
         name = key_text(_xml_text(layer, "Name"))
         resource = key_text(_xml_text(layer, "ResourceId"))
-        if "ovezet" not in name or any(term in name + resource for term in (
+        if "epitesiovezet" not in name.replace(" ", "") or any(term in name + resource for term in (
             "hatalyon_kivul", "hatalyon kivul", "kitakart", "rendeletszam",
         )):
             continue
@@ -838,13 +838,16 @@ def minerva_zone_candidates(session, geometry, query=_mapagent_xml, diagnostics=
                              "VectorLayerDefinition", "DrawingLayerDefinition", "GridLayerDefinition"
                          }), "ismeretlen")
             vector = next((n for n in definition.iter() if n.tag.rsplit("}", 1)[-1] == "VectorLayerDefinition"), None)
+            diagnostic_row = None
             if diagnostics is not None:
-                diagnostics["definitions"].append({
+                diagnostic_row = {
                     "Réteg": name, "Típus": kind,
                     "Adatforrás": _xml_text(definition, "ResourceId"),
                     "Adatosztály": _xml_text(definition, "FeatureName"),
                     "Geometria": _xml_text(definition, "Geometry"),
-                })
+                    "Találatok": "nem lekérdezett", "Mezők": "",
+                }
+                diagnostics["definitions"].append(diagnostic_row)
             if vector is None:
                 errors.append(f"{name}: {kind}; nem SELECTFEATURES-szel lekérdezhető vektorréteg.")
                 continue
@@ -864,9 +867,21 @@ def minerva_zone_candidates(session, geometry, query=_mapagent_xml, diagnostics=
             result = query(session, "SELECTFEATURES", RESOURCEID=resource,
                            CLASSNAME=feature_class,
                            FILTER=f"{geom_name} INTERSECTS GeomFromText('{wkt}')")
-            for props in _feature_properties(result):
+            records = _feature_properties(result)
+            text_expressions = [_xml_text(n, "Text") for n in definition.iter()
+                                if n.tag.rsplit("}", 1)[-1] == "TextSymbol"]
+            label_fields = {expr.strip()[1:-1] for expr in text_expressions
+                            if re.fullmatch(r"\[[^\[\]]+\]", expr.strip())}
+            if diagnostic_row is not None:
+                diagnostic_row["Találatok"] = len(records)
+                diagnostic_row["Mezők"] = ", ".join(sorted({f for props in records for f in props}))
+                diagnostic_row["Feliratmező"] = ", ".join(sorted(label_fields))
+                diagnostic_row["Minta"] = str([{k: v[:120] for k, v in props.items()
+                                                 if k in label_fields or any(t in key_text(k) for t in ("text", "ovezet", "zone", "kod", "jel"))}
+                                                for props in records[:3]])
+            for props in records:
                 for field, value in props.items():
-                    if any(t in key_text(field) for t in ("ovezet", "zone", "kod", "jel")) and ZONE_PATTERN.fullmatch(value):
+                    if (field in label_fields or any(t in key_text(field) for t in ("ovezet", "zone", "kod", "jel"))) and ZONE_PATTERN.fullmatch(value):
                         candidates.append({"Övezeti kód": value, "Réteg": name,
                                            "Forrás": resource, "Mező": field})
         except Exception as exc:
@@ -1431,7 +1446,7 @@ def zone_table_rows(zone_table_text, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.8 • nyilvános HRSZ API + telekgeometria • "
+        "v15.9 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • OCR nélkül"
     )
 
@@ -1440,6 +1455,8 @@ def main():
         town = st.text_input("Település", value="Tiszaújváros")
         hrsz = st.text_input("Helyrajzi szám", value="2200/8")
         budapest_district = ""
+        if key_text(town) in {"budapest xii. kerulet", "budapest 12. kerulet"}:
+            town = "Budapest"
         if key_text(town) == "budapest":
             budapest_district = st.selectbox("Budapest kerület", ["XII. kerület"], help="A nyilvános HRSZ-kereső Budapesten kerületet kér. A v15 első tesztje a XII. kerületet támogatja.")
 
