@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.9
+# TelekElőírás AI v15.10
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.9",
+    page_title="TelekElőírás AI v15.10",
     page_icon="🏗️",
     layout="wide",
 )
@@ -86,7 +86,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.9",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.10",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -544,7 +544,7 @@ KSH_CODES = {
 
 def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.9",
+        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.10",
         "Accept": "application/json, text/plain, */*",
         "Referer": "https://www.oeny.hu/",
     })
@@ -648,7 +648,7 @@ def _minerva_opener(jar, verify_tls=True):
 def _minerva_bootstrap_attempt(verify_tls=True):
     jar = http.cookiejar.CookieJar()
     opener = _minerva_opener(jar, verify_tls=verify_tls)
-    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.9", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
+    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.10", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
     req = urllib.request.Request(MINERVA_XII_ENTRY, headers=headers)
     with opener.open(req, timeout=30) as resp:
         raw = resp.read(); entry_status = getattr(resp, "status", 200); html = _decode_http_response(resp, raw)
@@ -697,7 +697,7 @@ def _mapagent_xml(session, operation, **params):
         opener = _minerva_opener(http.cookiejar.CookieJar(), verify)
         req = urllib.request.Request(MINERVA_MAPAGENT, data=data, headers={
             "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "TelekEloirasAI/15.9",
+            "User-Agent": "TelekEloirasAI/15.10",
         })
         try:
             with opener.open(req, timeout=20) as response:
@@ -877,11 +877,11 @@ def minerva_zone_candidates(session, geometry, query=_mapagent_xml, diagnostics=
                 diagnostic_row["Mezők"] = ", ".join(sorted({f for props in records for f in props}))
                 diagnostic_row["Feliratmező"] = ", ".join(sorted(label_fields))
                 diagnostic_row["Minta"] = str([{k: v[:120] for k, v in props.items()
-                                                 if k in label_fields or any(t in key_text(k) for t in ("text", "ovezet", "zone", "kod", "jel"))}
+                                                 if k in label_fields or any(t in key_text(k) for t in ("text", "karakterlanc", "ovezet", "zone", "kod", "jel"))}
                                                 for props in records[:3]])
             for props in records:
                 for field, value in props.items():
-                    if (field in label_fields or any(t in key_text(field) for t in ("ovezet", "zone", "kod", "jel"))) and ZONE_PATTERN.fullmatch(value):
+                    if (field in label_fields or key_text(field) == "karakterlanc" or any(t in key_text(field) for t in ("ovezet", "zone", "kod", "jel"))) and ZONE_PATTERN.fullmatch(value):
                         candidates.append({"Övezeti kód": value, "Réteg": name,
                                            "Forrás": resource, "Mező": field})
         except Exception as exc:
@@ -1446,7 +1446,7 @@ def zone_table_rows(zone_table_text, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.9 • nyilvános HRSZ API + telekgeometria • "
+        "v15.10 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • OCR nélkül"
     )
 
