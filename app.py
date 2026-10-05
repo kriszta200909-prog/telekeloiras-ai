@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.1
+# TelekElőírás AI v15.2
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.1",
+    page_title="TelekElőírás AI v15.2",
     page_icon="🏗️",
     layout="wide",
 )
@@ -524,7 +524,7 @@ HRSZ_API_BASE = "https://www.oeny.hu/hk-api/parcels"
 # A nyilvános HRSZ-kereső település/kerület kódja.
 # v15-ben a böngészőben ellenőrzött XII. kerületi tesztkódot használjuk.
 # További településkódokat csak ellenőrzött forrásból veszünk fel.
-ZSK_CODES = {
+KSH_CODES = {
     "budapest xii. kerulet": "24697",
     "budapest 12. kerulet": "24697",
 }
@@ -573,9 +573,9 @@ def _extract_id(obj):
     return ""
 
 @st.cache_data(show_spinner=False, ttl=3600)
-def public_parcel_geometry(zsk_code, hrsz):
+def public_parcel_geometry(ksh_code, hrsz):
     h = normalize_hrsz(hrsz)
-    q = urllib.parse.urlencode({"zskCode": zsk_code, "lotNumber": h})
+    q = urllib.parse.urlencode({"kshCode": ksh_code, "lotNumber": h})
     search_url = f"{HRSZ_API_BASE}/search?{q}"
     data = _json_get(search_url)
     record = _find_parcel_record(data, h) or data
@@ -1118,7 +1118,7 @@ def zone_table_rows(zone_table_text, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.1 • nyilvános HRSZ API + telekgeometria • "
+        "v15.2 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • OCR nélkül"
     )
 
@@ -1189,15 +1189,15 @@ def main():
     parcel_place = town.strip()
     if key_text(town) == "budapest" and budapest_district:
         parcel_place = f"Budapest {budapest_district}"
-    zsk = ZSK_CODES.get(key_text(parcel_place), "")
-    if zsk:
+    ksh = KSH_CODES.get(key_text(parcel_place), "")
+    if ksh:
         try:
             with st.spinner("Helyrajzi szám és telekgeometria lekérése…"):
-                parcel_api = public_parcel_geometry(zsk, hrsz)
+                parcel_api = public_parcel_geometry(ksh, hrsz)
             bbox, gtype = geometry_summary(parcel_api.get("geometry", {}))
             st.success(f"A telek azonosítva. Ingatlan ID: **{parcel_api['id']}**")
             c1, c2 = st.columns(2)
-            c1.write(f"**Forrás:** nyilvános HRSZ-kereső (`zskCode={zsk}`)")
+            c1.write(f"**Forrás:** nyilvános HRSZ-kereső (`kshCode={ksh}`)")
             c2.write(f"**Geometria:** {gtype or 'elérhető'}")
             if bbox:
                 st.json({"boundingBox": bbox})
