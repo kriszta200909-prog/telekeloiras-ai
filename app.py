@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.0
+# TelekElőírás AI v15.1
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.0",
+    page_title="TelekElőírás AI v15.1",
     page_icon="🏗️",
     layout="wide",
 )
@@ -519,7 +519,7 @@ def discover_njt_source(town, hrsz):
 # Nyilvános HRSZ-kereső / telekgeometria (v15)
 # ---------------------------------------------------------------------
 
-HRSZ_API_BASE = "https://www.eony.hu/hk-api/parcels"
+HRSZ_API_BASE = "https://www.oeny.hu/hk-api/parcels"
 
 # A nyilvános HRSZ-kereső település/kerület kódja.
 # v15-ben a böngészőben ellenőrzött XII. kerületi tesztkódot használjuk.
@@ -533,7 +533,7 @@ def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
         "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.0",
         "Accept": "application/json, text/plain, */*",
-        "Referer": "https://www.eony.hu/",
+        "Referer": "https://www.oeny.hu/",
     })
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read().decode("utf-8"))
@@ -1118,7 +1118,7 @@ def zone_table_rows(zone_table_text, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.0 • nyilvános HRSZ API + telekgeometria • "
+        "v15.1 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • OCR nélkül"
     )
 
