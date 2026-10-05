@@ -1,4 +1,4 @@
-# TelekElőírás AI v14.0
+# TelekElőírás AI v15.0
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -6,6 +6,7 @@
 # Fontos: döntéstámogató eszköz, nem hatósági vagy jogi állásfoglalás.
 
 import io
+import json
 import re
 import unicodedata
 import urllib.error
@@ -20,7 +21,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v14.0",
+    page_title="TelekElőírás AI v15.0",
     page_icon="🏗️",
     layout="wide",
 )
@@ -72,7 +73,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/14.0",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.0",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -512,6 +513,86 @@ def discover_njt_source(town, hrsz):
                 "district_evidence": district_evidence,
             }, page
     return None, {}
+
+
+# ---------------------------------------------------------------------
+# Nyilvános HRSZ-kereső / telekgeometria (v15)
+# ---------------------------------------------------------------------
+
+HRSZ_API_BASE = "https://www.eony.hu/hk-api/parcels"
+
+# A nyilvános HRSZ-kereső település/kerület kódja.
+# v15-ben a böngészőben ellenőrzött XII. kerületi tesztkódot használjuk.
+# További településkódokat csak ellenőrzött forrásból veszünk fel.
+ZSK_CODES = {
+    "budapest xii. kerulet": "24697",
+    "budapest 12. kerulet": "24697",
+}
+
+def _json_get(url, timeout=25):
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.0",
+        "Accept": "application/json, text/plain, */*",
+        "Referer": "https://www.eony.hu/",
+    })
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+def _find_parcel_record(data, hrsz):
+    target = normalize_hrsz(hrsz).casefold()
+    if isinstance(data, dict):
+        # Először azt a rekordot keressük, amelyben a HRSZ ténylegesen egyezik.
+        vals = {str(v).strip().casefold() for v in data.values() if isinstance(v, (str,int,float))}
+        if target in vals or any(k.casefold() in {"lotnumber","hrsz","landregister"} and normalize_hrsz(v).casefold()==target for k,v in data.items() if isinstance(v,(str,int,float))):
+            return data
+        for v in data.values():
+            hit = _find_parcel_record(v, hrsz)
+            if hit:
+                return hit
+    elif isinstance(data, list):
+        for v in data:
+            hit = _find_parcel_record(v, hrsz)
+            if hit:
+                return hit
+    return None
+
+def _extract_id(obj):
+    if isinstance(obj, dict):
+        for k in ("id", "parcelId", "parcel_id", "objectId", "objectID"):
+            if k in obj and obj[k] not in (None, ""):
+                return str(obj[k])
+        for v in obj.values():
+            x = _extract_id(v)
+            if x:
+                return x
+    elif isinstance(obj, list):
+        for v in obj:
+            x = _extract_id(v)
+            if x:
+                return x
+    return ""
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def public_parcel_geometry(zsk_code, hrsz):
+    h = normalize_hrsz(hrsz)
+    q = urllib.parse.urlencode({"zskCode": zsk_code, "lotNumber": h})
+    search_url = f"{HRSZ_API_BASE}/search?{q}"
+    data = _json_get(search_url)
+    record = _find_parcel_record(data, h) or data
+    parcel_id = _extract_id(record)
+    if not parcel_id:
+        raise RuntimeError("A HRSZ-kereső válaszából nem sikerült ingatlan-azonosítót kinyerni.")
+    bbox_url = f"{HRSZ_API_BASE}/bounding-box?" + urllib.parse.urlencode({"id": parcel_id})
+    geom = _json_get(bbox_url)
+    return {"id": parcel_id, "search_url": search_url, "geometry_url": bbox_url, "search": data, "geometry": geom}
+
+def geometry_summary(geom):
+    if not isinstance(geom, dict):
+        return {}, ""
+    bbox = geom.get("boundingBox") or geom.get("bbox") or {}
+    outline = geom.get("outline") or {}
+    gtype = outline.get("type", "") if isinstance(outline, dict) else ""
+    return bbox, gtype
 
 # ---------------------------------------------------------------------
 # PDF kezelés
@@ -1037,7 +1118,7 @@ def zone_table_rows(zone_table_text, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v14.0 • OÉNY/HRSZ + hivatalos forrás alapú Budapest kerületfelderítés • "
+        "v15.0 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • OCR nélkül"
     )
 
@@ -1045,6 +1126,9 @@ def main():
         st.header("Telek")
         town = st.text_input("Település", value="Tiszaújváros")
         hrsz = st.text_input("Helyrajzi szám", value="2200/8")
+        budapest_district = ""
+        if key_text(town) == "budapest":
+            budapest_district = st.selectbox("Budapest kerület", ["XII. kerület"], help="A nyilvános HRSZ-kereső Budapesten kerületet kér. A v15 első tesztje a XII. kerületet támogatja.")
 
         st.header("Források")
         uploaded_plan = st.file_uploader(
@@ -1099,6 +1183,29 @@ def main():
         st.error("A település és a helyrajzi szám megadása kötelező.")
         return
 
+    # 0. HRSZ -> hivatalos telekgeometria
+    st.header("0. Hivatalos telekazonosítás")
+    parcel_api = None
+    parcel_place = town.strip()
+    if key_text(town) == "budapest" and budapest_district:
+        parcel_place = f"Budapest {budapest_district}"
+    zsk = ZSK_CODES.get(key_text(parcel_place), "")
+    if zsk:
+        try:
+            with st.spinner("Helyrajzi szám és telekgeometria lekérése…"):
+                parcel_api = public_parcel_geometry(zsk, hrsz)
+            bbox, gtype = geometry_summary(parcel_api.get("geometry", {}))
+            st.success(f"A telek azonosítva. Ingatlan ID: **{parcel_api['id']}**")
+            c1, c2 = st.columns(2)
+            c1.write(f"**Forrás:** nyilvános HRSZ-kereső (`zskCode={zsk}`)")
+            c2.write(f"**Geometria:** {gtype or 'elérhető'}")
+            if bbox:
+                st.json({"boundingBox": bbox})
+        except Exception as exc:
+            st.error(f"A nyilvános HRSZ-lekérdezés nem sikerült: {exc}")
+    else:
+        st.info("Ehhez a településhez/kerülethez még nincs ellenőrzött HRSZ-kereső kód a v15-ben.")
+
     # 1. NJT
     st.header("1. Hatályos hivatalos forrás")
 
@@ -1110,18 +1217,13 @@ def main():
 
     detected_district = ""
     detected_district_source = ""
-    if key_text(town) == "budapest" and not manual_njt_url.strip():
-        with st.spinner("Budapesti kerület azonosítása HRSZ alapján…"):
-            detected_district, detected_district_source = discover_budapest_district(hrsz)
-        if detected_district:
-            st.success(f"Budapesti kerület azonosítva: **{detected_district}**.")
-            if detected_district_source:
-                st.caption(f"Kerületazonosítás forrása: {detected_district_source}")
+    if key_text(town) == "budapest" and budapest_district:
+        detected_district = budapest_district
+        detected_district_source = "felhasználó által kiválasztott kerület + nyilvános HRSZ-kereső"
+        if parcel_api:
+            st.success(f"Budapesti kerület és HRSZ együtt ellenőrizve: **{detected_district}**.")
         else:
-            st.warning(
-                "A budapesti kerületet a megadott helyrajzi számból nem sikerült "
-                "hivatalos nyilvános forrással automatikusan igazolni."
-            )
+            st.info(f"Budapesti kerület: **{detected_district}**.")
 
     if meta is None:
         with st.spinner("Hivatalos NJT-forrás automatikus felderítése…"):
@@ -1262,18 +1364,32 @@ def main():
 
     spatial = locate_parcel(plan_doc, hrsz)
 
+    if parcel_api:
+        bbox, gtype = geometry_summary(parcel_api.get("geometry", {}))
+        st.success(
+            f"A helyrajzi számot a nyilvános ingatlan-nyilvántartási HRSZ-szolgáltatás azonosította; "
+            f"telekgeometria: **{gtype or 'elérhető'}**."
+        )
+        if bbox:
+            st.caption(f"Telek bounding box: {bbox}")
+
     if spatial["status"] == "missing_plan":
         st.info(
             "A telek térbeli vizsgálatához szabályozási terv szükséges. "
             "Ha az NJT-ből nem tölthető le automatikusan, töltsd fel a hivatalos PDF-et."
         )
     elif spatial["status"] == "parcel_not_found":
-        st.error(
-            "A helyrajzi számot nem találtam meg a szabályozási terv natív "
-            "szövegrétegében. A v14.0 nem használ OCR-t. Ha a terv rajzi PDF, "
-            "ellenőrizd a telket az E-közmű/hivatalos térképen, és szükség esetén "
-            "add meg kézzel az ellenőrzött övezeti kódot."
-        )
+        if parcel_api:
+            st.warning(
+                "A telek hivatalos geometriája már rendelkezésre áll, de a szabályozási terv "
+                "még nincs georeferáltan összekapcsolva vele. A v15 ezért nem próbálja a HRSZ-et "
+                "a PDF szövegében a telek helyettesítőjeként használni."
+            )
+        else:
+            st.error(
+                "A helyrajzi számot nem találtam meg a szabályozási terv natív szövegrétegében, "
+                "és automatikus telekgeometria sem áll rendelkezésre."
+            )
     else:
         hit = spatial["hit"]
         st.success(
