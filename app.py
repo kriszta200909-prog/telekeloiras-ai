@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.16
+# TelekElőírás AI v15.18
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.16",
+    page_title="TelekElőírás AI v15.18",
     page_icon="🏗️",
     layout="wide",
 )
@@ -1531,6 +1531,103 @@ def try_auto_plan(attachments):
 # 1.2 melléklet – övezeti paramétertábla
 # ---------------------------------------------------------------------
 
+class NJTZoneTableCollector(HTMLParser):
+    """Keep source cell boundaries and spans; never infer columns from nearby text."""
+    def __init__(self):
+        super().__init__()
+        self.tables=[]
+        self.table=None
+        self.row=None
+        self.cell=None
+        self.annex=""
+        self.annex_parts=None
+        self.annex_depth=0
+
+    def handle_starttag(self, tag, attrs):
+        attrs=dict(attrs)
+        if tag=="div":
+            if "mellekletCimke" in attrs.get("class", "").split():
+                self.annex_parts=[]
+                self.annex_depth=1
+            elif self.annex_parts is not None:
+                self.annex_depth+=1
+        if tag=="table":
+            self.table={"annex":self.annex,"rows":[]}
+        elif tag=="tr" and self.table is not None:
+            self.row=[]
+        elif tag in {"td","th"} and self.row is not None:
+            self.cell={"parts":[],"colspan":attrs.get("colspan","1"),"rowspan":attrs.get("rowspan","1")}
+        elif tag in {"br","p","sup","sub"} and self.cell is not None:
+            self.cell["parts"].append(" ")
+
+    def handle_data(self, data):
+        if self.annex_parts is not None:
+            self.annex_parts.append(data)
+        if self.cell is not None:
+            self.cell["parts"].append(data)
+
+    def handle_endtag(self, tag):
+        if tag=="div" and self.annex_parts is not None:
+            self.annex_depth-=1
+            if not self.annex_depth:
+                self.annex=clean_text("".join(self.annex_parts))
+                self.annex_parts=None
+        if tag in {"td","th"} and self.cell is not None:
+            self.cell["text"]=clean_text("".join(self.cell.pop("parts")))
+            self.row.append(self.cell)
+            self.cell=None
+        elif tag=="tr" and self.row is not None:
+            self.table["rows"].append(self.row)
+            self.row=None
+        elif tag=="table" and self.table is not None:
+            self.tables.append(self.table)
+            self.table=None
+        elif tag in {"p","sup","sub"} and self.cell is not None:
+            self.cell["parts"].append(" ")
+
+
+def inline_zone_tables(html):
+    parser=NJTZoneTableCollector()
+    parser.feed(html or "")
+    result=[]
+    for table in parser.tables:
+        header=None
+        for row in table["rows"]:
+            columns=[key_text(c["text"]) for c in row]
+            if "epitesi ovezet jele" in columns or "ovezet jele" in columns:
+                header=row
+                zone_column=columns.index("epitesi ovezet jele") if "epitesi ovezet jele" in columns else columns.index("ovezet jele")
+                continue
+            if header is None or len(row)!=len(header):
+                continue
+            if any(c["rowspan"]!="1" for c in row+header):
+                continue
+            if [c["colspan"] for c in row]!=[c["colspan"] for c in header]:
+                continue
+            zone=row[zone_column]["text"]
+            if not re.fullmatch(r"[^\W\d_][\w./-]*", zone):
+                continue
+            values=[(h["text"],c["text"]) for i,(h,c) in enumerate(zip(header,row))
+                    if i!=zone_column and h["text"] and not re.fullmatch(r"\d+\.?",h["text"])]
+            if not values or len({h for h,v in values})!=len(values):
+                continue
+            result.append({"zone":zone,"annex":table["annex"],"values":values})
+    return result
+
+
+def inline_zone_rows(tables, zone):
+    matches=[r for r in tables if r["zone"]==clean_text(zone)] if zone else []
+    if len(matches)!=1:
+        return [],{},""
+    match=matches[0]
+    source="NJT – "+(match["annex"] or "beágyazott övezeti táblázat")
+    params=dict(match["values"])
+    rows=[{"Előírás":h,"Érték":v,"Forrás":source,
+           "Bizonyosság":"pontos övezeti sor és forrásoszlop; a jelölések és feltételek a rendelet szerint"}
+          for h,v in match["values"]]
+    return rows,params,"; ".join(f"{h}: {v}" for h,v in match["values"])
+
+
 def choose_zone_table_attachment(attachments):
     """Az NJT mellékletek közül az 1.2 övezeti táblázat legjobb jelöltje."""
     if not attachments:
@@ -1666,14 +1763,300 @@ def zone_table_rows(zone_table_text, zone):
 
 
 # ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# XII. kerületi tervlap: igazolt koordinátaillesztés, alaptérkép és HRSZ
+# ---------------------------------------------------------------------
+
+def plan_boundary_records(snapshot):
+    rows=[]; offset=0
+    for name in snapshot.get('boundary_classes',[]):
+        count=snapshot.get('class_counts',{}).get(name,0)
+        if 'epitesi ovezet' in key_text(name) and 'hatar' in key_text(name):
+            rows.extend(snapshot['boundary_records'][offset:offset+count])
+        offset+=count
+    return rows
+
+
+def register_plan_page(drawings, world_segments, origin):
+    """Scale and translation from independent vectors; no manual control points."""
+    import numpy as np
+    from collections import Counter,defaultdict
+    starts=np.array([a for a,b in world_segments],dtype=float)
+    vectors=np.array([b-a for a,b in world_segments],dtype=float)
+    pdf=[]
+    for d in drawings:
+        if d.get('color')!=(0.,0.,0.) or not .22<(d.get('width') or 0)<.26:
+            continue
+        for item in d['items']:
+            if item[0]=='l':
+                a=np.array(item[1]);b=np.array(item[2])
+                if np.linalg.norm(b-a)>5:pdf.append((a,b-a))
+    if len(pdf)<20 or len(vectors)<20:return None
+    angles=np.arctan2(vectors[:,1],vectors[:,0]);order=np.argsort(angles)
+    angles=angles[order];ordered=vectors[order];hist=Counter()
+    for a,v in pdf:
+        length=np.linalg.norm(v)
+        if length<10:continue
+        angle=np.arctan2(v[1],v[0])
+        lo=np.searchsorted(angles,angle-.005);hi=np.searchsorted(angles,angle+.005)
+        lengths=np.linalg.norm(ordered[lo:hi],axis=1)
+        hist.update(set(round(float(length/l),2) for l in lengths if .3<length/l<4))
+    for initial_scale,votes in hist.most_common(3):
+        if votes<12:continue
+        scale=initial_scale;bucket=defaultdict(list)
+        for i,v in enumerate(vectors*scale):bucket[tuple(np.rint(v/.25).astype(int))].append(i)
+        pairs=[]
+        for a,v in pdf:
+            key=np.rint(v/.25).astype(int)
+            for dx in (-1,0,1):
+                for dy in (-1,0,1):
+                    for i in bucket.get((key[0]+dx,key[1]+dy),[]):
+                        if np.linalg.norm(v-vectors[i]*scale)<.22:
+                            pairs.append((i,a))
+        if len(pairs)<20 or len(pairs)>100000:continue
+        x=np.array([starts[i]-origin for i,a in pairs]);y=np.array([a for i,a in pairs])
+        offsets=y-x*scale;grid=defaultdict(list)
+        for i,p in enumerate(offsets):grid[tuple(np.floor(p/.25).astype(int))].append(i)
+        groups=[]
+        for key in sorted(grid,key=lambda k:len(grid[k]),reverse=True)[:12]:
+            indexes=[i for dx in (-1,0,1) for dy in (-1,0,1) for i in grid.get((key[0]+dx,key[1]+dy),[])]
+            center=np.median(offsets[indexes],axis=0)
+            groups.append(np.where(np.linalg.norm(offsets-center,axis=1)<.25)[0])
+        best=max(groups,key=len)
+        if len(best)<20:continue
+        target=np.median(offsets[best],axis=0)
+        for _ in range(8):
+            mask=np.linalg.norm(y-(x*scale+target),axis=1)<.22
+            if mask.sum()<20:break
+            xm=x[mask];ym=y[mask];xb=xm.mean(axis=0);yb=ym.mean(axis=0)
+            denominator=np.sum((xm-xb)**2)
+            if denominator<=0:break
+            scale=float(np.sum((xm-xb)*(ym-yb))/denominator)
+            target=yb-scale*xb
+        residual=np.linalg.norm(y-(x*scale+target),axis=1);mask=residual<.22
+        count=len(set(pairs[i][0] for i in np.where(mask)[0]))
+        if count<20 or min(np.ptp(x[mask],axis=0))<100:continue
+        if scale<=0 or abs(scale-initial_scale)>.015:continue
+        return {'scale':scale,'target':target,'origin':origin,
+                'inliers':count,'error_m':float(residual[mask].max()/scale),
+                'span_m':[float(v) for v in np.ptp(x[mask],axis=0)]}
+    return None
+
+
+def plan_to_eov(point, registration):
+    s=registration['scale'];t=registration['target'];o=registration['origin']
+    return (float(o[0]+(point[0]-t[0])/s),float(-o[1]-(point[1]-t[1])/s))
+
+
+def eov_to_plan(point, registration):
+    s=registration['scale'];t=registration['target'];o=registration['origin']
+    return (float(t[0]+s*(point[0]-o[0])),float(t[1]+s*(-point[1]-o[1])))
+
+
+def plan_road_polygons(drawings, registration):
+    """Dél-Hegyvidék legend: yellow/orange street hatches, closed source tiles."""
+    from shapely.geometry import Polygon
+    result=[]
+    for d in drawings:
+        color=d.get('fill')
+        if color is None or color[0]<.99 or not .49<color[2]<.51 or not .7<color[1]<=1:
+            continue
+        if any(item[0] not in {'l','re','qu'} for item in d['items']):continue
+        chains=[];current=[]
+        for item in d['items']:
+            if item[0]=='l':points=[plan_to_eov(item[1],registration),plan_to_eov(item[2],registration)]
+            elif item[0]=='re':
+                r=item[1];points=[plan_to_eov(p,registration) for p in (r.tl,r.tr,r.br,r.bl,r.tl)]
+            else:
+                q=item[1];points=[plan_to_eov(p,registration) for p in (q.ul,q.ur,q.lr,q.ll,q.ul)]
+            if current and current[-1]!=points[0]:chains.append(current);current=[]
+            current.extend(points if not current else points[1:])
+        if current:chains.append(current)
+        for points in chains:
+            if len(points)<3:continue
+            polygon=Polygon(points)
+            if polygon.is_valid and polygon.area>0:result.append(polygon)
+    return result
+
+
+def plan_parcel_candidates(drawings, registration, outline):
+    from shapely.geometry import Polygon,LineString
+    from shapely.ops import polygonize,unary_union
+    lines=[]
+    for d in drawings:
+        if d.get('color')!=(0.,0.,0.) or not .22<(d.get('width') or 0)<.26:continue
+        for item in d['items']:
+            if item[0]=='l':lines.append(LineString([plan_to_eov(item[1],registration),plan_to_eov(item[2],registration)]))
+    candidates=[]
+    for face in polygonize(unary_union(lines)):
+        parcel=Polygon(face.exterior)  # Buildings are holes of the planar face, not holes of a land parcel.
+        if (.5*outline.area<parcel.area<1.2*outline.area and parcel.covers(outline.centroid)
+            and outline.buffer(registration['error_m']).covers(parcel)
+            and parcel.hausdorff_distance(outline)<3):candidates.append(parcel)
+    return candidates
+
+
+def plan_ocr_data():
+    import os,tempfile,hashlib
+    from pathlib import Path
+    for folder in (os.environ.get('TESSDATA_PREFIX',''),'/usr/share/tesseract-ocr/5/tessdata'):
+        if folder and (Path(folder)/'eng.traineddata').is_file():return folder
+    folder=Path(tempfile.gettempdir())/'telekeloiras_tessdata';folder.mkdir(exist_ok=True)
+    path=folder/'eng.traineddata'
+    expected='7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2'
+    if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest()!=expected:
+        url='https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/eng.traineddata'
+        with urllib.request.urlopen(url,timeout=25) as response:raw=response.read(5*1024*1024)
+        if hashlib.sha256(raw).hexdigest()!=expected:raise ValueError('Az OCR nyelvi állomány ellenőrzése sikertelen.')
+        temporary=path.with_suffix('.tmp');temporary.write_bytes(raw);temporary.replace(path)
+    return str(folder)
+
+
+def confirm_plan_hrsz(page, registration, parcel, hrsz, tessdata=None):
+    """Exact HRSZ plus its position inside the matched parcel. No nearby-text rule."""
+    from shapely.geometry import Point
+    def matches(words,offset=(0,0)):
+        found=[]
+        for w in words:
+            if clean_text(w[4])!=normalize_hrsz(hrsz):continue
+            center=((w[0]+w[2])/2+offset[0],(w[1]+w[3])/2+offset[1])
+            if parcel.contains(Point(plan_to_eov(center,registration))):found.append(center)
+        return found
+    native=matches(page.get_text('words'))
+    if native:return {'method':'natív PDF-szöveg','positions':native}
+    corners=[eov_to_plan(p,registration) for p in parcel.exterior.coords]
+    rect=fitz.Rect(min(p[0] for p in corners)-6,min(p[1] for p in corners)-6,
+                   max(p[0] for p in corners)+6,max(p[1] for p in corners)+6)&page.rect
+    tessdata=tessdata or plan_ocr_data();found=[]
+    for scale in (4,5):
+        pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=rect,alpha=False)
+        pix.set_dpi(72*scale,72*scale)
+        raw=pix.pdfocr_tobytes(language='eng',tessdata=tessdata)
+        with fitz.open(stream=raw,filetype='pdf') as document:
+            found.append(matches(document[0].get_text('words'),(rect.x0,rect.y0)))
+    stable=[a for a in found[0] if any(math.dist(a,b)<2 for b in found[1])]
+    return {'method':'rajzi HRSZ célzott felismerése két felbontásban','positions':stable} if stable else None
+
+
+def classify_plan_parcel(parcel, roads, zone_lines, labels, window, coverage, uncertainty):
+    from shapely.geometry import Point,LineString
+    from shapely.ops import nearest_points,unary_union,polygonize
+    boundary=roads.boundary;lines=[];adjustments=[]
+    for line in zone_lines:
+        coords=list(line.coords)
+        for index in (0,-1):
+            point=Point(coords[index]);distance=point.distance(boundary)
+            if distance<=uncertainty:
+                nearest=nearest_points(point,boundary)[1];coords[index]=(nearest.x,nearest.y);adjustments.append(distance)
+        lines.append(LineString(coords))
+    core=parcel.buffer(-uncertainty)
+    if core.is_empty or core.area<.95*parcel.area:return '',{'reason':'A rajzi bizonytalanság a telek méretéhez képest túl nagy.'}
+    regions=list(polygonize(unary_union([boundary]+lines)))
+    candidates=[]
+    for region in regions:
+        if not region.covers(core):continue
+        if (not window.contains(region) or region.boundary.intersects(window.boundary)
+                or not coverage.buffer(-uncertainty).contains(region)):continue
+        codes={code for code,point in labels if region.contains(point)}
+        if len(codes)==1:candidates.append((next(iter(codes)),region))
+    if len(candidates)!=1:return '',{'reason':'Nincs egyetlen, teljes telekbelsőt lefedő, egyértelműen feliratozott terület.'}
+    code,region=candidates[0]
+    return code,{'zone_area_m2':region.area,'parcel_area_m2':parcel.area,
+        'parcel_inside_zone_m2':region.intersection(parcel).area,'uncertainty_m':uncertainty,
+        'max_endpoint_adjustment_m':max(adjustments,default=0),'zone_wkt':region.wkt}
+
+
+@st.cache_data(show_spinner=False,ttl=900,max_entries=3)
+def georeferenced_plan_zone(pdf_bytes, snapshot, hrsz):
+    import numpy as np
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+    from shapely import set_precision
+    result={'zone':'','detail':'','registrations':[]}
+    resource=snapshot.get('resource','')
+    # This adapter's source styles and version must be the same as the official attached plan.
+    if '20250806_DEL_HEGYVIDEK_KESZ' not in resource:
+        result['detail']='Ehhez az adatforráshoz még nincs ellenőrzött tervlap-adapter.';return result
+    with fitz.open(stream=pdf_bytes,filetype='pdf') as doc:
+        cover=key_text(doc[0].get_text())
+        if 'del-hegyvidek' not in cover or not re.search(r'2025\s*\.\s*08\s*\.\s*06',cover):
+            result['detail']='A térképi adatforrás és a PDF kiadása nem egyezik.';return result
+        field=snapshot.get('geometry_field','Geom')
+        zone_lines=[minerva_wkt_geometry(r[field]) for r in plan_boundary_records(snapshot)]
+        if any(l.geom_type!='LineString' for l in zone_lines):
+            result['detail']='Nem támogatott övezethatár-geometria.';return result
+        outline=minerva_wkt_geometry(snapshot['parcel_wkt']);centroid=outline.centroid
+        origin=np.array([centroid.x,-centroid.y]);segments=[]
+        for line in zone_lines:
+            points=np.array(line.coords);points[:,1]*=-1
+            for a,b in zip(points,points[1:]):
+                if np.linalg.norm(b-a)>5:segments.extend(((a,b),(b,a)))
+        selected=[];solids=[];parcels=[];footprints=[]
+        for number,page in enumerate(doc):
+            if number<4:continue
+            drawings=page.get_drawings()
+            # Scanning all sheets must not retain MuPDF's large rendering cache.
+            fitz.TOOLS.store_shrink(100)
+            registration=register_plan_page(drawings,segments,origin)
+            if not registration:continue
+            target=registration['target']
+            if not page.rect.contains(fitz.Point(float(target[0]),float(target[1]))):continue
+            entry={'PDF-oldal':number+1,'Egyező szakaszok':registration['inliers'],
+                'Legnagyobb illesztési eltérés (m)':registration['error_m'],'Méretarány (pont/m)':registration['scale']}
+            result['registrations'].append(entry)
+            selected.append((number,registration))
+            solids.extend(plan_road_polygons(drawings,registration))
+            for candidate in plan_parcel_candidates(drawings,registration,outline):parcels.append((number,registration,candidate))
+            footprints.append(Polygon([plan_to_eov(p,registration) for p in ((20,20),(1170,20),(1170,822),(20,822))]))
+        if not selected or not solids or not parcels:
+            result['detail']='Nem igazolható együtt a tervlap illesztése, a közterületi határ és a telek körvonala.';return result
+        # 0.12 PDF point source quantization, plus measured registration residual.
+        uncertainty=max(r['error_m']+math.sqrt(2)*.12/r['scale'] for n,r in selected)+.001
+        if uncertainty>.3:
+            result['detail']='Az illesztési bizonytalanság meghaladja a 30 cm-t.';return result
+        roads=unary_union([set_precision(p,.09) for p in solids]);coverage=unary_union(footprints)
+        window=minerva_wkt_geometry(snapshot['window_wkt']);labels=[]
+        for row in snapshot['label_records']:
+            code=next((v for k,v in row.items() if key_text(k)=='karakterlanc'),'')
+            if code and inline_zone_code_valid(code):labels.append((code,minerva_wkt_geometry(row[field])))
+        confirmed=[]
+        for number,registration,parcel in sorted(parcels,key=lambda p:-p[1]['inliers']):
+            if confirmed and parcel.hausdorff_distance(confirmed[0][2])<=2*uncertainty:
+                continue  # Duplicate parcel on the overlapping sheet; coordinates already agree.
+            proof=confirm_plan_hrsz(doc[number],registration,parcel,hrsz)
+            if proof:confirmed.append((number,registration,parcel,proof))
+        if not confirmed:
+            result['detail']='A tervlapi telek belsejében nem sikerült a pontos HRSZ-et megerősíteni.';return result
+        parcel=confirmed[0][2]
+        if any(parcel.hausdorff_distance(p[2])>2*uncertainty for p in confirmed[1:]):
+            result['detail']='Az azonos HRSZ-hez tartozó tervlapi körvonalak eltérnek.';return result
+        code,diagnostics=classify_plan_parcel(parcel,roads,zone_lines,labels,window,coverage,uncertainty)
+        result.update(diagnostics)
+        if not code:result['detail']=diagnostics['reason'];return result
+        number,registration,parcel,proof=confirmed[0]
+        result.update(zone=code,parcel_wkt=parcel.wkt,pdf_page=number+1,hrsz_method=proof['method'],
+            detail='A pontos HRSZ, a tervlapi telek körvonala, a koordinátaillesztés és a zárt övezeti terület együtt ellenőrizve.')
+        corners=[eov_to_plan(p,registration) for p in parcel.exterior.coords]
+        doc[number].draw_polyline([fitz.Point(*p) for p in corners],color=(0,.3,1),width=.9,closePath=True,overlay=True)
+        rect=fitz.Rect(min(p[0] for p in corners)-40,min(p[1] for p in corners)-60,
+                       max(p[0] for p in corners)+40,max(p[1] for p in corners)+35)&doc[number].rect
+        result['preview']=doc[number].get_pixmap(matrix=fitz.Matrix(3,3),clip=rect).tobytes('png')
+        return result
+
+
+def inline_zone_code_valid(code):
+    return bool(re.fullmatch(r'[^\W\d_][\w./-]*',clean_text(code)))
+
+
+
 # Felület
 # ---------------------------------------------------------------------
 
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.16 • nyilvános HRSZ API + telekgeometria • "
-        "NJT szabályozási terv + övezeti paramétertábla • OCR nélkül"
+        "v15.18 • nyilvános HRSZ API + telekgeometria • "
+        "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
     with st.sidebar:
@@ -1796,7 +2179,7 @@ def main():
             st.dataframe(minerva_diag["candidates"], hide_index=True)
             st.warning("A telekpolygonnal metsző réteg övezeti találatai rendelkezésre állnak. A réteg hatályos NJT-melléklethez tartozása még ellenőrzendő; ezért ezekből nem képezek automatikusan hatályos előírást.")
         elif minerva_diag.get("bootstrap"):
-            st.warning("A kapcsolat létrejött, de a térbeli lekérdezés nem adott igazolt övezeti találatot. A részletek fent olvashatók.")
+            st.caption("A térképi kapcsolat létrejött. Az övezet ellenőrzése a hatályos tervlap feldolgozásával folytatódik.")
 
     # 1. NJT
     st.header("1. Hatályos hivatalos forrás")
@@ -1946,8 +2329,11 @@ def main():
     zone_table_text = ""
     zone_table_error = ""
 
-    if attachments:
-        with st.spinner("1.2 övezeti paramétertábla betöltése…"):
+    inline_tables = inline_zone_tables(page.get("html", ""))
+    if inline_tables:
+        st.success(f"Az NJT-oldal övezeti táblázatai betöltődtek: {len(inline_tables)} övezeti sor.")
+    elif attachments:
+        with st.spinner("Övezeti paramétertábla betöltése…"):
             zone_table_doc, zone_table_source, zone_table_text, zone_table_error = load_zone_table(attachments)
 
         if zone_table_doc and zone_table_text:
@@ -1960,6 +2346,26 @@ def main():
     st.write(f"**{town} {normalize_hrsz(hrsz)} hrsz.**")
 
     spatial = locate_parcel(plan_doc, hrsz)
+    plan_zone = {"zone": ""}
+    snapshots = minerva_diag.get("geometry_snapshots", [])
+    if (plan_doc is not None and source_valid and snapshots
+            and plan_source.startswith("https://njt.jog.gov.hu/document/")):
+        with st.spinner("Tervlap koordinátaillesztése, telekhatár és övezet ellenőrzése…"):
+            try:
+                snapshot = next((item for item in snapshots
+                    if "20250806_DEL_HEGYVIDEK_KESZ" in item.get("resource", "")), None)
+                if snapshot:
+                    plan_zone = georeferenced_plan_zone(plan_doc.tobytes(), snapshot, hrsz)
+                    if plan_zone.get("zone") and not inline_zone_rows(inline_tables, plan_zone["zone"])[0]:
+                        plan_zone["zone"] = ""
+                        plan_zone["detail"] = "A geometriai eredményhez nincs pontosan egyező hatályos NJT-táblázatsor."
+            except Exception as exc:
+                plan_zone = {"zone": "", "detail": f"A tervlapi ellenőrzés nem teljes: {exc}"}
+        if plan_zone.get("registrations"):
+            with st.expander("Tervlap koordinátaillesztése – ellenőrzési eredmény"):
+                st.dataframe(plan_zone["registrations"], hide_index=True, use_container_width=True)
+        if not plan_zone.get("zone") and plan_zone.get("detail"):
+            st.warning(plan_zone["detail"])
 
     if parcel_api:
         bbox, gtype = geometry_summary(parcel_api.get("geometry", {}))
@@ -1975,6 +2381,9 @@ def main():
             "A telek térbeli vizsgálatához szabályozási terv szükséges. "
             "Ha az NJT-ből nem tölthető le automatikusan, töltsd fel a hivatalos PDF-et."
         )
+    elif plan_zone.get("zone"):
+        st.success(f"A telek a szabályozási terv {plan_zone['pdf_page']}. PDF-oldalán, a koordináták és a pontos HRSZ alapján azonosítva.")
+        st.image(plan_zone["preview"], caption="Az azonosított telek a hatályos szabályozási terven", use_container_width=True)
     elif spatial["status"] == "parcel_not_found":
         if parcel_api:
             st.warning(
@@ -2006,7 +2415,7 @@ def main():
     st.header("4. A konkrét telek övezete")
 
     auto_zone = spatial.get("zone", "")
-    zone = clean_text(manual_zone) or auto_zone
+    zone = clean_text(manual_zone) or plan_zone.get("zone", "")
 
     if manual_zone.strip():
         if map_verified:
@@ -2021,6 +2430,9 @@ def main():
                 "Jelöld az ellenőrzőnégyzetet csak akkor, ha a telek helyét hivatalos "
                 "térképen ténylegesen ellenőrizted."
             )
+    elif plan_zone.get("zone"):
+        st.success(f"Automatikusan ellenőrzött övezet: **{zone}**.")
+        st.caption(f"{plan_zone['detail']} A rajzi ellenőrzés bizonytalansága: ±{plan_zone['uncertainty_m']:.2f} m; ez nem földmérési pontosság.")
     elif auto_zone:
         st.warning(
             f"A hrsz. közelében talált első övezeti jelölt: **{auto_zone}**. "
@@ -2042,18 +2454,27 @@ def main():
 
     njt_text = page.get("text", "")
     rows, params, contexts = extract_rules(njt_text, zone)
-    table_rows, table_params, table_context = zone_table_rows(zone_table_text, zone)
+    if inline_tables:
+        # Flattened HTML includes adjacent zone rows; it cannot establish numeric values.
+        params = {}
+        rows = []  # Adjacent HTML rows and prose snippets cannot establish parcel-specific rules.
+        table_rows, table_params, table_context = inline_zone_rows(inline_tables, zone)
+        zone_table_source = page.get("url", "")
+    else:
+        table_rows, table_params, table_context = zone_table_rows(zone_table_text, zone)
 
     if not zone:
         st.warning("Övezeti kód nélkül nem kapcsolok övezetspecifikus előírást a telekhez.")
     else:
         if table_rows:
-            st.subheader("1.2 melléklet – övezeti paraméterek")
+            st.subheader("Övezeti paraméterek – NJT-táblázat")
             st.dataframe(table_rows, hide_index=True, use_container_width=True)
             if zone_table_source:
                 st.caption(f"Forrás: {zone_table_source}")
-            with st.expander("1.2 melléklet – nyers forráskörnyezet"):
+            with st.expander("Övezeti táblázat – nyers forráskörnyezet"):
                 st.write(table_context)
+        elif inline_tables:
+            st.warning(f"A {zone} kódhoz nincs egyetlen, pontosan egyező és feldolgozható NJT-táblázatsor.")
         elif zone_table_text:
             st.warning(
                 f"Az 1.2 melléklet betöltődött, de a **{zone}** kódhoz nem tudtam "
@@ -2094,8 +2515,8 @@ def main():
         if manual_zone.strip() and map_verified
         else "kézzel megadott, még nem igazolt"
         if manual_zone.strip()
-        else "közeli dokumentumalapú jelölt"
-        if auto_zone
+        else "georeferált tervlap, pontos HRSZ és zárt övezet alapján ellenőrzött"
+        if plan_zone.get("zone")
         else "nincs igazolva"
     )
 
@@ -2131,7 +2552,7 @@ def main():
             "Adat": "Övezeti paraméterek",
             "Eredmény": f"{len(combined_params)} strukturált adat" if combined_params else "nincs",
             "Forrás": "NJT HÉSZ/TÉSZ",
-            "Bizonyosság": "NJT / 1.2 mellékletből kinyert" if combined_params else "nincs adat",
+            "Bizonyosság": "NJT-forrásból kinyert" if combined_params else "nincs adat",
         },
         {
             "Adat": "Közműérintettség",
