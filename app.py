@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.14
+# TelekElőírás AI v15.15
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.14",
+    page_title="TelekElőírás AI v15.15",
     page_icon="🏗️",
     layout="wide",
 )
@@ -86,7 +86,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.14",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.15",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -544,7 +544,7 @@ KSH_CODES = {
 
 def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.14",
+        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.15",
         "Accept": "application/json, text/plain, */*",
         "Referer": "https://www.oeny.hu/",
     })
@@ -648,7 +648,7 @@ def _minerva_opener(jar, verify_tls=True):
 def _minerva_bootstrap_attempt(verify_tls=True):
     jar = http.cookiejar.CookieJar()
     opener = _minerva_opener(jar, verify_tls=verify_tls)
-    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.14", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
+    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.15", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
     req = urllib.request.Request(MINERVA_XII_ENTRY, headers=headers)
     with opener.open(req, timeout=30) as resp:
         raw = resp.read(); entry_status = getattr(resp, "status", 200); html = _decode_http_response(resp, raw)
@@ -697,7 +697,7 @@ def _mapagent_xml(session, operation, **params):
         opener = _minerva_opener(http.cookiejar.CookieJar(), verify)
         req = urllib.request.Request(MINERVA_MAPAGENT, data=data, headers={
             "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "TelekEloirasAI/15.14",
+            "User-Agent": "TelekEloirasAI/15.15",
         })
         try:
             with opener.open(req, timeout=20) as response:
@@ -872,6 +872,11 @@ def minerva_enclosing_zone(session, resource, classes, geometry_field, parcel_wk
              if n.tag.rsplit("}",1)[-1] in {"Item", "String"} and clean_text(n.text)]
     boundaries = [c for c in names if "hatar" in key_text(c)
         and ("epitesiovezet" in key_text(c).replace(" ", "") or "beepitesrenemszant" in key_text(c).replace(" ", ""))]
+    # A hivatalos térkép szabályozási vonalai további geometriai lezárást
+    # adhatnak. Az eredmény továbbra is ellenőrzendő térképi jelölt.
+    regulation_lines = [c for c in names if re.match(r"k-0[12]-", key_text(c.rsplit(":",1)[-1]))
+                        and "szabaly" in key_text(c) and c.upper().endswith("_L")]
+    boundaries += regulation_lines
     labels = minerva_label_classes(classes)
     if not boundaries or len(labels) != 1:
         return "", {"Adatforrás":resource, "Eredmény":"Az övezethatár- és feliratosztály nem egyértelmű."}
@@ -881,20 +886,24 @@ def minerva_enclosing_zone(session, resource, classes, geometry_field, parcel_wk
     for radius in (500, 1500):
         window = box(minx-radius,miny-radius,maxx+radius,maxy+radius).wkt
         records=[]
+        class_counts={}
         try:
             for cls in (*boundaries,labels[0]):
                 root=query(session,"SELECTFEATURES",RESOURCEID=resource,CLASSNAME=cls,
                            FILTER=f"{geometry_field} INTERSECTS GeomFromText('{window}')")
-                records.append(_feature_properties(root))
+                rows=_feature_properties(root)
+                class_counts[cls]=len(rows)
+                records.append(rows)
             records = [[row for part in records[:-1] for row in part], records[-1]]
         except Exception as exc:
             detail["Eredmény"] = f"A {radius} m-es környezet lekérése nem teljes: {exc}"
             break
         snapshots.append({"resource":resource,"parcel_wkt":parcel_wkt,"window_wkt":window,
             "geometry_field":geometry_field,"boundary_classes":boundaries,"label_class":labels[0],
-            "available_classes":names,
+            "available_classes":names,"class_counts":class_counts,
             "boundary_records":records[0],"label_records":records[1]})
-        detail.update({"Sugár (m)":radius,"Határszakaszok":len(records[0]),"Feliratok":len(records[1])})
+        detail.update({"Sugár (m)":radius,"Határszakaszok":len(records[0]),"Feliratok":len(records[1]),
+                       "Szabályozási vonalak":sum(class_counts.get(c,0) for c in regulation_lines)})
         try:
             code,reason=enclosing_zone(parcel_wkt,records[0],records[1],window,geometry_field,detail)
             detail["Eredmény"]=reason
@@ -1623,7 +1632,7 @@ def zone_table_rows(zone_table_text, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.14 • nyilvános HRSZ API + telekgeometria • "
+        "v15.15 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • OCR nélkül"
     )
 
