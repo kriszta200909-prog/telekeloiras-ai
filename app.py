@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.20
+# TelekElőírás AI v15.21
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.20",
+    page_title="TelekElőírás AI v15.21",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2233,7 +2233,12 @@ def ocr_rotated_crop(page, clip, scale, angle=0):
 def confirm_outlined_hrsz(page, registration, parcel, hrsz, crops=None):
     from shapely.geometry import Point
     target=normalize_hrsz(hrsz)
-    for crop in crops if crops is not None else outlined_text_crops(page,registration,parcel):
+    # Search order only: exact text and interior/two-resolution proof still
+    # decide acceptance. Proximity never assigns a parcel or an urban zone.
+    center=eov_to_plan((parcel.centroid.x,parcel.centroid.y),registration)
+    candidates=crops if crops is not None else outlined_text_crops(page,registration,parcel)
+    candidates=sorted(candidates,key=lambda r:math.dist(((r.x0+r.x1)/2,(r.y0+r.y1)/2),center))
+    for crop in candidates:
         for angle in (45,-45,0):
             matches=[]
             for scale in (12,16):
@@ -2444,7 +2449,7 @@ def verified_tisza_table_rows(doc, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.20 • nyilvános HRSZ API + telekgeometria • "
+        "v15.21 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -2973,8 +2978,11 @@ def main():
         {
             "Adat": "Telek",
             "Eredmény": f"{town} {normalize_hrsz(hrsz)}",
-            "Forrás": "felhasználói adat + hivatalos térképi ellenőrzés" if map_verified else "felhasználói adat / hivatalos térképen ellenőrzendő",
-            "Bizonyosság": "térképen ellenőrzött" if map_verified else "ellenőrzendő",
+            "Forrás": ("hivatalos HRSZ-szolgáltatás + hatályos szabályozási terv" if plan_zone.get("zone")
+                       else "felhasználói adat + hivatalos térképi ellenőrzés" if map_verified
+                       else "felhasználói adat / hivatalos térképen ellenőrzendő"),
+            "Bizonyosság": ("pontos HRSZ és geometria alapján ellenőrzött" if plan_zone.get("zone")
+                            else "térképen ellenőrzött" if map_verified else "ellenőrzendő"),
         },
         {
             "Adat": "HÉSZ/TÉSZ",
