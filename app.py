@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.18
+# TelekElőírás AI v15.19
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.18",
+    page_title="TelekElőírás AI v15.19",
     page_icon="🏗️",
     layout="wide",
 )
@@ -1178,8 +1178,9 @@ def find_hrsz(doc, hrsz):
 
     for page_no in range(len(doc)):
         page = doc[page_no]
+        textpage = page.get_textpage()
         for variant in hrsz_variants(hrsz):
-            for rect in page.search_for(variant):
+            for rect in page.search_for(variant, textpage=textpage):
                 signature = (
                     page_no,
                     round(rect.x0, 1),
@@ -1193,6 +1194,8 @@ def find_hrsz(doc, hrsz):
                         "page_number": page_no,
                         "pdf_rect": fitz.Rect(rect),
                     })
+        del textpage
+        fitz.TOOLS.store_shrink(100)
     return hits
 
 
@@ -1777,6 +1780,29 @@ def plan_boundary_records(snapshot):
     return rows
 
 
+def plan_drawings(page):
+    """Keep only source paths used by geometry, without allocating Point objects
+    for thousands of outlined text glyphs or retaining their drawing lists.
+    """
+    selected=[]
+    for drawing in page.get_cdrawings():
+        color=drawing.get('fill')
+        road=(color is not None and color[0]>=.99
+              and .49<color[2]<.51 and .7<color[1]<=1)
+        base=(drawing.get('color')==(0.,0.,0.)
+              and .22<(drawing.get('width') or 0)<.26)
+        if not road and not base:continue
+        items=[]
+        for item in drawing['items']:
+            if item[0]=='re':item=('re',fitz.Rect(item[1]),*item[2:])
+            elif item[0]=='qu':item=('qu',fitz.Quad(item[1]),*item[2:])
+            items.append(item)
+        drawing['items']=items
+        selected.append(drawing)
+    fitz.TOOLS.store_shrink(100)
+    return selected
+
+
 def register_plan_page(drawings, world_segments, origin):
     """Scale and translation from independent vectors; no manual control points."""
     import numpy as np
@@ -1966,12 +1992,53 @@ def classify_plan_parcel(parcel, roads, zone_lines, labels, window, coverage, un
         'max_endpoint_adjustment_m':max(adjustments,default=0),'zone_wkt':region.wkt}
 
 
+def resolve_plan_zone(doc, snapshot, hrsz, zone_lines, selected, solids, parcels, footprints, result, proof_cache):
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+    from shapely import set_precision
+    field=snapshot.get('geometry_field','Geom')
+    # 0.12 PDF point source quantization, plus measured registration residual.
+    uncertainty=max(r['error_m']+math.sqrt(2)*.12/r['scale'] for n,r in selected)+.001
+    if uncertainty>.3:
+        result['detail']='Az illesztési bizonytalanság meghaladja a 30 cm-t.';return result
+    roads=unary_union([set_precision(p,.09) for p in solids]);coverage=unary_union(footprints)
+    window=minerva_wkt_geometry(snapshot['window_wkt']);labels=[]
+    for row in snapshot['label_records']:
+        code=next((v for k,v in row.items() if key_text(k)=='karakterlanc'),'')
+        if code and inline_zone_code_valid(code):labels.append((code,minerva_wkt_geometry(row[field])))
+    confirmed=[]
+    for number,registration,parcel in sorted(parcels,key=lambda p:-p[1]['inliers']):
+        if confirmed and parcel.hausdorff_distance(confirmed[0][2])<=2*uncertainty:
+            continue  # Duplicate parcel on the overlapping sheet; coordinates already agree.
+        key=(number,parcel.wkt)
+        if key not in proof_cache:
+            proof_cache[key]=confirm_plan_hrsz(doc[number],registration,parcel,hrsz)
+            fitz.TOOLS.store_shrink(100)
+        proof=proof_cache[key]
+        if proof:confirmed.append((number,registration,parcel,proof))
+    if not confirmed:
+        result['detail']='A tervlapi telek belsejében nem sikerült a pontos HRSZ-et megerősíteni.';return result
+    parcel=confirmed[0][2]
+    if any(parcel.hausdorff_distance(p[2])>2*uncertainty for p in confirmed[1:]):
+        result['detail']='Az azonos HRSZ-hez tartozó tervlapi körvonalak eltérnek.';return result
+    code,diagnostics=classify_plan_parcel(parcel,roads,zone_lines,labels,window,coverage,uncertainty)
+    result.update(diagnostics)
+    if not code:result['detail']=diagnostics['reason'];return result
+    number,registration,parcel,proof=confirmed[0]
+    result.update(zone=code,parcel_wkt=parcel.wkt,pdf_page=number+1,hrsz_method=proof['method'],
+        detail='A pontos HRSZ, a tervlapi telek körvonala, a koordinátaillesztés és a zárt övezeti terület együtt ellenőrizve.')
+    corners=[eov_to_plan(p,registration) for p in parcel.exterior.coords]
+    doc[number].draw_polyline([fitz.Point(*p) for p in corners],color=(0,.3,1),width=.9,closePath=True,overlay=True)
+    rect=fitz.Rect(min(p[0] for p in corners)-40,min(p[1] for p in corners)-60,
+                   max(p[0] for p in corners)+40,max(p[1] for p in corners)+35)&doc[number].rect
+    result['preview']=doc[number].get_pixmap(matrix=fitz.Matrix(3,3),clip=rect).tobytes('png')
+    return result
+
+
 @st.cache_data(show_spinner=False,ttl=900,max_entries=3)
 def georeferenced_plan_zone(pdf_bytes, snapshot, hrsz):
     import numpy as np
     from shapely.geometry import Polygon
-    from shapely.ops import unary_union
-    from shapely import set_precision
     result={'zone':'','detail':'','registrations':[]}
     resource=snapshot.get('resource','')
     # This adapter's source styles and version must be the same as the official attached plan.
@@ -1991,16 +2058,18 @@ def georeferenced_plan_zone(pdf_bytes, snapshot, hrsz):
             points=np.array(line.coords);points[:,1]*=-1
             for a,b in zip(points,points[1:]):
                 if np.linalg.norm(b-a)>5:segments.extend(((a,b),(b,a)))
-        selected=[];solids=[];parcels=[];footprints=[]
+        selected=[];solids=[];parcels=[];footprints=[];proof_cache={}
         for number,page in enumerate(doc):
             if number<4:continue
-            drawings=page.get_drawings()
-            # Scanning all sheets must not retain MuPDF's large rendering cache.
-            fitz.TOOLS.store_shrink(100)
+            drawings=plan_drawings(page)
             registration=register_plan_page(drawings,segments,origin)
-            if not registration:continue
+            if not registration:
+                del drawings
+                continue
             target=registration['target']
-            if not page.rect.contains(fitz.Point(float(target[0]),float(target[1]))):continue
+            if not page.rect.contains(fitz.Point(float(target[0]),float(target[1]))):
+                del drawings
+                continue
             entry={'PDF-oldal':number+1,'Egyező szakaszok':registration['inliers'],
                 'Legnagyobb illesztési eltérés (m)':registration['error_m'],'Méretarány (pont/m)':registration['scale']}
             result['registrations'].append(entry)
@@ -2008,40 +2077,16 @@ def georeferenced_plan_zone(pdf_bytes, snapshot, hrsz):
             solids.extend(plan_road_polygons(drawings,registration))
             for candidate in plan_parcel_candidates(drawings,registration,outline):parcels.append((number,registration,candidate))
             footprints.append(Polygon([plan_to_eov(p,registration) for p in ((20,20),(1170,20),(1170,822),(20,822))]))
+            del drawings
+            # A fully contained, closed and uniquely labelled region already proves
+            # the result. Other sheets cannot be used to invent a missing boundary.
+            if parcels and solids:
+                attempt=resolve_plan_zone(doc,snapshot,hrsz,zone_lines,selected,solids,parcels,footprints,dict(result),proof_cache)
+                if attempt.get('zone'):return attempt
         if not selected or not solids or not parcels:
             result['detail']='Nem igazolható együtt a tervlap illesztése, a közterületi határ és a telek körvonala.';return result
-        # 0.12 PDF point source quantization, plus measured registration residual.
-        uncertainty=max(r['error_m']+math.sqrt(2)*.12/r['scale'] for n,r in selected)+.001
-        if uncertainty>.3:
-            result['detail']='Az illesztési bizonytalanság meghaladja a 30 cm-t.';return result
-        roads=unary_union([set_precision(p,.09) for p in solids]);coverage=unary_union(footprints)
-        window=minerva_wkt_geometry(snapshot['window_wkt']);labels=[]
-        for row in snapshot['label_records']:
-            code=next((v for k,v in row.items() if key_text(k)=='karakterlanc'),'')
-            if code and inline_zone_code_valid(code):labels.append((code,minerva_wkt_geometry(row[field])))
-        confirmed=[]
-        for number,registration,parcel in sorted(parcels,key=lambda p:-p[1]['inliers']):
-            if confirmed and parcel.hausdorff_distance(confirmed[0][2])<=2*uncertainty:
-                continue  # Duplicate parcel on the overlapping sheet; coordinates already agree.
-            proof=confirm_plan_hrsz(doc[number],registration,parcel,hrsz)
-            if proof:confirmed.append((number,registration,parcel,proof))
-        if not confirmed:
-            result['detail']='A tervlapi telek belsejében nem sikerült a pontos HRSZ-et megerősíteni.';return result
-        parcel=confirmed[0][2]
-        if any(parcel.hausdorff_distance(p[2])>2*uncertainty for p in confirmed[1:]):
-            result['detail']='Az azonos HRSZ-hez tartozó tervlapi körvonalak eltérnek.';return result
-        code,diagnostics=classify_plan_parcel(parcel,roads,zone_lines,labels,window,coverage,uncertainty)
-        result.update(diagnostics)
-        if not code:result['detail']=diagnostics['reason'];return result
-        number,registration,parcel,proof=confirmed[0]
-        result.update(zone=code,parcel_wkt=parcel.wkt,pdf_page=number+1,hrsz_method=proof['method'],
-            detail='A pontos HRSZ, a tervlapi telek körvonala, a koordinátaillesztés és a zárt övezeti terület együtt ellenőrizve.')
-        corners=[eov_to_plan(p,registration) for p in parcel.exterior.coords]
-        doc[number].draw_polyline([fitz.Point(*p) for p in corners],color=(0,.3,1),width=.9,closePath=True,overlay=True)
-        rect=fitz.Rect(min(p[0] for p in corners)-40,min(p[1] for p in corners)-60,
-                       max(p[0] for p in corners)+40,max(p[1] for p in corners)+35)&doc[number].rect
-        result['preview']=doc[number].get_pixmap(matrix=fitz.Matrix(3,3),clip=rect).tobytes('png')
-        return result
+        return resolve_plan_zone(doc,snapshot,hrsz,zone_lines,selected,solids,parcels,footprints,result,proof_cache)
+
 
 
 def inline_zone_code_valid(code):
@@ -2055,7 +2100,7 @@ def inline_zone_code_valid(code):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.18 • nyilvános HRSZ API + telekgeometria • "
+        "v15.19 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -2345,7 +2390,6 @@ def main():
     st.header("3. Telekazonosítás")
     st.write(f"**{town} {normalize_hrsz(hrsz)} hrsz.**")
 
-    spatial = locate_parcel(plan_doc, hrsz)
     plan_zone = {"zone": ""}
     snapshots = minerva_diag.get("geometry_snapshots", [])
     if (plan_doc is not None and source_valid and snapshots
@@ -2355,10 +2399,20 @@ def main():
                 snapshot = next((item for item in snapshots
                     if "20250806_DEL_HEGYVIDEK_KESZ" in item.get("resource", "")), None)
                 if snapshot:
-                    plan_zone = georeferenced_plan_zone(plan_doc.tobytes(), snapshot, hrsz)
-                    if plan_zone.get("zone") and not inline_zone_rows(inline_tables, plan_zone["zone"])[0]:
-                        plan_zone["zone"] = ""
-                        plan_zone["detail"] = "A geometriai eredményhez nincs pontosan egyező hatályos NJT-táblázatsor."
+                    raw_plan=plan_doc.tobytes()
+                    plan_doc.close()
+                    plan_doc=None
+                    fitz.TOOLS.store_shrink(100)
+                    try:
+                        plan_zone = georeferenced_plan_zone(raw_plan, snapshot, hrsz)
+                        if plan_zone.get("zone") and not inline_zone_rows(inline_tables, plan_zone["zone"])[0]:
+                            plan_zone["zone"] = ""
+                            plan_zone["detail"] = "A geometriai eredményhez nincs pontosan egyező hatályos NJT-táblázatsor."
+                    finally:
+                        if not plan_zone.get('zone'):
+                            plan_doc=fitz.open(stream=raw_plan,filetype='pdf')
+                        del raw_plan
+                        fitz.TOOLS.store_shrink(100)
             except Exception as exc:
                 plan_zone = {"zone": "", "detail": f"A tervlapi ellenőrzés nem teljes: {exc}"}
         if plan_zone.get("registrations"):
@@ -2366,6 +2420,11 @@ def main():
                 st.dataframe(plan_zone["registrations"], hide_index=True, use_container_width=True)
         if not plan_zone.get("zone") and plan_zone.get("detail"):
             st.warning(plan_zone["detail"])
+
+    # Native text is a fallback. Do not scan every large CAD sheet before the
+    # geometric method or keep a second open document during that computation.
+    spatial = ({'status':'verified','hit':None,'candidates':[],'zone':''}
+               if plan_zone.get('zone') else locate_parcel(plan_doc,hrsz))
 
     if parcel_api:
         bbox, gtype = geometry_summary(parcel_api.get("geometry", {}))
