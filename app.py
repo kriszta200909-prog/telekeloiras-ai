@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.19
+# TelekElőírás AI v15.20
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.19",
+    page_title="TelekElőírás AI v15.20",
     page_icon="🏗️",
     layout="wide",
 )
@@ -535,12 +535,32 @@ def discover_njt_source(town, hrsz):
 HRSZ_API_BASE = "https://www.oeny.hu/hk-api/parcels"
 
 # A nyilvános HRSZ-kereső település/kerület kódja.
-# v15-ben a böngészőben ellenőrzött XII. kerületi tesztkódot használjuk.
-# További településkódokat csak ellenőrzött forrásból veszünk fel.
+# Budapest kerületneveihez megőrzött aliasok; más település kódját
+# az országos hivatalos településkeresőből, pontos névegyezéssel kérjük le.
 KSH_CODES = {
     "budapest xii. kerulet": "24697",
     "budapest 12. kerulet": "24697",
 }
+
+
+@st.cache_data(show_spinner=False, ttl=3600)
+def resolve_settlement_code(place):
+    """Resolve the exact municipality through the same public service as the
+    official HRSZ search UI. A prefix result is never accepted as an exact name.
+    """
+    name=clean_text(place)
+    known=KSH_CODES.get(key_text(name))
+    if known:return known
+    base=HRSZ_API_BASE.rsplit('/parcels',1)[0]
+    url=base+'/settlements/search?'+urllib.parse.urlencode({'searchString':name})
+    rows=_json_get(url)
+    if not isinstance(rows,list):raise RuntimeError('A településkereső válaszának szerkezete nem támogatott.')
+    exact={str(row.get('kshCode','')) for row in rows if isinstance(row,dict)
+           and key_text(row.get('name',''))==key_text(name)
+           and re.fullmatch(r'\d{5}',str(row.get('kshCode','')))}
+    if len(exact)!=1:
+        raise RuntimeError('Nincs egyetlen, pontosan egyező település a hivatalos HRSZ-keresőben.')
+    return exact.pop()
 
 def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
@@ -599,6 +619,12 @@ def public_parcel_geometry(ksh_code, hrsz):
         raise RuntimeError("A HRSZ-kereső válaszából nem sikerült ingatlan-azonosítót kinyerni.")
     bbox_url = f"{HRSZ_API_BASE}/bounding-box?" + urllib.parse.urlencode({"id": parcel_id})
     geom = _json_get(bbox_url)
+    if (geom.get('lotNumber') is not None
+            and normalize_hrsz(geom['lotNumber'])!=h):
+        raise RuntimeError('A visszakapott geometria másik helyrajzi számhoz tartozik.')
+    settlement=geom.get('settlement') or {}
+    if settlement.get('kshCode') is not None and str(settlement['kshCode'])!=str(ksh_code):
+        raise RuntimeError('A visszakapott geometria másik településhez tartozik.')
     return {"id": parcel_id, "search_url": search_url, "geometry_url": bbox_url, "search": data, "geometry": geom}
 
 def geometry_summary(geom):
@@ -1144,22 +1170,36 @@ def minerva_xii_status_for_parcel(parcel_api):
 # PDF kezelés
 # ---------------------------------------------------------------------
 
-@st.cache_data(show_spinner=False, ttl=3600)
-def download_pdf(url):
-    raw, final_url, status, _, content_type = http_get(
-        url,
-        timeout=90,
-        accept="application/pdf,*/*;q=0.8",
-    )
-    if status != 200:
-        raise RuntimeError(f"HTTP {status}")
-
-    # Sok szerver hibás Content-Type-pal ad PDF-et, ezért a fejlécet is ellenőrizzük.
+@st.cache_data(show_spinner=False, ttl=3600, max_entries=8)
+def download_pdf_location(url):
+    # Cache the location, not another serialized copy of a 56 MB plan in RAM.
+    import hashlib,tempfile
+    from pathlib import Path
+    raw,final_url,status,_,content_type=http_get(url,timeout=90,accept="application/pdf,*/*;q=0.8")
+    if status!=200:raise RuntimeError(f"HTTP {status}")
     if not raw.startswith(b"%PDF"):
-        raise RuntimeError(
-            f"A letöltött tartalom nem PDF ({content_type or 'ismeretlen tartalomtípus'})."
-        )
-    return raw, final_url
+        raise RuntimeError(f"A letöltött tartalom nem PDF ({content_type or 'ismeretlen tartalomtípus'}).")
+    folder=Path(tempfile.gettempdir())/'telekeloiras_pdf_cache'
+    folder.mkdir(mode=0o700,exist_ok=True)
+    path=folder/(hashlib.sha256(url.encode()).hexdigest()+'.pdf')
+    with tempfile.NamedTemporaryFile(dir=folder,delete=False) as handle:
+        temporary=Path(handle.name)
+        try:handle.write(raw)
+        except Exception:
+            temporary.unlink(missing_ok=True);raise
+    try:temporary.replace(path)
+    finally:temporary.unlink(missing_ok=True)
+    return str(path),final_url
+
+
+def download_pdf(url):
+    from pathlib import Path
+    path,final_url=download_pdf_location(url)
+    try:return Path(path).read_bytes(),final_url
+    except FileNotFoundError:
+        download_pdf_location.clear(url)
+        path,final_url=download_pdf_location(url)
+        return Path(path).read_bytes(),final_url
 
 
 def open_uploaded_pdf(uploaded):
@@ -1468,7 +1508,7 @@ def extract_rules(njt_text, zone):
 # Automatikus szabályozásiterv-PDF keresése az NJT mellékletek között
 # ---------------------------------------------------------------------
 
-def choose_plan_attachment(attachments):
+def choose_plan_attachment(attachments, legal_text=""):
     """Szabályozási terv jelölt kiválasztása az NJT mellékletekből."""
     if not attachments:
         return None
@@ -1478,6 +1518,10 @@ def choose_plan_attachment(attachments):
         label = key_text(row.get("Megnevezés", ""))
         url = (row.get("URL") or "").casefold()
         score = 0
+
+        annex=re.match(r"^(\d+(?:\.\d+)*)\.\s*melleklet\b",label)
+        if annex and re.search(r"\b"+re.escape(annex.group(1))+r"\.\s*melleklet\b[^.;]{0,100}szabalyozasi terv",key_text(legal_text)):
+            score += 12
 
         if "szabalyozasi terv" in label:
             score += 12
@@ -1512,15 +1556,29 @@ def choose_plan_attachment(attachments):
     return scored[0][1] if scored and scored[0][0] >= 4 else None
 
 
-def try_auto_plan(attachments):
-    candidate = choose_plan_attachment(attachments)
+def try_auto_plan(attachments, legal_text=""):
+    candidate = choose_plan_attachment(attachments, legal_text)
     if not candidate:
         return None, "", ""
 
     try:
         raw, final_url = download_pdf(candidate["URL"])
         doc = open_pdf_bytes(raw)
-        opening = key_text(" ".join(doc[i].get_text("text") for i in range(min(6, len(doc)))))
+        opening = key_text(doc[0].get_text("text")) if doc else ""
+        if opening.strip() and 'szabalyozasi terv' not in opening:
+            for index in range(1,min(6,len(doc))):
+                opening+=' '+key_text(doc[index].get_text('text'))
+                fitz.TOOLS.store_shrink(100)
+                if 'szabalyozasi terv' in opening:break
+        if not opening.strip() and doc and legal_text:
+            recognized=[]
+            for scale in (2,3):
+                pix=doc[0].get_pixmap(matrix=fitz.Matrix(scale,scale),alpha=False)
+                pix.set_dpi(72*scale,72*scale)
+                with fitz.open(stream=pix.pdfocr_tobytes(language='eng',tessdata=plan_ocr_data()),filetype='pdf') as cover:
+                    recognized.append(key_text(cover[0].get_text()))
+            if all('szabalyozasi terv' in title for title in recognized):opening=recognized[0]
+            fitz.TOOLS.store_shrink(100)
         if not any(term in opening for term in ("szabalyozasi terv", "szabalyozasi tervlap")):
             doc.close()
             return None, final_url, "A melléklet PDF megnyitható, de szabályozási tervként nem igazolható a szövegéből."
@@ -1671,7 +1729,7 @@ def load_zone_table(attachments):
         doc = open_pdf_bytes(raw)
         native = pdf_native_text(doc)
         if len(clean_text(native)) < 100:
-            return doc, final_url, native, "Az 1.2 PDF natív szövegrétege túl kevés adatot tartalmaz."
+            return doc, final_url, "", "Az 1.2 PDF beszkennelt; a natív szövegrétege nem tartalmaz olvasható övezeti adatot."
         return doc, final_url, native, ""
     except Exception as exc:
         return None, candidate.get("URL", ""), "", f"{type(exc).__name__}: {exc}"
@@ -1803,7 +1861,7 @@ def plan_drawings(page):
     return selected
 
 
-def register_plan_page(drawings, world_segments, origin):
+def register_plan_page(drawings, world_segments, origin, min_matches=20, min_votes=12):
     """Scale and translation from independent vectors; no manual control points."""
     import numpy as np
     from collections import Counter,defaultdict
@@ -1817,7 +1875,7 @@ def register_plan_page(drawings, world_segments, origin):
             if item[0]=='l':
                 a=np.array(item[1]);b=np.array(item[2])
                 if np.linalg.norm(b-a)>5:pdf.append((a,b-a))
-    if len(pdf)<20 or len(vectors)<20:return None
+    if len(pdf)<min_matches or len(vectors)<min_matches:return None
     angles=np.arctan2(vectors[:,1],vectors[:,0]);order=np.argsort(angles)
     angles=angles[order];ordered=vectors[order];hist=Counter()
     for a,v in pdf:
@@ -1828,7 +1886,7 @@ def register_plan_page(drawings, world_segments, origin):
         lengths=np.linalg.norm(ordered[lo:hi],axis=1)
         hist.update(set(round(float(length/l),2) for l in lengths if .3<length/l<4))
     for initial_scale,votes in hist.most_common(3):
-        if votes<12:continue
+        if votes<min_votes:continue
         scale=initial_scale;bucket=defaultdict(list)
         for i,v in enumerate(vectors*scale):bucket[tuple(np.rint(v/.25).astype(int))].append(i)
         pairs=[]
@@ -1839,7 +1897,7 @@ def register_plan_page(drawings, world_segments, origin):
                     for i in bucket.get((key[0]+dx,key[1]+dy),[]):
                         if np.linalg.norm(v-vectors[i]*scale)<.22:
                             pairs.append((i,a))
-        if len(pairs)<20 or len(pairs)>100000:continue
+        if len(pairs)<min_matches or len(pairs)>100000:continue
         x=np.array([starts[i]-origin for i,a in pairs]);y=np.array([a for i,a in pairs])
         offsets=y-x*scale;grid=defaultdict(list)
         for i,p in enumerate(offsets):grid[tuple(np.floor(p/.25).astype(int))].append(i)
@@ -1849,11 +1907,11 @@ def register_plan_page(drawings, world_segments, origin):
             center=np.median(offsets[indexes],axis=0)
             groups.append(np.where(np.linalg.norm(offsets-center,axis=1)<.25)[0])
         best=max(groups,key=len)
-        if len(best)<20:continue
+        if len(best)<min_matches:continue
         target=np.median(offsets[best],axis=0)
         for _ in range(8):
             mask=np.linalg.norm(y-(x*scale+target),axis=1)<.22
-            if mask.sum()<20:break
+            if mask.sum()<min_matches:break
             xm=x[mask];ym=y[mask];xb=xm.mean(axis=0);yb=ym.mean(axis=0)
             denominator=np.sum((xm-xb)**2)
             if denominator<=0:break
@@ -1861,7 +1919,7 @@ def register_plan_page(drawings, world_segments, origin):
             target=yb-scale*xb
         residual=np.linalg.norm(y-(x*scale+target),axis=1);mask=residual<.22
         count=len(set(pairs[i][0] for i in np.where(mask)[0]))
-        if count<20 or min(np.ptp(x[mask],axis=0))<100:continue
+        if count<min_matches or min(np.ptp(x[mask],axis=0))<100:continue
         if scale<=0 or abs(scale-initial_scale)>.015:continue
         return {'scale':scale,'target':target,'origin':origin,
                 'inliers':count,'error_m':float(residual[mask].max()/scale),
@@ -2097,10 +2155,296 @@ def inline_zone_code_valid(code):
 # Felület
 # ---------------------------------------------------------------------
 
+
+def ink_components(mask):
+    """Connected-component boxes using scan-line runs, without an extra dependency."""
+    import numpy as np
+    parents=[];boxes=[];previous=[]
+    def find(i):
+        while parents[i]!=i:
+            parents[i]=parents[parents[i]];i=parents[i]
+        return i
+    for y,row in enumerate(mask):
+        edges=np.flatnonzero(np.diff(np.pad(row.astype(np.int8),(1,1))))
+        current=[];left=0
+        for x0,x1 in zip(edges[::2],edges[1::2]):
+            i=len(parents);parents.append(i);boxes.append([int(x0),y,int(x1),y+1]);current.append((x0,x1,i))
+            while left<len(previous) and previous[left][1]<=x0:left+=1
+            j=left
+            while j<len(previous) and previous[j][0]<x1:
+                a=find(i);b=find(previous[j][2])
+                if a!=b:parents[b]=a
+                j+=1
+        previous=current
+    groups={}
+    for i,b in enumerate(boxes):
+        root=find(i)
+        if root not in groups:groups[root]=b.copy()
+        else:
+            g=groups[root];g[0]=min(g[0],b[0]);g[1]=min(g[1],b[1]);g[2]=max(g[2],b[2]);g[3]=max(g[3],b[3])
+    return list(groups.values())
+
+
+def outlined_text_crops(page, registration, parcel):
+    import numpy as np
+    from PIL import ImageFilter
+    from shapely.geometry import Point
+    points=[eov_to_plan(p,registration) for p in parcel.exterior.coords]
+    clip=fitz.Rect(min(x for x,y in points),min(y for x,y in points),
+                   max(x for x,y in points),max(y for x,y in points))&page.rect
+    if clip.is_empty:return []
+    scale=3
+    pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+    origin=(pix.x/scale,pix.y/scale)
+    a=np.frombuffer(pix.samples,dtype=np.uint8).reshape(pix.height,pix.width,3)
+    ink=(a.max(axis=2)<110)&((a.max(axis=2)-a.min(axis=2))<15)
+    connected=np.asarray(Image.fromarray(ink.astype(np.uint8)*255).filter(ImageFilter.MaxFilter(7)))>0
+    result=[]
+    for x0,y0,x1,y1 in ink_components(connected):
+        w=(x1-x0)/scale;h=(y1-y0)/scale
+        if not (3<w<22 and 3<h<22):continue
+        center=(origin[0]+(x0+x1)/2/scale,origin[1]+(y0+y1)/2/scale)
+        if not parcel.contains(Point(plan_to_eov(center,registration))):continue
+        result.append(fitz.Rect(origin[0]+x0/scale-3,origin[1]+y0/scale-3,
+                                origin[0]+x1/scale+3,origin[1]+y1/scale+3)&page.rect)
+    return result
+
+
+def ocr_rotated_crop(page, clip, scale, angle=0):
+    """Return text and word centres in display-page coordinates, including rotation."""
+    pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+    origin=(pix.x/scale,pix.y/scale)
+    source=Image.open(io.BytesIO(pix.tobytes('png')))
+    rotated=source.rotate(angle,expand=True,fillcolor='white')
+    data=io.BytesIO();rotated.save(data,format='PNG')
+    pix=fitz.Pixmap(data.getvalue());pix.set_dpi(72*scale,72*scale)
+    theta=math.radians(angle);c=math.cos(theta);s=math.sin(theta)
+    with fitz.open(stream=pix.pdfocr_tobytes(language='eng',tessdata=plan_ocr_data()),filetype='pdf') as doc:
+        words=[]
+        for w in doc[0].get_text('words'):
+            dx=(w[0]+w[2])/2*scale-rotated.width/2
+            dy=(w[1]+w[3])/2*scale-rotated.height/2
+            center=(origin[0]+(c*dx-s*dy+source.width/2)/scale,
+                    origin[1]+(s*dx+c*dy+source.height/2)/scale)
+            words.append((clean_text(w[4]),center))
+        return clean_text(doc[0].get_text()),words
+
+
+def confirm_outlined_hrsz(page, registration, parcel, hrsz, crops=None):
+    from shapely.geometry import Point
+    target=normalize_hrsz(hrsz)
+    for crop in crops if crops is not None else outlined_text_crops(page,registration,parcel):
+        for angle in (45,-45,0):
+            matches=[]
+            for scale in (12,16):
+                text,words=ocr_rotated_crop(page,crop,scale,angle)
+                matches.append([p for word,p in words if word==target
+                    and parcel.contains(Point(plan_to_eov(p,registration)))])
+                if not matches[-1]:break
+            if len(matches)==2:
+                stable=[a for a in matches[0] if any(math.dist(a,b)<2 for b in matches[1])]
+                if stable:return {'method':'ferde rajzi HRSZ, két felbontás és telekbelső ellenőrizve',
+                                  'positions':stable,'angle':angle}
+    return None
+
+
+def read_tisza_zone_labels(page, registration, parcel, crops):
+    from shapely.geometry import Point
+    labels=[]
+    for rect in crops:
+        if not .8<rect.width/rect.height<1.25 or rect.width<20:continue
+        # The source legend defines a two-tier circular symbol. Read each field,
+        # rather than guessing from a neighbouring whole-page OCR fragment.
+        top=fitz.Rect(rect.x0+.29*rect.width,rect.y0+.25*rect.height,
+                      rect.x1-.25*rect.width,rect.y0+.50*rect.height)
+        bottom=fitz.Rect(rect.x0+.33*rect.width,rect.y0+.54*rect.height,
+                         rect.x1-.33*rect.width,rect.y0+.76*rect.height)
+        top=fitz.Rect(*(round(v) for v in top))
+        bottom=fitz.Rect(round(bottom.x0),round(bottom.y0),round(bottom.x1),round(rect.y0+.735*rect.height))
+        readings=[]
+        for scale in (12,16):
+            upper,_=ocr_rotated_crop(page,top,scale)
+            lower,_=ocr_rotated_crop(page,bottom,scale)
+            upper=upper.strip(' |“”\"');lower=lower.strip(' |“”\"')
+            if not re.fullmatch(r'[A-Za-z]{1,5}',upper) or not re.fullmatch(r'\d{1,2}',lower):break
+            readings.append(upper+'/'+lower)
+        if len(readings)==2 and readings[0]==readings[1]:
+            center=((rect.x0+rect.x1)/2,(rect.y0+rect.y1)/2)
+            point=Point(plan_to_eov(center,registration))
+            if parcel.contains(point):labels.append((readings[0],point))
+    return labels
+
+
+def tisza_display_outline(geometry):
+    """Undo the rounded display buffer only when its circular arcs prove the radius."""
+    import numpy as np
+    from shapely.geometry import shape
+    multi=shape(geometry['outline'])
+    parts=list(multi.geoms) if hasattr(multi,'geoms') else [multi]
+    if len(parts)!=1 or not parts[0].is_valid:raise ValueError('Nem egyetlen érvényes telekkörvonal.')
+    outline=parts[0];coords=list(outline.exterior.coords);radii=[]
+    for a,b,d in zip(coords,coords[1:],coords[2:]):
+        a,b,d=map(np.array,(a,b,d));u=b-a;v=d-a
+        if np.linalg.norm(u)>1 or np.linalg.norm(d-b)>1 or abs(u[0]*v[1]-u[1]*v[0])<1e-8:continue
+        center=np.linalg.solve(2*np.array([u,v]),np.array([u@u,v@v]));radius=np.linalg.norm(center)
+        if .5<radius<5:radii.append(radius)
+    if len(radii)<20:raise ValueError('A megjelenítési körvonal kiterjesztése nem ellenőrizhető.')
+    radius=float(np.median(radii));cluster=[r for r in radii if abs(r-radius)<.003]
+    if len(cluster)<20:raise ValueError('Nincs elegendő egyező körív.')
+    parcel=outline.buffer(-radius,quad_segs=32).simplify(.02,preserve_topology=True)
+    if parcel.is_empty or not parcel.is_valid or parcel.geom_type!='Polygon':raise ValueError('Nem állítható helyre egyetlen telek.')
+    return parcel,radius
+
+
+def tisza_cad_drawings(page):
+    # Stream source paths through the native callback. Materialising every
+    # outlined glyph on this CAD sheet would exceed Render's memory budget.
+    result=[];rotation=page.rotation_matrix
+    def collect(drawing):
+        color=drawing.get('color');width=drawing.get('width') or 0
+        if color and max(color)-min(color)<.001 and .44<color[0]<.48 and .10<width<.14:
+            items=[('l',tuple(fitz.Point(*i[1])*rotation),tuple(fitz.Point(*i[2])*rotation))
+                   for i in drawing['items'] if i[0]=='l']
+            result.append(dict(color=(0.,0.,0.),width=.24,items=items))
+    try:page.get_cdrawings(callback=collect)
+    except TypeError as exc:
+        raise RuntimeError('A memóriahatékony CAD-feldolgozáshoz a PyMuPDF csomag frissítése szükséges.') from exc
+    fitz.TOOLS.store_shrink(100)
+    return result
+
+
+def tisza_red_zone_dots(page, registration, parcel, scale=6):
+    """The frozen source legend uses filled round red dots for zone boundaries.
+    Thin dashed utilities are rejected by thickness, roundness and fill ratio.
+    Return control dots as well: a blank/unreadable raster cannot prove absence.
+    """
+    import numpy as np
+    from shapely.geometry import Point
+    points=[eov_to_plan(p,registration) for p in parcel.exterior.coords]
+    clip=fitz.Rect(min(x for x,y in points)-25,min(y for x,y in points)-25,
+                   max(x for x,y in points)+25,max(y for x,y in points)+25)&page.rect
+    pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+    origin=(pix.x/scale,pix.y/scale)
+    a=np.frombuffer(pix.samples,dtype=np.uint8).reshape(pix.height,pix.width,3)
+    red=(a[:,:,0]>140)&(a[:,:,1]<130)&(a[:,:,2]<130)
+    dots=[]
+    for x0,y0,x1,y1 in ink_components(red):
+        w=x1-x0;h=y1-y0
+        if (.66*scale<=min(w,h) and max(w,h)<=1.67*scale
+                and min(w,h)/max(w,h)>.65 and red[y0:y1,x0:x1].mean()>.65):
+            center=(origin[0]+(x0+x1)/2/scale,origin[1]+(y0+y1)/2/scale)
+            dots.append(Point(plan_to_eov(center,registration)))
+    return dots
+
+
+TISZA_PLAN_SHA256='dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef'
+TISZA_TABLE_SHA256='646f63c2c6da99ea9862dc6da3abfc3ed54883be718180f48e446496eac62a42'
+
+
+@st.cache_data(show_spinner=False,ttl=900,max_entries=2)
+def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
+    import hashlib,numpy as np
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+    result={'zone':'','detail':'','registrations':[]}
+    if hashlib.sha256(pdf_bytes).hexdigest()!=TISZA_PLAN_SHA256:
+        result['detail']='A tiszaújvárosi terv kiadása megváltozott; új forrásellenőrzés szükséges.';return result
+    if (str((geometry.get('settlement') or {}).get('kshCode'))!='28352'
+            or normalize_hrsz(geometry.get('lotNumber',''))!=normalize_hrsz(hrsz)):
+        result['detail']='A geometria települése vagy pontos helyrajzi száma nem egyezik.';return result
+    parcel,radius=tisza_display_outline(geometry)
+    origin=np.array([parcel.centroid.x,-parcel.centroid.y]);segments=[]
+    for a,b in zip(parcel.exterior.coords,list(parcel.exterior.coords)[1:]):
+        a=np.array([a[0],-a[1]]);b=np.array([b[0],-b[1]])
+        if np.linalg.norm(b-a)>5:segments.extend(((a,b),(b,a)))
+    with fitz.open(stream=pdf_bytes,filetype='pdf') as doc:
+        if len(doc)!=56:result['detail']='Eltérő tervlapszerkezet.';return result
+        # Source sheets 26 and 32 share a printed 1500 x 1000 m EOV grid.
+        # The northern native vectors establish coordinates; sheet 32 is the
+        # current raster replacement directly south of it. No parcel/zone is stored.
+        registration=register_plan_page(tisza_cad_drawings(doc[28]),segments,origin,min_matches=4,min_votes=3)
+        if (not registration or registration['inliers']<8 or registration['error_m']>.12
+                or abs(registration['scale']-72/25.4/4)>.0002):
+            result['detail']='A telek körvonala nem illeszthető az ellenőrzött tiszaújvárosi tervlapokhoz.';return result
+        grid=plan_to_eov((75.001,52.46),registration)
+        if math.dist(grid,(801000,289000))>.2:
+            result['detail']='A vektorillesztés nem egyezik a forrás tervlapi koordinátahálójával.';return result
+        second=dict(registration,target=np.array(registration['target'])-np.array([0,1000*registration['scale']]))
+        selected=[(28,registration),(34,second)];footprints=[];labels=[];proof=None;chosen=None
+        core=parcel.buffer(-1)
+        if core.is_empty or core.area<.98*parcel.area:
+            result['detail']='A telek túl keskeny a beszkennelt terv bizonytalanságához.';return result
+        for number,reg in selected:
+            corners=[plan_to_eov(p,reg) for p in ((75.001,52.46),(1138.021,52.46),(1138.021,761.12),(75.001,761.12))]
+            footprints.append(Polygon(corners))
+            result['registrations'].append({'PDF-oldal':number+1,'Egyező vektorok':registration['inliers'],
+                'Legnagyobb eltérés (m)':round(registration['error_m'],3),
+                'Illesztés':'natív telekhatár' if number==28 else 'szomszédos forrás-szelvényháló'})
+            crops=outlined_text_crops(doc[number],reg,parcel)
+            labels.extend(read_tisza_zone_labels(doc[number],reg,parcel,crops))
+            if proof is None and footprints[-1].contains(parcel.centroid):
+                proof=confirm_outlined_hrsz(doc[number],reg,parcel,hrsz,crops)
+                if proof:chosen=(number,reg)
+            # Independent resolutions and visible neighbouring source boundaries.
+            for scale in (6,8):
+                dots=tisza_red_zone_dots(doc[number],reg,parcel,scale)
+                if len(dots)<20:
+                    result['detail']='Az övezethatár-jelölés nem olvasható ellenőrizhetően.';return result
+                if any(core.contains(p) for p in dots):
+                    result['detail']='Övezethatár érinti a telek belsejét; nincs egyetlen automatikus övezet.';return result
+            fitz.TOOLS.store_shrink(100)
+        if not unary_union(footprints).buffer(.2).covers(core):
+            result['detail']='A telek nem fér el teljesen az ellenőrzött tervlapokon.';return result
+        codes={code for code,point in labels}
+        if proof is None or len(codes)!=1:
+            result['detail']='A pontos helyrajzi szám vagy az egyértelmű övezeti felirat nem igazolható.';return result
+        number,reg=chosen
+        result.update(zone=next(iter(codes)),parcel_wkt=parcel.wkt,parcel_area_m2=parcel.area,
+            uncertainty_m=1.,display_buffer_m=radius,hrsz_method=proof['method'],pdf_page=number+1,
+            detail='Pontos HRSZ és övezeti körjel két felbontásban; vektorillesztés, teljes szelvényfedés és belső övezethatár-vizsgálat ellenőrizve.')
+        # Stitch only the inner source grids, so the complete parcel remains
+        # visible across the two source sheets and margins do not obscure it.
+        xmin,ymin,xmax,ymax=parcel.bounds
+        xmin-=25;ymin-=25;xmax+=25;ymax+=25
+        pixels_per_m=2*registration['scale']
+        canvas=Image.new('RGB',(math.ceil((xmax-xmin)*pixels_per_m),
+                                math.ceil((ymax-ymin)*pixels_per_m)),'white')
+        for index,reg in selected:
+            left,top=eov_to_plan((xmin,ymax),reg)
+            right,bottom=eov_to_plan((xmax,ymin),reg)
+            clip=fitz.Rect(left,top,right,bottom)&fitz.Rect(75.001,52.46,1138.021,761.12)
+            if clip.is_empty:continue
+            pix=doc[index].get_pixmap(matrix=fitz.Matrix(2,2),clip=clip,alpha=False)
+            source=Image.open(io.BytesIO(pix.tobytes('png')))
+            world_left,world_top=plan_to_eov((pix.x/2,pix.y/2),reg)
+            canvas.paste(source,(round((world_left-xmin)*pixels_per_m),round((ymax-world_top)*pixels_per_m)))
+        ImageDraw.Draw(canvas).line([((x-xmin)*pixels_per_m,(ymax-y)*pixels_per_m)
+                                    for x,y in parcel.exterior.coords],fill=(0,77,255),width=2)
+        output=io.BytesIO();canvas.save(output,format='PNG');result['preview']=output.getvalue()
+    return result
+
+
+def verified_tisza_table_rows(doc, zone):
+    """Reference transcription of the three Gip rows, checked against the official
+    scanned 1.2 annex. Exact PDF fingerprint guards against silently using old data.
+    This is reference data, never a parcel-to-zone lookup.
+    """
+    import hashlib
+    if doc is None or zone not in {'Gip/1','Gip/2','Gip/3'}:return [],{},''
+    if hashlib.sha256(doc.stream or b'').hexdigest()!=TISZA_TABLE_SHA256:return [],{},''
+    params={'Beépítési mód':'SZ','Legnagyobb beépítettség':'30 %',
+            'Legkisebb telekterület':'10000 m²','Legkisebb zöldfelület':'25 %',
+            'Legnagyobb épületmagasság':'12,50 m; 2. lábjegyzet'}
+    source='NJT – 1.2. melléklet, 2. PDF-oldal'
+    rows=[{'Előírás':k,'Érték':v,'Forrás':source,
+           'Bizonyosság':'ellenőrzött forrássor; azonos PDF-kiadás'} for k,v in params.items()]
+    note='2. lábjegyzet: Technológiai indokoltság esetére alkalmazható eltérés. (3. PDF-oldal)'
+    return rows,params,note
+
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.19 • nyilvános HRSZ API + telekgeometria • "
+        "v15.20 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -2173,7 +2517,12 @@ def main():
     parcel_place = town.strip()
     if key_text(town) == "budapest" and budapest_district:
         parcel_place = f"Budapest {budapest_district}"
-    ksh = KSH_CODES.get(key_text(parcel_place), "")
+    ksh = ""
+    try:
+        with st.spinner("Település azonosítása a hivatalos HRSZ-keresőben…"):
+            ksh=resolve_settlement_code(parcel_place)
+    except Exception as exc:
+        st.warning(f"A település HRSZ-kereső azonosítása nem sikerült: {exc}")
     if ksh:
         try:
             with st.spinner("Helyrajzi szám és telekgeometria lekérése…"):
@@ -2188,7 +2537,7 @@ def main():
         except Exception as exc:
             st.error(f"A nyilvános HRSZ-lekérdezés nem sikerült: {exc}")
     else:
-        st.info("Ehhez a településhez/kerülethez még nincs ellenőrzött HRSZ-kereső kód a v15-ben.")
+        st.info("Pontos településazonosítás nélkül nem kérek le és nem kapcsolok más településről telekgeometriát.")
 
     minerva_diag = {}
     # 0/B. XII. kerületi publikus MINERVA kapcsolat
@@ -2362,7 +2711,7 @@ def main():
 
     if plan_doc is None and attachments:
         with st.spinner("Szabályozási terv automatikus letöltésének kísérlete…"):
-            plan_doc, plan_source, auto_plan_error = try_auto_plan(attachments)
+            plan_doc, plan_source, auto_plan_error = try_auto_plan(attachments, page.get("text", ""))
 
         if plan_doc:
             st.success("A szabályozási terv PDF automatikusan betöltődött.")
@@ -2381,7 +2730,9 @@ def main():
         with st.spinner("Övezeti paramétertábla betöltése…"):
             zone_table_doc, zone_table_source, zone_table_text, zone_table_error = load_zone_table(attachments)
 
-        if zone_table_doc and zone_table_text:
+        if zone_table_doc and verified_tisza_table_rows(zone_table_doc,"Gip/1")[0]:
+            st.success("A beszkennelt 1.2 melléklet forráskiadása és ipari övezeti sorai ellenőrizve.")
+        elif zone_table_doc and clean_text(zone_table_text):
             st.success("Az 1.2 melléklet övezeti paramétertáblája automatikusan betöltődött.")
         elif zone_table_error:
             st.caption(f"1.2 melléklet: {zone_table_error}")
@@ -2420,6 +2771,28 @@ def main():
                 st.dataframe(plan_zone["registrations"], hide_index=True, use_container_width=True)
         if not plan_zone.get("zone") and plan_zone.get("detail"):
             st.warning(plan_zone["detail"])
+
+    if (plan_doc is not None and source_valid and parcel_api and ksh=="28352"
+            and plan_source.startswith("https://njt.jog.gov.hu/document/")):
+        with st.spinner("Tiszaújváros: tervlapszelvények, pontos HRSZ és övezethatárok ellenőrzése…"):
+            raw_plan=plan_doc.stream or plan_doc.tobytes()
+            plan_doc.close();plan_doc=None
+            fitz.TOOLS.store_shrink(100)
+            try:
+                plan_zone=tiszaujvaros_plan_zone(raw_plan,parcel_api['geometry'],hrsz)
+                if plan_zone.get('zone') and not verified_tisza_table_rows(zone_table_doc,plan_zone['zone'])[0]:
+                    plan_zone['zone']=''
+                    plan_zone['detail']='Nincs azonos kiadású, ellenőrzött NJT-paramétersor az övezethez.'
+            except Exception as exc:
+                plan_zone={'zone':'','detail':f'A tiszaújvárosi ellenőrzés nem teljes: {exc}'}
+            finally:
+                if not plan_zone.get('zone'):plan_doc=fitz.open(stream=raw_plan,filetype='pdf')
+                del raw_plan
+                fitz.TOOLS.store_shrink(100)
+        if plan_zone.get('registrations'):
+            with st.expander("Tiszaújvárosi tervlapok – ellenőrzési eredmény"):
+                st.dataframe(plan_zone['registrations'],hide_index=True,use_container_width=True)
+        if not plan_zone.get('zone') and plan_zone.get('detail'):st.warning(plan_zone['detail'])
 
     # Native text is a fallback. Do not scan every large CAD sheet before the
     # geometric method or keep a second open document during that computation.
@@ -2519,6 +2892,9 @@ def main():
         rows = []  # Adjacent HTML rows and prose snippets cannot establish parcel-specific rules.
         table_rows, table_params, table_context = inline_zone_rows(inline_tables, zone)
         zone_table_source = page.get("url", "")
+    elif verified_tisza_table_rows(zone_table_doc,zone)[0]:
+        rows=[];params={}
+        table_rows, table_params, table_context = verified_tisza_table_rows(zone_table_doc,zone)
     else:
         table_rows, table_params, table_context = zone_table_rows(zone_table_text, zone)
 
@@ -2532,6 +2908,11 @@ def main():
                 st.caption(f"Forrás: {zone_table_source}")
             with st.expander("Övezeti táblázat – nyers forráskörnyezet"):
                 st.write(table_context)
+                if verified_tisza_table_rows(zone_table_doc,zone)[0]:
+                    st.image(zone_table_doc[1].get_pixmap(matrix=fitz.Matrix(3,3),
+                             clip=fitz.Rect(62,730,576,783),alpha=False).tobytes('png'),
+                             caption="Az ipari övezetek eredeti forrássorai – 1.2. melléklet, 2. PDF-oldal",
+                             use_container_width=True)
         elif inline_tables:
             st.warning(f"A {zone} kódhoz nincs egyetlen, pontosan egyező és feldolgozható NJT-táblázatsor.")
         elif zone_table_text:
@@ -2574,7 +2955,7 @@ def main():
         if manual_zone.strip() and map_verified
         else "kézzel megadott, még nem igazolt"
         if manual_zone.strip()
-        else "georeferált tervlap, pontos HRSZ és zárt övezet alapján ellenőrzött"
+        else "georeferált tervlap, pontos HRSZ és övezethatárok alapján ellenőrzött"
         if plan_zone.get("zone")
         else "nincs igazolva"
     )
