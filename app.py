@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.15
+# TelekElőírás AI v15.16
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.15",
+    page_title="TelekElőírás AI v15.16",
     page_icon="🏗️",
     layout="wide",
 )
@@ -86,7 +86,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.15",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.16",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -544,7 +544,7 @@ KSH_CODES = {
 
 def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.15",
+        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.16",
         "Accept": "application/json, text/plain, */*",
         "Referer": "https://www.oeny.hu/",
     })
@@ -648,7 +648,7 @@ def _minerva_opener(jar, verify_tls=True):
 def _minerva_bootstrap_attempt(verify_tls=True):
     jar = http.cookiejar.CookieJar()
     opener = _minerva_opener(jar, verify_tls=verify_tls)
-    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.15", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
+    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.16", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
     req = urllib.request.Request(MINERVA_XII_ENTRY, headers=headers)
     with opener.open(req, timeout=30) as resp:
         raw = resp.read(); entry_status = getattr(resp, "status", 200); html = _decode_http_response(resp, raw)
@@ -697,7 +697,7 @@ def _mapagent_xml(session, operation, **params):
         opener = _minerva_opener(http.cookiejar.CookieJar(), verify)
         req = urllib.request.Request(MINERVA_MAPAGENT, data=data, headers={
             "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "TelekEloirasAI/15.15",
+            "User-Agent": "TelekEloirasAI/15.16",
         })
         try:
             with opener.open(req, timeout=20) as response:
@@ -807,9 +807,48 @@ def available_feature_class(session, resource, declared, query):
     raise ValueError(f"A réteg adatosztálya nem igazolható: {declared}. Elérhető osztályok: {', '.join(classes[:20]) or 'nincs'}")
 
 
+def minerva_circular_arc(text, tolerance=0.001):
+    """Egy AWKT körív szakaszonként, legfeljebb 1 mm húrhibával."""
+    from shapely.geometry import LineString
+    pattern=r"CURVESTRING\s+(XY|XYZ)\s*\(([^()]+)\(CIRCULARARCSEGMENT\s*\(([^()]+)\)\)\)"
+    match=re.fullmatch(pattern,text.strip(),flags=re.I)
+    if not match:
+        raise ValueError("Nem támogatott összetett AWKT görbe.")
+    dim=3 if match[1].upper()=="XYZ" else 2
+    def point(value):
+        values=[float(n) for n in value.strip().split()]
+        if len(values)!=dim or not all(math.isfinite(n) for n in values):
+            raise ValueError("Hibás körívkoordináta.")
+        return values[:2]
+    start=point(match[2]);parts=match[3].split(",")
+    if len(parts)!=2:raise ValueError("A körívhez három pont szükséges.")
+    mid,end=map(point,parts)
+    ax,ay=mid[0]-start[0],mid[1]-start[1]
+    bx,by=end[0]-start[0],end[1]-start[1]
+    determinant=2*(ax*by-ay*bx)
+    if abs(determinant)<1e-12:raise ValueError("Nem meghatározható körív.")
+    ux=((ax*ax+ay*ay)*by-(bx*bx+by*by)*ay)/determinant
+    uy=(ax*(bx*bx+by*by)-bx*(ax*ax+ay*ay))/determinant
+    cx,cy=start[0]+ux,start[1]+uy
+    radius=math.hypot(ux,uy)
+    first=math.atan2(start[1]-cy,start[0]-cx)
+    middle=(math.atan2(mid[1]-cy,mid[0]-cx)-first)%(2*math.pi)
+    final=(math.atan2(end[1]-cy,end[0]-cx)-first)%(2*math.pi)
+    sweep=final if middle<=final else final-2*math.pi
+    step=2*math.acos(max(-1.0,min(1.0,1-tolerance/radius)))
+    if step<=0:raise ValueError("Nem felbontható körív.")
+    count=max(1,math.ceil(abs(sweep)/step))
+    if count>100000:raise ValueError("Túl sok körívszakasz.")
+    points=[(cx+radius*math.cos(first+sweep*i/count),cy+radius*math.sin(first+sweep*i/count)) for i in range(count+1)]
+    points[0]=start;points[-1]=end
+    return LineString(points)
+
+
 def minerva_wkt_geometry(value):
     from shapely import wkt
     text = clean_text(value)
+    if text.upper().startswith("CURVESTRING"):
+        return minerva_circular_arc(text)
     # MapGuide AWKT dimension tokens are explicit; curved geometries are not
     # approximated, and unknown binary encodings are not guessed.
     text = re.sub(r"\bXYZM\b", "ZM", text)
@@ -901,6 +940,7 @@ def minerva_enclosing_zone(session, resource, classes, geometry_field, parcel_wk
         snapshots.append({"resource":resource,"parcel_wkt":parcel_wkt,"window_wkt":window,
             "geometry_field":geometry_field,"boundary_classes":boundaries,"label_class":labels[0],
             "available_classes":names,"class_counts":class_counts,
+            "curve_chord_tolerance_m":0.001,
             "boundary_records":records[0],"label_records":records[1]})
         detail.update({"Sugár (m)":radius,"Határszakaszok":len(records[0]),"Feliratok":len(records[1]),
                        "Szabályozási vonalak":sum(class_counts.get(c,0) for c in regulation_lines)})
@@ -1632,7 +1672,7 @@ def zone_table_rows(zone_table_text, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.15 • nyilvános HRSZ API + telekgeometria • "
+        "v15.16 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • OCR nélkül"
     )
 
