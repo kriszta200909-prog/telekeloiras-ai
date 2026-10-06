@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.22
+# TelekElőírás AI v15.23
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.22",
+    page_title="TelekElőírás AI v15.23",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2185,6 +2185,22 @@ def ink_components(mask):
     return list(groups.values())
 
 
+def plan_crop_pixmap(page, scale, clip):
+    """Reuse decoded page commands only inside an immutable source inspection.
+    No rendered full-page raster is retained, and mutable documents use direct
+    rendering so edits cannot accidentally read a stale display list.
+    """
+    cache=getattr(page.parent,'_telek_display_lists',None)
+    if cache is None:
+        return page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+    if page.number not in cache:
+        # Keep a single decoded page: outlined CAD lettering is memory-heavy.
+        cache.clear()
+        fitz.TOOLS.store_shrink(100)
+        cache[page.number]=page.get_displaylist()
+    return cache[page.number].get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+
+
 def outlined_text_crops(page, registration, parcel):
     import numpy as np
     from PIL import ImageFilter
@@ -2194,7 +2210,7 @@ def outlined_text_crops(page, registration, parcel):
                    max(x for x,y in points),max(y for x,y in points))&page.rect
     if clip.is_empty:return []
     scale=3
-    pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+    pix=plan_crop_pixmap(page,scale,clip)
     origin=(pix.x/scale,pix.y/scale)
     a=np.frombuffer(pix.samples,dtype=np.uint8).reshape(pix.height,pix.width,3)
     ink=(a.max(axis=2)<110)&((a.max(axis=2)-a.min(axis=2))<15)
@@ -2212,7 +2228,7 @@ def outlined_text_crops(page, registration, parcel):
 
 def ocr_rotated_crop(page, clip, scale, angle=0):
     """Return text and word centres in display-page coordinates, including rotation."""
-    pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+    pix=plan_crop_pixmap(page,scale,clip)
     origin=(pix.x/scale,pix.y/scale)
     source=Image.open(io.BytesIO(pix.tobytes('png')))
     rotated=source.rotate(angle,expand=True,fillcolor='white')
@@ -2253,11 +2269,35 @@ def confirm_outlined_hrsz(page, registration, parcel, hrsz, crops=None):
     return None
 
 
+def tisza_zone_circle_candidate(page, rect):
+    """Reject ordinary outlined text before OCR; retain the source legend circle.
+    This is only a candidate filter. Exact two-resolution text and spatial
+    boundary checks still determine whether any zoning answer is accepted.
+    """
+    import numpy as np
+    scale=6;pix=plan_crop_pixmap(page,scale,rect)
+    a=np.frombuffer(pix.samples,dtype=np.uint8).reshape(pix.height,pix.width,3)
+    ink=a.max(axis=2)<230
+    cx=(rect.x0+rect.x1)/2*scale-pix.x;cy=(rect.y0+rect.y1)/2*scale-pix.y
+    angles=np.linspace(0,2*math.pi,72,endpoint=False)
+    candidates=np.array([(cx+dx*scale,cy+dy*scale,r*scale)
+        for dx in np.arange(-2,2.1,.5) for dy in np.arange(-2,2.1,.5)
+        for r in np.arange(6,10.1,.5)])
+    found=np.zeros((len(candidates),72),dtype=bool)
+    for dr in (-.75,0,.75):
+        xs=np.rint(candidates[:,0,None]+(candidates[:,2,None]+dr*scale)*np.cos(angles)).astype(int)
+        ys=np.rint(candidates[:,1,None]+(candidates[:,2,None]+dr*scale)*np.sin(angles)).astype(int)
+        valid=(xs>=0)&(ys>=0)&(xs<pix.width)&(ys<pix.height)
+        found[valid]|=ink[ys[valid],xs[valid]]
+    return bool((found.mean(axis=1)>=.75).any())
+
+
 def read_tisza_zone_labels(page, registration, parcel, crops):
     from shapely.geometry import Point
     labels=[]
     for rect in crops:
         if not .8<rect.width/rect.height<1.25 or rect.width<20:continue
+        if not tisza_zone_circle_candidate(page,rect):continue
         # The source legend defines a two-tier circular symbol. Read each field,
         # rather than guessing from a neighbouring whole-page OCR fragment.
         top=fitz.Rect(rect.x0+.29*rect.width,rect.y0+.25*rect.height,
@@ -2305,8 +2345,16 @@ def tisza_cad_drawings(page):
     # Stream source paths through the native callback. Materialising every
     # outlined glyph on this CAD sheet would exceed Render's memory budget.
     result=[];rotation=page.rotation_matrix
+    frames=getattr(page.parent,'_telek_grid_frames',None);edges=[]
     def collect(drawing):
         color=drawing.get('color');width=drawing.get('width') or 0
+        if frames is not None and color==(0.,0.,0.):
+            bounds=drawing.get('rect')
+            if bounds and max(bounds[2]-bounds[0],bounds[3]-bounds[1])>650:
+                for item in drawing['items']:
+                    if item[0]=='l':
+                        a=fitz.Point(*item[1])*rotation;b=fitz.Point(*item[2])*rotation
+                        if abs(a-b)>650:edges.append((a,b))
         if color and max(color)-min(color)<.001 and .44<color[0]<.48 and .10<width<.14:
             items=[('l',tuple(fitz.Point(*i[1])*rotation),tuple(fitz.Point(*i[2])*rotation))
                    for i in drawing['items'] if i[0]=='l']
@@ -2314,6 +2362,7 @@ def tisza_cad_drawings(page):
     try:page.get_cdrawings(callback=collect)
     except TypeError as exc:
         raise RuntimeError('A memóriahatékony CAD-feldolgozáshoz a PyMuPDF csomag frissítése szükséges.') from exc
+    if frames is not None:frames[page.number]=edges
     fitz.TOOLS.store_shrink(100)
     return result
 
@@ -2328,7 +2377,7 @@ def tisza_red_zone_dots(page, registration, parcel, scale=6):
     points=[eov_to_plan(p,registration) for p in parcel.exterior.coords]
     clip=fitz.Rect(min(x for x,y in points)-25,min(y for x,y in points)-25,
                    max(x for x,y in points)+25,max(y for x,y in points)+25)&page.rect
-    pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+    pix=plan_crop_pixmap(page,scale,clip)
     origin=(pix.x/scale,pix.y/scale)
     a=np.frombuffer(pix.samples,dtype=np.uint8).reshape(pix.height,pix.width,3)
     red=(a[:,:,0]>140)&(a[:,:,1]<130)&(a[:,:,2]<130)
@@ -2347,14 +2396,16 @@ def tisza_source_grid_registration(page):
     The four frame edges must still be present in the native source. Coordinates
     refer to source sheets, never to a parcel or a stored zoning answer.
     """
-    rotation=page.rotation_matrix;edges=[]
+    rotation=page.rotation_matrix
+    frames=getattr(getattr(page,'parent',None),'_telek_grid_frames',{})
+    edges=list(frames.get(page.number,[])) if hasattr(page,'number') else []
     def collect(drawing):
         if drawing.get('color')!=(0.,0.,0.):return
         for item in drawing['items']:
             if item[0]=='l':
                 a=fitz.Point(*item[1])*rotation;b=fitz.Point(*item[2])*rotation
                 if abs(a-b)>650:edges.append((a,b))
-    page.get_cdrawings(callback=collect)
+    if not edges:page.get_cdrawings(callback=collect)
     corners=[fitz.Point(x,y) for x,y in ((75.001,52.40),(1138.021,52.40),
                                        (1138.021,761.12),(75.001,761.12))]
     for a,b in zip(corners,corners[1:]+corners[:1]):
@@ -2408,6 +2459,8 @@ def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
         if np.linalg.norm(b-a)>5:segments.extend(((a,b),(b,a)))
     with fitz.open(stream=pdf_bytes,filetype='pdf') as doc:
         if len(doc)!=56:result['detail']='Eltérő tervlapszerkezet.';return result
+        doc._telek_display_lists={}
+        doc._telek_grid_frames={}
         # Source sheets 26 and 32 share a printed 1500 x 1000 m EOV grid.
         # The northern native vectors establish coordinates; sheet 32 is the
         # current raster replacement directly south of it. No parcel/zone is stored.
@@ -2490,7 +2543,7 @@ def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
             right,bottom=eov_to_plan((xmax,ymin),reg)
             clip=fitz.Rect(left,top,right,bottom)&fitz.Rect(75.001,52.46,1138.021,761.12)
             if clip.is_empty:continue
-            pix=doc[index].get_pixmap(matrix=fitz.Matrix(2,2),clip=clip,alpha=False)
+            pix=plan_crop_pixmap(doc[index],2,clip)
             source=Image.open(io.BytesIO(pix.tobytes('png')))
             world_left,world_top=plan_to_eov((pix.x/2,pix.y/2),reg)
             canvas.paste(source,(round((world_left-xmin)*pixels_per_m),round((ymax-world_top)*pixels_per_m)))
@@ -2520,7 +2573,7 @@ def verified_tisza_table_rows(doc, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.22 • nyilvános HRSZ API + telekgeometria • "
+        "v15.23 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
