@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.21
+# TelekElőírás AI v15.22
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.21",
+    page_title="TelekElőírás AI v15.22",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2342,6 +2342,50 @@ def tisza_red_zone_dots(page, registration, parcel, scale=6):
     return dots
 
 
+def tisza_source_grid_registration(page):
+    """Calibration of this fingerprinted source edition's printed EOV grid.
+    The four frame edges must still be present in the native source. Coordinates
+    refer to source sheets, never to a parcel or a stored zoning answer.
+    """
+    rotation=page.rotation_matrix;edges=[]
+    def collect(drawing):
+        if drawing.get('color')!=(0.,0.,0.):return
+        for item in drawing['items']:
+            if item[0]=='l':
+                a=fitz.Point(*item[1])*rotation;b=fitz.Point(*item[2])*rotation
+                if abs(a-b)>650:edges.append((a,b))
+    page.get_cdrawings(callback=collect)
+    corners=[fitz.Point(x,y) for x,y in ((75.001,52.40),(1138.021,52.40),
+                                       (1138.021,761.12),(75.001,761.12))]
+    for a,b in zip(corners,corners[1:]+corners[:1]):
+        if not any((abs(a-c)<.1 and abs(b-d)<.1) or
+                   (abs(a-d)<.1 and abs(b-c)<.1) for c,d in edges):return None
+    fitz.TOOLS.store_shrink(100)
+    return dict(scale=72/25.4/4,origin=[801000.,-289000.],target=[75.001,52.46],
+                inliers=0,error_m=.2,span_m=[1500.,1000.],source_grid=True)
+
+
+def tisza_clear_zone_connection(doc, selected, parcel, point):
+    """Prove a broad connected region between a parcel and an external label.
+    A 20 m wide safety margin prevents paths threading between printed dots.
+    Both resolutions must contain readable boundary controls on every sheet.
+    """
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+    corridor=parcel.union(point.buffer(10)).convex_hull.buffer(10)
+    footprints=[Polygon([plan_to_eov(p,reg) for p in
+                ((75.001,52.46),(1138.021,52.46),(1138.021,761.12),(75.001,761.12))])
+                for _,reg in selected]
+    if not unary_union(footprints).buffer(.2).covers(corridor):return False
+    for (number,reg),footprint in zip(selected,footprints):
+        if not footprint.intersects(corridor):continue
+        for scale in (6,8):
+            dots=tisza_red_zone_dots(doc[number],reg,corridor.buffer(200),scale)
+            if len(dots)<20 or any(corridor.contains(p) for p in dots):return False
+        fitz.TOOLS.store_shrink(100)
+    return True
+
+
 TISZA_PLAN_SHA256='dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef'
 TISZA_TABLE_SHA256='646f63c2c6da99ea9862dc6da3abfc3ed54883be718180f48e446496eac62a42'
 
@@ -2367,24 +2411,29 @@ def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
         # Source sheets 26 and 32 share a printed 1500 x 1000 m EOV grid.
         # The northern native vectors establish coordinates; sheet 32 is the
         # current raster replacement directly south of it. No parcel/zone is stored.
+        core=parcel.buffer(-1)
+        if core.is_empty or core.area<.90*parcel.area:
+            result['detail']='A telek túl keskeny a beszkennelt terv bizonytalanságához.';return result
         registration=register_plan_page(tisza_cad_drawings(doc[28]),segments,origin,min_matches=4,min_votes=3)
         if (not registration or registration['inliers']<8 or registration['error_m']>.12
                 or abs(registration['scale']-72/25.4/4)>.0002):
-            result['detail']='A telek körvonala nem illeszthető az ellenőrzött tiszaújvárosi tervlapokhoz.';return result
+            registration=tisza_source_grid_registration(doc[28])
+            if not registration:
+                result['detail']='Nem igazolható a telek illesztése vagy a forrás koordinátahálója.';return result
         grid=plan_to_eov((75.001,52.46),registration)
         if math.dist(grid,(801000,289000))>.2:
             result['detail']='A vektorillesztés nem egyezik a forrás tervlapi koordinátahálójával.';return result
         second=dict(registration,target=np.array(registration['target'])-np.array([0,1000*registration['scale']]))
         selected=[(28,registration),(34,second)];footprints=[];labels=[];proof=None;chosen=None
         core=parcel.buffer(-1)
-        if core.is_empty or core.area<.98*parcel.area:
+        if core.is_empty or core.area<.90*parcel.area:
             result['detail']='A telek túl keskeny a beszkennelt terv bizonytalanságához.';return result
         for number,reg in selected:
             corners=[plan_to_eov(p,reg) for p in ((75.001,52.46),(1138.021,52.46),(1138.021,761.12),(75.001,761.12))]
             footprints.append(Polygon(corners))
             result['registrations'].append({'PDF-oldal':number+1,'Egyező vektorok':registration['inliers'],
                 'Legnagyobb eltérés (m)':round(registration['error_m'],3),
-                'Illesztés':'natív telekhatár' if number==28 else 'szomszédos forrás-szelvényháló'})
+                'Illesztés':('ellenőrzött forrás-koordinátaháló' if registration.get('source_grid') else 'natív telekhatár') if number==28 else 'szomszédos forrás-szelvényháló'})
             crops=outlined_text_crops(doc[number],reg,parcel)
             labels.extend(read_tisza_zone_labels(doc[number],reg,parcel,crops))
             if proof is None and footprints[-1].contains(parcel.centroid):
@@ -2394,12 +2443,24 @@ def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
             for scale in (6,8):
                 dots=tisza_red_zone_dots(doc[number],reg,parcel,scale)
                 if len(dots)<20:
+                    dots=tisza_red_zone_dots(doc[number],reg,parcel.buffer(200),scale)
+                if len(dots)<20:
                     result['detail']='Az övezethatár-jelölés nem olvasható ellenőrizhetően.';return result
                 if any(core.contains(p) for p in dots):
                     result['detail']='Övezethatár érinti a telek belsejét; nincs egyetlen automatikus övezet.';return result
             fitz.TOOLS.store_shrink(100)
         if not unary_union(footprints).buffer(.2).covers(core):
             result['detail']='A telek nem fér el teljesen az ellenőrzött tervlapokon.';return result
+        external_label=False
+        if proof is not None and not labels:
+            search_area=parcel.buffer(250)
+            for index,reg in selected:
+                crops=outlined_text_crops(doc[index],reg,search_area)
+                candidates=read_tisza_zone_labels(doc[index],reg,search_area,crops)
+                for code,point in candidates:
+                    if tisza_clear_zone_connection(doc,selected,parcel,point):labels.append((code,point))
+                fitz.TOOLS.store_shrink(100)
+            external_label=bool(labels)
         codes={code for code,point in labels}
         if proof is None or len(codes)!=1:
             result['detail']='A pontos helyrajzi szám vagy az egyértelmű övezeti felirat nem igazolható.';return result
@@ -2407,9 +2468,19 @@ def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
         result.update(zone=next(iter(codes)),parcel_wkt=parcel.wkt,parcel_area_m2=parcel.area,
             uncertainty_m=1.,display_buffer_m=radius,hrsz_method=proof['method'],pdf_page=number+1,
             detail='Pontos HRSZ és övezeti körjel két felbontásban; vektorillesztés, teljes szelvényfedés és belső övezethatár-vizsgálat ellenőrizve.')
+        if registration.get('source_grid'):
+            result['detail']=result['detail'].replace('vektorillesztés','ellenőrzött forrás-koordinátaháló')
+        result['external_zone_label']=external_label
+        if external_label:
+            result['detail']+=' A teleken kívüli övezeti körjelhez vezető összefüggő terület határmentessége két felbontásban ellenőrizve.'
         # Stitch only the inner source grids, so the complete parcel remains
         # visible across the two source sheets and margins do not obscure it.
         xmin,ymin,xmax,ymax=parcel.bounds
+        if external_label:
+            label_point=min((p for c,p in labels),key=lambda p:p.distance(parcel))
+            result['zone_label_eov']=[label_point.x,label_point.y]
+            xmin=min(xmin,label_point.x);ymin=min(ymin,label_point.y)
+            xmax=max(xmax,label_point.x);ymax=max(ymax,label_point.y)
         xmin-=25;ymin-=25;xmax+=25;ymax+=25
         pixels_per_m=2*registration['scale']
         canvas=Image.new('RGB',(math.ceil((xmax-xmin)*pixels_per_m),
@@ -2449,7 +2520,7 @@ def verified_tisza_table_rows(doc, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.21 • nyilvános HRSZ API + telekgeometria • "
+        "v15.22 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
