@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.11
+# TelekElőírás AI v15.12
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.11",
+    page_title="TelekElőírás AI v15.12",
     page_icon="🏗️",
     layout="wide",
 )
@@ -86,7 +86,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.11",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.12",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -544,7 +544,7 @@ KSH_CODES = {
 
 def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.11",
+        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.12",
         "Accept": "application/json, text/plain, */*",
         "Referer": "https://www.oeny.hu/",
     })
@@ -648,7 +648,7 @@ def _minerva_opener(jar, verify_tls=True):
 def _minerva_bootstrap_attempt(verify_tls=True):
     jar = http.cookiejar.CookieJar()
     opener = _minerva_opener(jar, verify_tls=verify_tls)
-    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.11", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
+    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.12", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
     req = urllib.request.Request(MINERVA_XII_ENTRY, headers=headers)
     with opener.open(req, timeout=30) as resp:
         raw = resp.read(); entry_status = getattr(resp, "status", 200); html = _decode_http_response(resp, raw)
@@ -697,7 +697,7 @@ def _mapagent_xml(session, operation, **params):
         opener = _minerva_opener(http.cookiejar.CookieJar(), verify)
         req = urllib.request.Request(MINERVA_MAPAGENT, data=data, headers={
             "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "TelekEloirasAI/15.11",
+            "User-Agent": "TelekEloirasAI/15.12",
         })
         try:
             with opener.open(req, timeout=20) as response:
@@ -805,6 +805,84 @@ def available_feature_class(session, resource, declared, query):
     if len(matches) == 1:
         return matches[0]
     raise ValueError(f"A réteg adatosztálya nem igazolható: {declared}. Elérhető osztályok: {', '.join(classes[:20]) or 'nincs'}")
+
+
+def minerva_wkt_geometry(value):
+    from shapely import wkt
+    text = clean_text(value)
+    # MapGuide AWKT dimension tokens are explicit; curved geometries are not
+    # approximated, and unknown binary encodings are not guessed.
+    text = re.sub(r"^(POINT|LINESTRING|POLYGON|MULTIPOINT|MULTILINESTRING|MULTIPOLYGON|GEOMETRYCOLLECTION)\s+XY\s*", r"\1 ", text, flags=re.I)
+    if not re.match(r"^(POINT|LINESTRING|POLYGON|MULTIPOINT|MULTILINESTRING|MULTIPOLYGON|GEOMETRYCOLLECTION)\s*[\s(]", text, flags=re.I):
+        raise ValueError("A MINERVA geometriája nem támogatott WKT/AWKT szöveg.")
+    geom = wkt.loads(text)
+    if geom.is_empty or not geom.is_valid:
+        raise ValueError("Üres vagy érvénytelen MINERVA geometria.")
+    return geom
+
+
+def enclosing_zone(parcel_wkt, boundary_records, label_records, window_wkt, geometry_field="Geom"):
+    """Teljes telek + zárt határ + területen belüli egyező felirat szükséges."""
+    from shapely.ops import polygonize, unary_union
+    parcel = minerva_wkt_geometry(parcel_wkt)
+    window = minerva_wkt_geometry(window_wkt)
+    lines = []
+    for row in boundary_records:
+        geom = minerva_wkt_geometry(row.get(geometry_field, ""))
+        if geom.geom_type in {"Polygon", "MultiPolygon"}:
+            lines.append(geom.boundary)
+        elif geom.geom_type in {"LineString", "MultiLineString"}:
+            lines.append(geom)
+        else:
+            raise ValueError("Az övezethatár nem vonal vagy polygon.")
+    if not lines:
+        return "", "Nincs övezethatár a vizsgált környezetben."
+    regions = [p for p in polygonize(unary_union(lines))
+               if p.covers(parcel) and window.contains(p) and not p.boundary.intersects(window.boundary)]
+    if len(regions) != 1:
+        return "", "A teljes telekhez nem tartozik egyetlen igazolt, zárt övezetterület."
+    codes = set()
+    for row in label_records:
+        text = next((v for k,v in row.items() if key_text(k)=="karakterlanc"), "")
+        if not ZONE_PATTERN.fullmatch(text):
+            continue
+        geom = minerva_wkt_geometry(row.get(geometry_field, ""))
+        if geom.geom_type not in {"Point", "MultiPoint"}:
+            raise ValueError("Az övezeti felirat helye nem pontgeometria.")
+        if regions[0].contains(geom):
+            codes.add(text)
+    if len(codes) != 1:
+        return "", "A zárt övezetterületnek nincs egyetlen egyértelmű övezeti felirata."
+    return next(iter(codes)), "A teljes telek zárt övezetterületben van, annak felirata egyértelmű."
+
+
+def minerva_enclosing_zone(session, resource, classes, geometry_field, parcel_wkt, query):
+    from shapely.geometry import box
+    from shapely import wkt
+    names = [clean_text(n.text) for n in classes.iter()
+             if n.tag.rsplit("}",1)[-1] in {"Item", "String"} and clean_text(n.text)]
+    boundaries = [c for c in names if "epitesiovezet" in key_text(c).replace(" ", "") and "hatar" in key_text(c)]
+    labels = minerva_label_classes(classes)
+    if len(boundaries) != 1 or len(labels) != 1:
+        return "", {"Adatforrás":resource, "Eredmény":"Az övezethatár- és feliratosztály nem egyértelmű."}
+    minx,miny,maxx,maxy = wkt.loads(parcel_wkt).bounds
+    window = box(minx-500,miny-500,maxx+500,maxy+500).wkt
+    records=[]
+    for cls in (boundaries[0],labels[0]):
+        root=query(session,"SELECTFEATURES",RESOURCEID=resource,CLASSNAME=cls,
+                   FILTER=f"{geometry_field} INTERSECTS GeomFromText('{window}')")
+        records.append(_feature_properties(root))
+    detail={"Adatforrás":resource,"Határszakaszok":len(records[0]),"Feliratok":len(records[1])}
+    try:
+        code,reason=enclosing_zone(parcel_wkt,records[0],records[1],window,geometry_field)
+        detail["Eredmény"]=reason
+        return code,detail
+    except Exception as exc:
+        detail["Eredmény"]=str(exc)
+        detail["Geometria formátuma"] = str([
+            {"eleje":r.get(geometry_field,"")[:60],"hossz":len(r.get(geometry_field,""))}
+            for r in records[0][:1]+records[1][:1]])
+        return "",detail
 
 
 def minerva_label_classes(root):
@@ -919,6 +997,12 @@ def minerva_zone_candidates(session, geometry, query=_mapagent_xml, diagnostics=
             if diagnostics is not None:
                 diagnostics.setdefault("source_classes", []).append({
                     "Adatforrás": resource, "Feliratosztályok": ", ".join(labels) or "nincs"})
+            code, topology_detail = minerva_enclosing_zone(session, resource, classes, geom_name, wkt, query)
+            if diagnostics is not None:
+                diagnostics.setdefault("topology", []).append(topology_detail)
+            if code:
+                candidates.append({"Övezeti kód": code, "Réteg": "Zárt övezethatár és területen belüli felirat",
+                                   "Forrás": resource, "Mező": "KARAKTERLÁNC"})
             for feature_class in labels:
                 if (resource, feature_class) in queried_classes:
                     continue
@@ -963,6 +1047,7 @@ def minerva_xii_status_for_parcel(parcel_api):
         result["layers"] = diagnostics.get("layers", [])
         result["definitions"] = diagnostics.get("definitions", [])
         result["source_classes"] = diagnostics.get("source_classes", [])
+        result["topology"] = diagnostics.get("topology", [])
         result["candidates"] = candidates
         result["detail"] = f"Telekpolygon térbeli lekérdezése: {len(candidates)} övezeti találat. " + " | ".join(errors)
     except Exception as exc:
@@ -1502,7 +1587,7 @@ def zone_table_rows(zone_table_text, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.11 • nyilvános HRSZ API + telekgeometria • "
+        "v15.12 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • OCR nélkül"
     )
 
@@ -1612,6 +1697,9 @@ def main():
         if minerva_diag.get("source_classes"):
             with st.expander("Jelenlegi adatforrás övezeti feliratosztályai"):
                 st.dataframe(minerva_diag["source_classes"], hide_index=True, use_container_width=True)
+        if minerva_diag.get("topology"):
+            with st.expander("Telek és zárt övezethatár összekapcsolása"):
+                st.dataframe(minerva_diag["topology"], hide_index=True, use_container_width=True)
         if minerva_diag.get("parcel_geometry"):
             st.write("**OÉNY → MINERVA térbeli lekérdezés bemenete:** telek MultiPolygon/bounding box rendelkezésre áll.")
         if minerva_diag.get("candidates"):
