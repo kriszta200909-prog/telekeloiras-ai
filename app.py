@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.12
+# TelekElőírás AI v15.13
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.12",
+    page_title="TelekElőírás AI v15.13",
     page_icon="🏗️",
     layout="wide",
 )
@@ -86,7 +86,7 @@ def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
     req = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.12",
+            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.13",
             "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
             "Accept": accept,
         },
@@ -544,7 +544,7 @@ KSH_CODES = {
 
 def _json_get(url, timeout=25):
     req = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.12",
+        "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.13",
         "Accept": "application/json, text/plain, */*",
         "Referer": "https://www.oeny.hu/",
     })
@@ -648,7 +648,7 @@ def _minerva_opener(jar, verify_tls=True):
 def _minerva_bootstrap_attempt(verify_tls=True):
     jar = http.cookiejar.CookieJar()
     opener = _minerva_opener(jar, verify_tls=verify_tls)
-    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.12", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
+    headers = {"User-Agent": "Mozilla/5.0 TelekEloirasAI/15.13", "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5"}
     req = urllib.request.Request(MINERVA_XII_ENTRY, headers=headers)
     with opener.open(req, timeout=30) as resp:
         raw = resp.read(); entry_status = getattr(resp, "status", 200); html = _decode_http_response(resp, raw)
@@ -697,7 +697,7 @@ def _mapagent_xml(session, operation, **params):
         opener = _minerva_opener(http.cookiejar.CookieJar(), verify)
         req = urllib.request.Request(MINERVA_MAPAGENT, data=data, headers={
             "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "TelekEloirasAI/15.12",
+            "User-Agent": "TelekEloirasAI/15.13",
         })
         try:
             with opener.open(req, timeout=20) as response:
@@ -821,7 +821,7 @@ def minerva_wkt_geometry(value):
     return geom
 
 
-def enclosing_zone(parcel_wkt, boundary_records, label_records, window_wkt, geometry_field="Geom"):
+def enclosing_zone(parcel_wkt, boundary_records, label_records, window_wkt, geometry_field="Geom", diagnostics=None):
     """Teljes telek + zárt határ + területen belüli egyező felirat szükséges."""
     from shapely.ops import polygonize, unary_union
     parcel = minerva_wkt_geometry(parcel_wkt)
@@ -837,7 +837,12 @@ def enclosing_zone(parcel_wkt, boundary_records, label_records, window_wkt, geom
             raise ValueError("Az övezethatár nem vonal vagy polygon.")
     if not lines:
         return "", "Nincs övezethatár a vizsgált környezetben."
-    regions = [p for p in polygonize(unary_union(lines))
+    polygons = list(polygonize(unary_union(lines)))
+    if diagnostics is not None:
+        diagnostics["Zárt területek"] = len(polygons)
+        diagnostics["Telekkel metsző területek"] = sum(p.intersects(parcel) for p in polygons)
+        diagnostics["Teljes telket tartalmazó területek"] = sum(p.covers(parcel) for p in polygons)
+    regions = [p for p in polygons
                if p.covers(parcel) and window.contains(p) and not p.boundary.intersects(window.boundary)]
     if len(regions) != 1:
         return "", "A teljes telekhez nem tartozik egyetlen igazolt, zárt övezetterület."
@@ -866,23 +871,37 @@ def minerva_enclosing_zone(session, resource, classes, geometry_field, parcel_wk
     if len(boundaries) != 1 or len(labels) != 1:
         return "", {"Adatforrás":resource, "Eredmény":"Az övezethatár- és feliratosztály nem egyértelmű."}
     minx,miny,maxx,maxy = wkt.loads(parcel_wkt).bounds
-    window = box(minx-500,miny-500,maxx+500,maxy+500).wkt
-    records=[]
-    for cls in (boundaries[0],labels[0]):
-        root=query(session,"SELECTFEATURES",RESOURCEID=resource,CLASSNAME=cls,
-                   FILTER=f"{geometry_field} INTERSECTS GeomFromText('{window}')")
-        records.append(_feature_properties(root))
-    detail={"Adatforrás":resource,"Határszakaszok":len(records[0]),"Feliratok":len(records[1])}
-    try:
-        code,reason=enclosing_zone(parcel_wkt,records[0],records[1],window,geometry_field)
-        detail["Eredmény"]=reason
-        return code,detail
-    except Exception as exc:
-        detail["Eredmény"]=str(exc)
-        detail["Geometria formátuma"] = str([
-            {"eleje":r.get(geometry_field,"")[:60],"hossz":len(r.get(geometry_field,""))}
-            for r in records[0][:1]+records[1][:1]])
-        return "",detail
+    detail={"Adatforrás":resource}
+    snapshots=[]
+    for radius in (500, 1500):
+        window = box(minx-radius,miny-radius,maxx+radius,maxy+radius).wkt
+        records=[]
+        try:
+            for cls in (boundaries[0],labels[0]):
+                root=query(session,"SELECTFEATURES",RESOURCEID=resource,CLASSNAME=cls,
+                           FILTER=f"{geometry_field} INTERSECTS GeomFromText('{window}')")
+                records.append(_feature_properties(root))
+        except Exception as exc:
+            detail["Eredmény"] = f"A {radius} m-es környezet lekérése nem teljes: {exc}"
+            break
+        snapshots.append({"resource":resource,"parcel_wkt":parcel_wkt,"window_wkt":window,
+            "geometry_field":geometry_field,"boundary_class":boundaries[0],"label_class":labels[0],
+            "boundary_records":records[0],"label_records":records[1]})
+        detail.update({"Sugár (m)":radius,"Határszakaszok":len(records[0]),"Feliratok":len(records[1])})
+        try:
+            code,reason=enclosing_zone(parcel_wkt,records[0],records[1],window,geometry_field,detail)
+            detail["Eredmény"]=reason
+            if code:
+                detail["snapshot"]=snapshots
+                return code,detail
+        except Exception as exc:
+            detail["Eredmény"]=str(exc)
+            detail["Geometria formátuma"] = str([
+                {"eleje":r.get(geometry_field,"")[:60],"hossz":len(r.get(geometry_field,""))}
+                for r in records[0][:1]+records[1][:1]])
+            break
+    detail["snapshot"]=snapshots
+    return "",detail
 
 
 def minerva_label_classes(root):
@@ -904,6 +923,7 @@ def minerva_zone_candidates(session, geometry, query=_mapagent_xml, diagnostics=
             cached[cache_key] = original_query(session, operation, **params)
         return cached[cache_key]
     discovered_sources = {}
+    intersecting_sources = set()
     queried_classes = set()
     wkt = parcel_polygon_wkt(geometry)
     mapdef = query(session, "GETRESOURCECONTENT", RESOURCEID=MINERVA_MAPDEFINITION)
@@ -967,6 +987,8 @@ def minerva_zone_candidates(session, geometry, query=_mapagent_xml, diagnostics=
                            CLASSNAME=feature_class,
                            FILTER=f"{geom_name} INTERSECTS GeomFromText('{wkt}')")
             records = _feature_properties(result)
+            if records:
+                intersecting_sources.add(resource)
             text_expressions = [_xml_text(n, "Text") for n in definition.iter()
                                 if n.tag.rsplit("}", 1)[-1] == "TextSymbol"]
             label_fields = {expr.strip()[1:-1] for expr in text_expressions
@@ -997,7 +1019,11 @@ def minerva_zone_candidates(session, geometry, query=_mapagent_xml, diagnostics=
             if diagnostics is not None:
                 diagnostics.setdefault("source_classes", []).append({
                     "Adatforrás": resource, "Feliratosztályok": ", ".join(labels) or "nincs"})
-            code, topology_detail = minerva_enclosing_zone(session, resource, classes, geom_name, wkt, query)
+            code, topology_detail = (minerva_enclosing_zone(session, resource, classes, geom_name, wkt, query)
+                if resource in intersecting_sources else ("", {"Adatforrás":resource,"Eredmény":"A forrás övezeti rétegei nem metszik a telket."}))
+            snapshots = topology_detail.pop("snapshot", [])
+            if diagnostics is not None and snapshots:
+                diagnostics.setdefault("geometry_snapshots", []).extend(snapshots)
             if diagnostics is not None:
                 diagnostics.setdefault("topology", []).append(topology_detail)
             if code:
@@ -1048,6 +1074,7 @@ def minerva_xii_status_for_parcel(parcel_api):
         result["definitions"] = diagnostics.get("definitions", [])
         result["source_classes"] = diagnostics.get("source_classes", [])
         result["topology"] = diagnostics.get("topology", [])
+        result["geometry_snapshots"] = diagnostics.get("geometry_snapshots", [])
         result["candidates"] = candidates
         result["detail"] = f"Telekpolygon térbeli lekérdezése: {len(candidates)} övezeti találat. " + " | ".join(errors)
     except Exception as exc:
@@ -1587,7 +1614,7 @@ def zone_table_rows(zone_table_text, zone):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.12 • nyilvános HRSZ API + telekgeometria • "
+        "v15.13 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • OCR nélkül"
     )
 
@@ -1700,6 +1727,11 @@ def main():
         if minerva_diag.get("topology"):
             with st.expander("Telek és zárt övezethatár összekapcsolása"):
                 st.dataframe(minerva_diag["topology"], hide_index=True, use_container_width=True)
+        if minerva_diag.get("geometry_snapshots"):
+            st.download_button("Övezeti geometria ellenőrzési adatainak letöltése",
+                data=json.dumps(minerva_diag["geometry_snapshots"], ensure_ascii=False).encode("utf-8"),
+                file_name="minerva_geometry_snapshot.json", mime="application/json",
+                on_click="ignore")
         if minerva_diag.get("parcel_geometry"):
             st.write("**OÉNY → MINERVA térbeli lekérdezés bemenete:** telek MultiPolygon/bounding box rendelkezésre áll.")
         if minerva_diag.get("candidates"):
