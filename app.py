@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.26
+# TelekElőírás AI v15.27
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.26",
+    page_title="TelekElőírás AI v15.27",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2663,8 +2663,9 @@ class TiszaLegalParagraphs(HTMLParser):
     """Read complete clauses from NJT structural markers, including closing bans.
     Numbers mentioned in prose, neighbouring headings and footnotes are excluded.
     """
-    def __init__(self):
+    def __init__(self,document_id='2018-11-SP-5Y1228'):
         super().__init__()
+        self.document_prefix='sc'+document_id+'-'
         self.active=None;self.blocks={};self.anchors={};self.depth=0;self.legal_depth=None
         self.paragraph=None;self.skip=0;self.duplicates=set();self.seen=set()
         self.editions=[];self.edition_depth=None;self.edition_parts=[];self.sup_notes=[]
@@ -2673,11 +2674,12 @@ class TiszaLegalParagraphs(HTMLParser):
         attrs=dict(attrs)
         if tag=='span' and 'jhId' in attrs.get('class','').split():
             marker=attrs.get('id','')
-            m=(re.fullmatch(r'SZ(\d+)\.@BE(?:\((\d+)\)|0)(?:@.*)?',marker)
-               or re.fullmatch(r'SZ(\d+)@BE(\d+)(?:@.*)?',marker))
+            m=(re.fullmatch(r'SZ(\d+(?:/[A-Z])?)\.@BE(?:\((\d+)\)|0)(?:@.*)?',marker)
+               or re.fullmatch(r'SZ(\d+[A-Z]?)@BE(\d+)(?:@.*)?',marker))
             if m:
-                self.active=(int(m[1]),int(m[2]) if m[2] else None)
-                if marker in self.seen:self.duplicates.add(int(m[1]))
+                section=int(m[1]) if m[1].isdigit() else re.sub(r'^(\d+)([A-Z])$',r'\1/\2',m[1])
+                self.active=(section,int(m[2]) if m[2] and int(m[2]) else None)
+                if marker in self.seen:self.duplicates.add(section)
                 self.seen.add(marker)
                 self.anchors.setdefault(self.active,marker)
             else:self.active=None
@@ -2685,7 +2687,7 @@ class TiszaLegalParagraphs(HTMLParser):
             self.depth+=1
             if attrs.get('class','')=='hataly':
                 self.edition_depth=self.depth;self.edition_parts=[]
-            if (attrs.get('id','').startswith('sc2018-11-SP-5Y1228-')
+            if (attrs.get('id','').startswith(self.document_prefix)
                     and attrs.get('class','') in {'bekezdesNyito','bekezdesZaro','betusPontNyito',
                     'betusPontZaro','ketbetusAlPont','szamosPontNyito','alpontNyito','alpontZaro','szamozottPontNyito','szamozottPontZaro'}):
                 self.legal_depth=self.depth
@@ -2828,10 +2830,126 @@ def render_tisza_local_rules(result,zone,params):
     for check in result['checks']:st.write('• '+check)
 
 
+
+NATIONAL_RULE_PROFILES = {'otek2012': {'document': '1997-253-20-22',
+              'url': 'https://njt.jog.gov.hu/jogszabaly/1997-253-20-22.31',
+              'edition': '2012.06.29.',
+              'hashes': {19: 'f434a92119077d78e0afc396813bd0c739304aa59d75c60b70c036a4ff6c4c09',
+                         20: '76c1a503bee2965444eb2041ce9bdf1dd7d18707db23ac59b52413ce3ec1caba'},
+              'label': 'OTÉK – 2012. augusztus 6-i állapot',
+              'basis': 'TÉKA 136. § (1) a): a terv OTÉK 2012. augusztus 6-i követelményei és jelmagyarázata '
+                       'alapján készült.'},
+ 'otek2021': {'document': '1997-253-20-22',
+              'url': 'https://njt.jog.gov.hu/jogszabaly/1997-253-20-22.53',
+              'edition': '2021.04.22.',
+              'hashes': {19: '0a126889cd33cf1faadb43fbcc3c37b5037a1ad11c24301fda67ea16783ec3c2',
+                         20: '96a57fcec2198c20034d0d6c1dcdb251826b02163061c81ae90573b6a8cb6aef'},
+              'label': 'OTÉK – 2021. július 15-i állapot',
+              'basis': 'TÉKA 136. § (1) b): 2012 utáni OTÉK-követelmények és a 314/2012. rendelet '
+                       'jelmagyarázata alapján készült terv.'},
+ 'otek2024': {'document': '1997-253-20-22',
+              'url': 'https://njt.jog.gov.hu/jogszabaly/1997-253-20-22',
+              'edition': '2024.01.01.',
+              'hashes': {19: 'bb596ac03bed200bb1dac2cb2abc6991436cd042026c88ba299956c9f886cbfa',
+                         '19/A': 'fa4ec92bb96207841b7b08e4046b66ee9b0a2a4bdab6fe847d4e72d61d8986d1',
+                         20: '3b80b7af56f6dc4e8214ef3a7ad229e9b58db7f0ef969b65429d8febd7d47a73'},
+              'label': 'OTÉK – 2024. december 31-i állapot',
+              'basis': 'TÉKA 136. § (1) c): 2021 utáni OTÉK-követelmények és a településtervezési szabályzat '
+                       'jelmagyarázata alapján készült terv; illetve a 137/A. § szerinti korábbi ügyek.'},
+ 'teka': {'document': '2024-280-20-22',
+          'url': 'https://njt.jog.gov.hu/jogszabaly/2024-280-20-22',
+          'edition': '2026.02.27.',
+          'hashes': {21: '95381ed1fcbb8dd1c0036cc4dfc7a1e76d7c4430a23ac504700fd3b9534c4e83',
+                     23: '416a4d00c5198d1e260ab8377ca93095a48369c8b2651eac077360e2105b773d',
+                     24: 'ed31d487c5c52e3e8b9f1b490036f975efc4e910b39a739abcc82b7d7907eb33',
+                     136: '279f0b4598a01e654070022052be22417f346701f7900ae2481b967338863622',
+                     '137/A': '5115e6a1dbe1838d55def08a7788f1c0cb472977036abc4476c2d386ddff231b',
+                     139: '9c20201cb2e3f1d91bf3f0822895b2f11717fb088f5e5d41152024c5b71764d0'},
+          'label': 'TÉKA – ellenőrzött 2026. február 27-i kiadás',
+          'basis': 'TÉKA 136. § (1) d): a TÉKA alapján készült terv; egyes rendelkezések más tervi alap '
+                   'mellett is alkalmazandók a 136. § (2) és 139. § (2) feltételeivel.'}}
+
+
+def national_rule_profile(key, page, zone, local_verified=False):
+    """Verify a complete official edition; return conditional source rows, never building permission."""
+    import hashlib
+    result={'ok':False,'rows':[],'transition':[],'error':'','key':key}
+    cfg=NATIONAL_RULE_PROFILES.get(key)
+    if not cfg or not local_verified or not isinstance(zone,str) or not re.fullmatch(r'Gip/[1-3]|Gksz/(?:[1-9]|1[0-5]|g)',zone):
+        result['error']='Nincs ellenőrzött helyi övezeti kapcsolat az országos szabályokhoz.';return result
+    if not page.get('ok') or page.get('url')!=cfg['url']:
+        result['error']='Az országos jogszabály ellenőrzött NJT-forrása nem érhető el.';return result
+    reader=TiszaLegalParagraphs(cfg['document']);reader.feed(page.get('html',''))
+    if reader.editions!=[cfg['edition']]:
+        result['error']='Az országos jogszabály időállapota megváltozott; új forrásellenőrzés szükséges.';return result
+    for section,expected in cfg['hashes'].items():
+        text='\n'.join(str(b)+':'+clean_text(' '.join(parts)) for (n,b),parts in reader.blocks.items() if n==section)
+        if section in reader.duplicates or hashlib.sha256(text.encode()).hexdigest()!=expected:
+            result['error']='Az országos szabály szövege vagy szerkezete eltér az ellenőrzött kiadástól; új ellenőrzés szükséges.';return result
+    sections=([21] if zone.startswith('Gksz/') else [23,24]) if key=='teka' else ([19] if zone.startswith('Gksz/') else ([20] if key in ('otek2012','otek2021') else ['19/A',20]))
+    for (section,clause),parts in reader.blocks.items():
+        transition=key=='teka' and section in (136,'137/A',139)
+        if section not in sections and not transition:continue
+        text=clean_text(' '.join(parts))
+        # Repealed clauses have a number but no operative text.
+        if re.fullmatch(r'\(?\d+\)?',text):continue
+        ref=f'{section}. §'+(f' ({clause})' if clause is not None else '')
+        scope='Alkalmazási és átmeneti rendelkezés' if transition else ('Kereskedelmi, szolgáltató gazdasági terület' if zone.startswith('Gksz/') else ('Ipari és egyéb ipari típus: a pontos besorolás külön igazolandó'))
+        if not transition and zone.startswith('Gip/'):
+            scope=({'19/A':'Ipari gazdasági terület – jelentős környezeti hatás',20:'Egyéb ipari gazdasági terület'} if key=='otek2024' else {23:'Ipari gazdasági terület',24:'Egyéb ipari gazdasági terület'} if key=='teka' else {20:'Ipari gazdasági terület – altípus is igazolandó'}).get(section,scope)+'; a pontos besorolás külön igazolandó'
+        row={'Területtípus':scope,'Forrás':ref,'Forrásszöveg':text,
+             'URL':cfg['url']+'#'+urllib.parse.quote(reader.anchors[(section,clause)],safe='.@()')}
+        result['transition' if transition else 'rows'].append(row)
+    result.update(ok=True,label=cfg['label'],basis=cfg['basis'])
+    return result
+
+
+def load_national_rules(zone,local_verified):
+    # Independent source requests share existing NJT caching and bounded timeouts.
+    from concurrent.futures import ThreadPoolExecutor
+    keys=list(NATIONAL_RULE_PROFILES)
+    def load(key):
+        try:page=fetch_njt_page(NATIONAL_RULE_PROFILES[key]['url'])
+        except Exception:page={}
+        return national_rule_profile(key,page,zone,local_verified)
+    if not local_verified:return []
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        return list(pool.map(load,keys))
+
+
+def render_national_rules(results,zone):
+    st.subheader('Országos rendeltetési szabályok – alkalmazási alap ellenőrzése')
+    st.info('Az országos források ellenőrzésének eredménye alább látható. A telekre alkalmazandó OTÉK/TÉKA-időállapot még nincs igazolva. Az alábbi változatok feltételesek; ezekből a program nem állapít meg építési jogosultságot.')
+    st.write('**Még szükséges:** a helyi terv készítési alapja és jelmagyarázata, valamint az ügy kezdete, az engedély/bejelentés és az esetleges eltérés adatai. A helyi rendelet évszáma és a Gip/Gksz kód önmagában nem elegendő.')
+    if zone.startswith('Gip/'):
+        st.write('**Ipari besorolás:** a jelentős környezeti hatású és az egyéb ipari terület eltérő szabályokat kap. A két típus rendeltetési listája nem vonható össze.')
+    status=[]
+    for result in results:
+        cfg=NATIONAL_RULE_PROFILES[result['key']]
+        status.append({'Forráskiadás':cfg['label'],'Ellenőrzés':'teljes szöveg ellenőrizve' if result['ok'] else result['error'],
+                       'Telekre alkalmazható?':'alkalmazási alap még igazolandó' if result['ok'] else 'nem állapítható meg'})
+    st.dataframe(status,hide_index=True,use_container_width=True)
+    for result in results:
+        cfg=NATIONAL_RULE_PROFILES[result['key']]
+        with st.expander(cfg['label']+' – feltételes rendeltetési szabályok'):
+            st.write(cfg['basis'])
+            if not result['ok']:
+                st.warning(result['error']);continue
+            for row in result['rows']:
+                st.markdown('**'+row['Területtípus']+' – '+row['Forrás']+'**')
+                st.link_button(row['Forrás']+' – NJT',row['URL']);st.write(row['Forrásszöveg'])
+    teka=next((r for r in results if r['key']=='teka' and r['ok']),None)
+    if teka:
+        with st.expander('OTÉK/TÉKA átmenet – teljes alkalmazási szabályok'):
+            st.write('A 136. § (2) egyes TÉKA-szabályokat a terv korától függetlenül előír, de csak az ott meghatározott ügyekben. A módosított rendelkezés alkalmazásának időbeli hatályát a 139. § (2) is meghatározza. Korábbi ügyeknél a 137/A. § és az eltérésre vonatkozó 136. § (4) is ellenőrizendő.')
+            for row in teka['transition']:
+                st.link_button(row['Forrás']+' – NJT',row['URL']);st.write(row['Forrásszöveg'])
+
+
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.26 • nyilvános HRSZ API + telekgeometria • "
+        "v15.27 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -3326,11 +3444,15 @@ def main():
     combined_params = dict(params)
     combined_params.update(table_params)
     local_rules={'ok':False,'rows':[],'conditional':[]}
+    national_rules=[]
     if zone and ksh=='28352':
         local_rules=tisza_local_rules(page.get('html',''),page.get('url',''),zone,
             bool(source_valid and (plan_zone.get('zone') or (manual_zone.strip() and map_verified))))
         if local_rules['ok']:
             render_tisza_local_rules(local_rules,zone,combined_params)
+            with st.spinner("Országos NJT-források ellenőrzése…"):
+                national_rules=load_national_rules(zone,True)
+            render_national_rules(national_rules,zone)
         else:
             st.info(local_rules['error'])
 
@@ -3404,6 +3526,9 @@ def main():
             'Eredmény':f"{len(local_rules['rows'])} forrásolt helyi szabály; {len(local_rules['conditional'])} területi feltétel külön ellenőrizendő",
             'Forrás':'TÉSZ – pontos § és bekezdés',
             'Bizonyosság':'ellenőrzött helyi szabálykapcsolat; az építési lehetőség teljeskörűen nem igazolt'})
+    if national_rules:
+        summary.append({"Adat":"Országos rendeltetési szabályok","Eredmény":f"{sum(r['ok'] for r in national_rules)}/4 ellenőrzött forráskiadás",
+            "Forrás":"OTÉK és TÉKA – pontos § és bekezdés","Bizonyosság":"alkalmazási alap még igazolandó; építési jogosultság nem megállapított"})
     st.dataframe(summary, hide_index=True, use_container_width=True)
 
     st.caption(
