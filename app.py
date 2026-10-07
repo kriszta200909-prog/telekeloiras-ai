@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.28
+# TelekElőírás AI v15.29
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.28",
+    page_title="TelekElőírás AI v15.29",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2947,6 +2947,70 @@ def render_national_rules(results,zone):
 
 
 
+def buildability_summary(local_rules, national_rules, zone):
+    """Keep local conclusions separate from unresolved national and spatial scope."""
+    out={'ok':False,'rows':[],'paths':[],'missing':[]}
+    if not local_rules.get('ok'):
+        return out
+    for row in local_rules['rows']:
+        topic=row['Téma']
+        category=('Helyi megengedés – további feltételekkel' if topic.startswith('Megengedett')
+                  else 'Helyi tiltás' if 'tilt' in topic.casefold()
+                  else 'Teljesítendő vagy külön vizsgálandó feltétel')
+        out['rows'].append({'Besorolás':category,'Téma':topic,'Válasz':row['Előírás'],
+                            'Alkalmazási feltétel':row['Hatály'],'Forrás':row['Forrás'],'URL':row['URL']})
+    teka=next((r for r in national_rules if r.get('key')=='teka' and r.get('ok')),None)
+    profiles={r['key']:r for r in national_rules}
+    if teka:
+        transition={r['Forrás']:r for r in teka['transition']}
+        base=transition.get('136. § (1)')
+        if base:
+            for key in ('otek2012','otek2021','otek2024','teka'):
+                cfg=NATIONAL_RULE_PROFILES[key]
+                out['paths'].append({'Vizsgálandó út':cfg['label'],'Szükséges igazolás':cfg['basis'],
+                    'Állapot':'feltételes; ügyadat és tervi alap még igazolandó',
+                    'Forrásszöveg ellenőrizve':bool(profiles.get(key,{}).get('ok')),'URL':base['URL']})
+        for ref,label,need in (
+            ('136. § (2)','Tervi alaptól független TÉKA-rendelkezések',
+             'Az eljárás, dokumentációátadás, építés vagy területhasználat kezdete; a 139. § (2) időbeli szabályával együtt.'),
+            ('137/A. §','Korábbi ügy: OTÉK 2024. december 31-i szöveg',
+             'A 2025. július 1. előtti kezdés, dokumentációátadás, engedély vagy bejelentés és az eltérés pontos jellege.'),
+            ('136. § (4)','Korábbi engedélytől/bejelentéstől kötött eltérés',
+             'A korábbi engedély/bejelentés, a 2025. július 1-jei használatbavételi állapot és az engedély- vagy bejelentésköteles eltérés.'),
+            ('139. § (2)','A módosított átmeneti szabály időbeli hatálya',
+             'Az eljárás kezdete és a módosítás hatálybalépése; korábbi ügyre nem választható automatikusan a mai szöveg.')):
+            row=transition.get(ref)
+            if row:
+                out['paths'].append({'Vizsgálandó út':label,'Szükséges igazolás':need,
+                    'Állapot':'feltételes; ügyadat még igazolandó','Forrásszöveg ellenőrizve':True,'URL':row['URL']})
+    out['missing']=['A terv készítési követelményei és jelmagyarázata.',
+        'Az ügy típusa és kezdete; korábbi engedély/bejelentés, használatbavétel és eltérés adatai.',
+        'A konkrét tervezett rendeltetés, meglévő beépítés és közműellátottság.',
+        'Az építési hely, szabályozási vonal és védőterületi érintettség.']
+    if zone.startswith('Gip/'):
+        out['missing'].append('A jelentős környezeti hatású vagy egyéb ipari besorolás igazolása.')
+    out['ok']=True
+    return out
+
+
+def render_buildability_summary(local_rules,national_rules,zone):
+    summary=buildability_summary(local_rules,national_rules,zone)
+    if not summary['ok']:return
+    st.subheader('Építési lehetőségek – közös összefoglaló')
+    st.info('A helyi megengedések, tiltások és feltételek forrásoltak. A teljes országos alkalmazási alap és a telekspecifikus feltételek még nincsenek igazolva; végleges építési igen/nem válasz nem adható.')
+    st.dataframe(summary['rows'],hide_index=True,use_container_width=True,
+        column_config={'URL':st.column_config.LinkColumn('Jogszabályhely')})
+    st.markdown('**Melyik OTÉK/TÉKA alkalmazandó?**')
+    if summary['paths']:
+        st.dataframe(summary['paths'],hide_index=True,use_container_width=True,
+            column_config={'URL':st.column_config.LinkColumn('Átmeneti szabály')})
+    else:
+        st.warning('Az átmeneti szabály ellenőrzött forrása hiányzik. Országos alkalmazási út nem állapítható meg.')
+    st.markdown('**A végleges válaszhoz hiányzó adatok:**')
+    for item in summary['missing']:st.write('• '+item)
+    st.caption(f"{len(local_rules.get('conditional',[]))} területi feltételt a részletes helyi szabályok külön jelölnek; az érintettség nincs igazolva.")
+
+
 class InvestigationProgress:
     """Report completed stages and measured durations; never imply verified permission."""
     steps=('Telek és település azonosítása',
@@ -2991,7 +3055,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.28 • nyilvános HRSZ API + telekgeometria • "
+        "v15.29 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -3506,6 +3570,7 @@ def main():
         with st.spinner("Országos NJT-források ellenőrzése…"):
             national_rules=load_national_rules(zone,True)
         render_national_rules(national_rules,zone)
+        render_buildability_summary(local_rules,national_rules,zone)
 
     # 6. Korlátozások
     st.header("6. Telekspecifikus korlátozások")
