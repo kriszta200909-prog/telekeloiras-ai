@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.30
+# TelekElőírás AI v15.31
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.30",
+    page_title="TelekElőírás AI v15.31",
     page_icon="🏗️",
     layout="wide",
 )
@@ -131,7 +131,7 @@ def parallel_njt_pdf(url, headers, timeout=90):
 
 
 def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
-    headers={"User-Agent":"Mozilla/5.0 TelekEloirasAI/15.30",
+    headers={"User-Agent":"Mozilla/5.0 TelekEloirasAI/15.31",
              "Accept-Language":"hu-HU,hu;q=0.9,en;q=0.5","Accept":accept}
     # Only the known large official attachment uses parallel ranges. Other
     # sources retain their ordinary request and redirect behaviour.
@@ -1609,8 +1609,11 @@ def try_auto_plan(attachments, legal_text=""):
     if not candidate:
         return None, "", ""
 
+    doc = None
+    phase = "PDF-letöltés"
     try:
         raw, final_url = download_pdf(candidate["URL"])
+        phase = "PDF megnyitása és tervtartalom ellenőrzése"
         doc = open_pdf_bytes(raw)
         opening = key_text(doc[0].get_text("text")) if doc else ""
         if opening.strip() and 'szabalyozasi terv' not in opening:
@@ -1632,7 +1635,9 @@ def try_auto_plan(attachments, legal_text=""):
             return None, final_url, "A melléklet PDF megnyitható, de szabályozási tervként nem igazolható a szövegéből."
         return doc, final_url, ""
     except Exception as exc:
-        return None, candidate.get("URL", ""), f"{type(exc).__name__}: {exc}"
+        if doc is not None:
+            doc.close()
+        return None, candidate.get("URL", ""), f"{phase}: {type(exc).__name__}: {exc}"
 
 
 
@@ -2040,7 +2045,17 @@ def plan_ocr_data():
         url='https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/eng.traineddata'
         with urllib.request.urlopen(url,timeout=25) as response:raw=response.read(5*1024*1024)
         if hashlib.sha256(raw).hexdigest()!=expected:raise ValueError('Az OCR nyelvi állomány ellenőrzése sikertelen.')
-        temporary=path.with_suffix('.tmp');temporary.write_bytes(raw);temporary.replace(path)
+        # Every session/process owns its temporary file. Atomic replacement
+        # publishes only verified bytes, even when downloads finish together.
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=folder, prefix='eng-', suffix='.tmp', delete=False) as output:
+                temporary = Path(output.name)
+                output.write(raw)
+            temporary.replace(path)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
     return str(folder)
 
 
@@ -3103,7 +3118,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.30 • nyilvános HRSZ API + telekgeometria • "
+        "v15.31 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -3380,7 +3395,7 @@ def main():
         if plan_doc:
             st.success("A szabályozási terv PDF automatikusan betöltődött.")
         elif auto_plan_error:
-            st.caption(f"Automatikus PDF-letöltés nem sikerült: {auto_plan_error}")
+            st.caption(f"A szabályozási terv automatikus feldolgozása nem sikerült: {auto_plan_error}")
 
     zone_table_doc = None
     zone_table_source = ""
