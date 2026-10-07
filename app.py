@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.29
+# TelekElőírás AI v15.30
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.29",
+    page_title="TelekElőírás AI v15.30",
     page_icon="🏗️",
     layout="wide",
 )
@@ -82,23 +82,71 @@ def hrsz_variants(hrsz):
     ]))
 
 
+def parallel_njt_pdf(url, headers, timeout=90):
+    """Assemble ranges only when every response proves the same strong ETag.
+    Bounded streaming limits memory; any inconsistency discards the whole result.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    probe_headers=dict(headers,Range='bytes=0-1023',**{'Accept-Encoding':'identity'})
+    with urllib.request.urlopen(urllib.request.Request(url,headers=probe_headers),timeout=min(timeout,15)) as response:
+        status=getattr(response,'status',200)
+        match=re.fullmatch(r'bytes 0-1023/(\d+)',response.headers.get('Content-Range',''))
+        tag=response.headers.get('ETag','')
+        encoding=response.headers.get('Content-Encoding','identity')
+        final_url=response.geturl()
+        if (status!=206 or not match or not re.fullmatch(r'"[^"\r\n]+"',tag)
+                or encoding.lower()!='identity'):
+            raise ValueError('Nem igazolható az azonos kiadású részletletöltés.')
+        size=int(match.group(1))
+        if not 16*1024*1024<=size<=128*1024*1024:
+            raise ValueError('A részletletöltéshez nem megfelelő PDF-méret.')
+        first=response.read(1025)
+        if len(first)!=1024 or not first.startswith(b'%PDF'):
+            raise ValueError('Hibás PDF-kezdőrészlet.')
+        content_type=response.headers.get('Content-Type','')
+    buffer=bytearray(size)
+    buffer[:1024]=first
+    count=4;remaining=size-1024
+    ranges=[(1024+remaining*i//count,1024+remaining*(i+1)//count-1) for i in range(count)]
+    def load(bounds):
+        left,right=bounds
+        part_headers=dict(headers,Range=f'bytes={left}-{right}',**{'If-Range':tag,'Accept-Encoding':'identity'})
+        with urllib.request.urlopen(urllib.request.Request(url,headers=part_headers),timeout=timeout) as response:
+            if (getattr(response,'status',200)!=206 or response.geturl()!=final_url
+                    or response.headers.get('ETag')!=tag
+                    or response.headers.get('Content-Range')!=f'bytes {left}-{right}/{size}'
+                    or response.headers.get('Content-Encoding','identity').lower()!='identity'):
+                raise ValueError('A PDF-részlet kiadása vagy bájttartománya eltér.')
+            position=left
+            while position<=right:
+                chunk=response.read(min(1024*1024,right-position+1))
+                if not chunk:raise ValueError('Hiányos PDF-részlet.')
+                if len(chunk)>right-position+1:raise ValueError('Túl hosszú PDF-részlet.')
+                buffer[position:position+len(chunk)]=chunk;position+=len(chunk)
+            if response.read(1):raise ValueError('Többletbájt a PDF-részletben.')
+    with ThreadPoolExecutor(max_workers=count) as pool:
+        # Consume every future so no partial buffer can escape after an error.
+        list(pool.map(load,ranges))
+    return bytes(buffer),final_url,200,'utf-8',content_type
+
+
 def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
-    req = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": "Mozilla/5.0 TelekEloirasAI/15.16",
-            "Accept-Language": "hu-HU,hu;q=0.9,en;q=0.5",
-            "Accept": accept,
-        },
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as response:
-        return (
-            response.read(),
-            response.geturl(),
-            getattr(response, "status", 200),
-            response.headers.get_content_charset() or "utf-8",
-            response.headers.get("Content-Type", ""),
-        )
+    headers={"User-Agent":"Mozilla/5.0 TelekEloirasAI/15.30",
+             "Accept-Language":"hu-HU,hu;q=0.9,en;q=0.5","Accept":accept}
+    # Only the known large official attachment uses parallel ranges. Other
+    # sources retain their ordinary request and redirect behaviour.
+    if (url=='https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf'
+            and 'application/pdf' in accept):
+        try:return parallel_njt_pdf(url,headers,timeout)
+        except Exception:
+            # An unsupported range or a changed server version must never become
+            # an incomplete cached document. A single full response remains valid.
+            pass
+    req=urllib.request.Request(url,headers=headers)
+    with urllib.request.urlopen(req,timeout=timeout) as response:
+        return (response.read(),response.geturl(),getattr(response,"status",200),
+                response.headers.get_content_charset() or "utf-8",
+                response.headers.get("Content-Type",""))
 
 
 # ---------------------------------------------------------------------
@@ -3055,7 +3103,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.29 • nyilvános HRSZ API + telekgeometria • "
+        "v15.30 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
