@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.24
+# TelekElőírás AI v15.25
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.24",
+    page_title="TelekElőírás AI v15.25",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2654,10 +2654,175 @@ def verified_tisza_table_rows(doc, zone):
     return rows,params,note
 
 
+
+TISZA_RULES_URL='https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228'
+TISZA_RULE_SECTION_HASHES={7: 'cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03', 8: 'c1ad75b3cf38fd5a2d11113346acd72fc28c58ea9fd7a4e96ddf18dc9424a5d1', 11: '959bfd19bbb1c2918f3bba3d032e6bb61d92dcdca6d8e1eae3763bcafecfb159', 12: '717f50befce9a1281eb3ebfd748c417fb1bd9248fc186e8e41ddadc30771a5e8', 26: '4cc70661aa0dae8617fe2c8e215b5e23979b6135a52fa7066815e6c200a40618', 27: 'ab712e9be04c98cf3c44d3828b6fd44e49dc38f419760a8c9c58e13590137d6b', 28: '97b21cb83e64fc560c0df098a266f5dfefe0184d5a096ff41a14bfa5062b16f3', 29: '0be00a5ea3b33189777d033113a7b5cd6b969d953c82e42ce6b48d96a37fe84b', 30: 'be7aeb28bea7da24ace50643178b8da3a39a06de920d2a0b84f78c59abc35a4a'}  # Filled from the reviewed official source paragraphs.
+
+
+class TiszaLegalParagraphs(HTMLParser):
+    """Read complete clauses from NJT structural markers, including closing bans.
+    Numbers mentioned in prose, neighbouring headings and footnotes are excluded.
+    """
+    def __init__(self):
+        super().__init__()
+        self.active=None;self.blocks={};self.anchors={};self.depth=0;self.legal_depth=None
+        self.paragraph=None;self.skip=0;self.duplicates=set();self.seen=set()
+        self.editions=[];self.edition_depth=None;self.edition_parts=[]
+
+    def handle_starttag(self,tag,attrs):
+        attrs=dict(attrs)
+        if tag=='span' and 'jhId' in attrs.get('class','').split():
+            marker=attrs.get('id','')
+            m=(re.fullmatch(r'SZ(\d+)\.@BE(?:\((\d+)\)|0)(?:@.*)?',marker)
+               or re.fullmatch(r'SZ(\d+)@BE(\d+)(?:@.*)?',marker))
+            if m:
+                self.active=(int(m[1]),int(m[2]) if m[2] else None)
+                if marker in self.seen:self.duplicates.add(int(m[1]))
+                self.seen.add(marker)
+                self.anchors.setdefault(self.active,marker)
+            else:self.active=None
+        if tag=='div':
+            self.depth+=1
+            if attrs.get('class','')=='hataly':
+                self.edition_depth=self.depth;self.edition_parts=[]
+            if (attrs.get('id','').startswith('sc2018-11-SP-5Y1228-')
+                    and attrs.get('class','') in {'bekezdesNyito','bekezdesZaro','betusPontNyito',
+                    'betusPontZaro','ketbetusAlPont','szamosPontNyito','alpontNyito','alpontZaro','szamozottPontNyito','szamozottPontZaro'}):
+                self.legal_depth=self.depth
+        if tag=='p' and self.legal_depth is not None and self.active:
+            self.paragraph=[]
+        if tag in ('sup','script','style'):self.skip+=1
+
+    def handle_endtag(self,tag):
+        if tag in ('sup','script','style'):
+            self.skip=max(0,self.skip-1)
+        if tag=='p' and self.paragraph is not None:
+            text=clean_text(''.join(self.paragraph))
+            if text:self.blocks.setdefault(self.active,[]).append(text)
+            self.paragraph=None
+        if tag=='div':
+            if self.depth==self.edition_depth:
+                self.editions.append(clean_text(''.join(self.edition_parts)));self.edition_depth=None
+            if self.depth==self.legal_depth:self.legal_depth=None
+            self.depth=max(0,self.depth-1)
+
+    def handle_data(self,data):
+        if self.edition_depth is not None and not self.skip:self.edition_parts.append(data)
+        if self.paragraph is not None and not self.skip:self.paragraph.append(data)
+
+
+def tisza_local_rules(html,source_url,zone,zone_verified=False):
+    """Edition-checked local clauses. Spatial conditions are never inferred from zoning."""
+    import hashlib
+    out={'ok':False,'rows':[],'conditional':[],'error':'','checks':[]}
+    parsed=urllib.parse.urlparse(source_url or '')
+    if (not zone_verified or parsed.scheme!='https' or parsed.netloc!='njt.jog.gov.hu'
+            or parsed.path!='/jogszabaly/2018-11-SP-5Y1228'
+            or not isinstance(zone,str) or not re.fullmatch(r'Gip/[1-3]|Gksz/(?:[1-9]|1[0-5]|g)',zone)):
+        out['error']='Ehhez az övezethez nincs ellenőrzött helyi szöveges szabálykapcsolat.';return out
+    reader=TiszaLegalParagraphs();reader.feed(html or '')
+    if reader.editions!=['2024.10.10.']:
+        out['error']='A rendelet időállapota eltér az ellenőrzött kiadástól; a helyi szöveges szabályok új ellenőrzése szükséges.';return out
+    sections=(7,8,11,12,26,27,28,29,30)
+    for section in sections:
+        content='\n'.join(str(b)+':'+clean_text(' '.join(parts))
+            for (n,b),parts in reader.blocks.items() if n==section)
+        if (section in reader.duplicates or not content
+                or hashlib.sha256(content.encode()).hexdigest()!=TISZA_RULE_SECTION_HASHES.get(section)):
+            out['error']='A helyi szabályok szövege vagy szerkezete eltér az ellenőrzött forráskiadástól; új ellenőrzés szükséges.';return out
+    def add(section,clause,category,title,summary,conditional=False):
+        raw=clean_text(' '.join(reader.blocks[(section,clause)]))
+        ref=f'{section}. §'+(f' ({clause})' if clause is not None else '')
+        anchor=reader.anchors[(section,clause)]
+        item={'Téma':category,'Előírás':summary,'Hatály':title,'Forrás':ref,
+              'URL':TISZA_RULES_URL+'#'+urllib.parse.quote(anchor,safe='.@()'),
+              'Forrásszöveg':raw}
+        out['conditional' if conditional else 'rows'].append(item)
+    add(12,None,'Megengedett építmények','Valamennyi építési övezet',
+        'A helyi szabályzat felsorolja a valamennyi övezetben elhelyezhető köztárgyakat, műtárgyakat, közműveket és további építményeket. A teljes felsorolás a forrásszövegben olvasható.')
+    add(26,None,'Magassági eltérés','Gazdasági területek',
+        'A maximális épületmagasság a technológiai indokoltság mértékéig túlléphető. Ez feltételhez kötött eltérés, nem általános többletmagasság.')
+    add(7,5,'Építési hely','Általános szabály',
+        'Terepszint alatti építmény csak az építési helyen belül engedélyezhető; kivétel a közmű és a közműépítmény.')
+    add(7,10,'Vízvédelem','Tiszaújváros teljes területe',
+        'A település teljes területe a felszín alatti vizek állapota szempontjából fokozottan érzékeny.')
+    add(11,1,'Előkert','Újonnan kiszabályozott telektömb esetén',
+        'Az előkert 5 m újonnan kiszabályozott telektömbben. A telektömb állapotát külön ellenőrizni kell.')
+    add(11,2,'Oldalkert','Ha a terv vagy a TÉSZ másként nem rendelkezik',
+        'Oldalhatáron álló beépítésnél legalább 4 m. Szabadon álló beépítésnél az épületmagasságra hivatkozó szabály és legalább 3 m szerepel a forrásban; a pontos szöveg és az esetleges eltérő tervi előírás együtt vizsgálandó.')
+    add(11,3,'Elő- és hátsókert','Kialakult állapot vizsgálatakor',
+        'A kialakult értéket felülírhatja a telepítési távolság, a benapozás és az utcakép védelme. A hátsókertre ebből nem vezethető le egyetlen általános méterérték.')
+    add(8,2,'Telekalakítás','Közterületi kiszabályozás miatti telekcsökkenés esetén',
+        'Az eredeti telekméret szerinti beépítés feltételesen lehetséges, ha a visszamaradó telek eléri az övezeti minimum 75%-át, és az elhelyezési szabályok teljesülnek.')
+    if zone.startswith('Gip/'):
+        add(29,1,'Megengedett rendeltetések','Gip övezetek',
+            'Az OTÉK-ban felsoroltakon túl igazgatási épület, irodaépület, parkolóház és üzemanyagtöltő helyezhető el. Ez a helyi kiegészítés, nem a teljes országos rendeltetési lista.')
+        add(29,2,'Tiltott melléképítmények','Gip övezetek',
+            'Nem helyezhető el háztartási célú kemence, húsfüstölő, jégverem, zöldségverem, állatól és állatkifutó.')
+        add(29,3,'Közművesítés','Gip övezetek','A beépítés feltétele a teljes közművesítés megléte.')
+        add(29,4,'Beültetés','Az előírásban megnevezett telekhatárok mentén',
+            'A közterületi, illetve lakó- és településközponti területtel határos telekhatár mentén legalább 10 m széles beültetési terület szükséges, ha a tervlap más értéket nem határoz meg. Az érintett határokat külön ellenőrizni kell.')
+        add(29,5,'Telephely elhelyezése','Kijelölt veszélyességi, levegővédelmi vagy zajhatásterület esetén',
+            'Az ilyen kijelöléssel rendelkező telephely kizárólag jelentős mértékű zavaró hatású ipari területen helyezhető el.')
+        add(29,6,'Beépítettség számítása','Gip övezetek',
+            'A csővezeték és a kábelköteg közmű-becsatlakozási műtárgy; nem számít bele a beépítettségbe.')
+        for clause in range(1,7):
+            add(30,clause,'TVK/MOL sajátos előírás','Területi érintettség külön ellenőrizendő',
+                'A TVK Ipartelep / MOL Finomító egyesített övezetére vonatkozó sajátos feltételek. A Gip kód önmagában nem igazolja az alkalmazhatóságot.',True)
+    else:
+        add(27,1,'Tiltott melléképítmények','Gksz övezetek',
+            'Nem helyezhető el háztartási célú kemence, húsfüstölő, jégverem, zöldségverem és trágyatároló.')
+        add(27,2,'Közművesítés','Gksz övezetek','A beépítés feltétele a teljes közművesítés megléte.')
+        if zone=='Gksz/1':
+            add(28,1,'Sajátos tiltások','Kizárólag Gksz/1 (a szövegben Gksz-1)',
+                'Lakófunkció nem helyezhető el. Meglévő épületen belül szakaszos építés nem engedélyezhető.')
+        elif zone=='Gksz/g':
+            add(28,2,'Sajátos rendeltetések és tiltások','Kizárólag Gksz/g',
+                'Elsősorban garázs elhelyezésére szolgál. Lakó-, igazgatási és irodafunkció, üzemanyagtöltő, egyházi, oktatási, egészségügyi, szociális, közösségi szórakoztató és sportfunkció nem helyezhető el.')
+    for clause in (11,12):
+        add(7,clause,'Hidrogeológiai védelem','Védőidom / védőövezet érintettsége külön ellenőrizendő',
+            'A hidrogeológiai védelem külön feltételeket írhat elő. A telek érintettségét az övezeti kód nem bizonyítja; a teljes feltételrendszer a forrásszövegben olvasható.',True)
+    out['checks']=['Országos rendeltetési és építési szabályok, valamint átmeneti rendelkezések külön ellenőrzendők.',
+        'A szabályozási/építési vonal, az építési hely, a beültetési sáv helye és a védőterületi érintettség nincs teljeskörűen automatikusan feldolgozva.',
+        'A meglévő beépítés, a közműellátottság és a telekalakítási feltételek teljesülése külön ellenőrizendő.']
+    out['ok']=True
+    return out
+
+
+def render_tisza_local_rules(result,zone,params):
+    st.subheader('Mit lehet építeni? – helyi szabályok')
+    st.write(f'**Az ellenőrzött övezet: {zone}.** Az alábbiak a TÉSZ helyi szabályai; az építési lehetőséget az országos és a tervi feltételekkel együtt kell megállapítani.')
+    if params:
+        st.write('**Fő mutatók:** '+ '; '.join(f'{key}: {value}' for key,value in params.items())+'.')
+    groups=(('Megengedett építmények és rendeltetések',lambda r:r['Téma'].startswith('Megengedett')),
+            ('Tiltások',lambda r:'tilt' in r['Téma'].casefold()),
+            ('További feltételek',lambda r:not r['Téma'].startswith('Megengedett') and 'tilt' not in r['Téma'].casefold()))
+    for title,select in groups:
+        selected=[r for r in result['rows'] if select(r)]
+        if selected:
+            st.markdown('**'+title+'**')
+            st.dataframe([{k:r[k] for k in ('Téma','Előírás','Hatály','Forrás')} for r in selected],hide_index=True,use_container_width=True)
+    if zone.startswith('Gksz/'):
+        st.info('A teljes főrendeltetési lista nem állapítható meg a helyi 27. §-ból önmagában. Az országos szabályok külön ellenőrzendők; a más alövezetre írt tilalmat a program nem alkalmazza erre az övezetre.')
+    with st.expander('Pontos jogszabályhelyek és teljes forrásszöveg'):
+        for row in result['rows']:
+            st.markdown(f"**{row['Téma']} – {row['Hatály']}**")
+            st.link_button(row['Forrás']+' – NJT',row['URL'])
+            st.write(row['Forrásszöveg'])
+    with st.expander('Területi érintettségtől függő szabályok – még ellenőrizendők'):
+        st.write('Ezek alkalmazhatóságát az övezeti kód önmagában nem igazolja. A program nem állítja, hogy a telek érintett.')
+        for row in result['conditional']:
+            st.markdown(f"**{row['Téma']} – {row['Forrás']}**")
+            st.link_button(row['Forrás']+' – NJT',row['URL'])
+            st.write(row['Forrásszöveg'])
+    st.markdown('**Mi szükséges még a teljes építési válaszhoz?**')
+    for check in result['checks']:st.write('• '+check)
+
+
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.24 • nyilvános HRSZ API + telekgeometria • "
+        "v15.25 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -3151,6 +3316,14 @@ def main():
 
     combined_params = dict(params)
     combined_params.update(table_params)
+    local_rules={'ok':False,'rows':[],'conditional':[]}
+    if zone and ksh=='28352':
+        local_rules=tisza_local_rules(page.get('html',''),page.get('url',''),zone,
+            bool(source_valid and (plan_zone.get('zone') or (manual_zone.strip() and map_verified))))
+        if local_rules['ok']:
+            render_tisza_local_rules(local_rules,zone,combined_params)
+        else:
+            st.info(local_rules['error'])
 
     # 6. Korlátozások
     st.header("6. Telekspecifikus korlátozások")
@@ -3217,6 +3390,11 @@ def main():
             "Bizonyosság": "felhasználó által ellenőrzött" if map_verified else "nincs automatizálva",
         },
     ]
+    if local_rules['ok']:
+        summary.append({'Adat':'Helyi szöveges szabályok',
+            'Eredmény':f"{len(local_rules['rows'])} forrásolt helyi szabály; {len(local_rules['conditional'])} területi feltétel külön ellenőrizendő",
+            'Forrás':'TÉSZ – pontos § és bekezdés',
+            'Bizonyosság':'ellenőrzött helyi szabálykapcsolat; az építési lehetőség teljeskörűen nem igazolt'})
     st.dataframe(summary, hide_index=True, use_container_width=True)
 
     st.caption(
