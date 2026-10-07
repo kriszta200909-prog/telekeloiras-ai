@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.25
+# TelekElőírás AI v15.26
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.25",
+    page_title="TelekElőírás AI v15.26",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2656,7 +2656,7 @@ def verified_tisza_table_rows(doc, zone):
 
 
 TISZA_RULES_URL='https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228'
-TISZA_RULE_SECTION_HASHES={7: 'cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03', 8: 'c1ad75b3cf38fd5a2d11113346acd72fc28c58ea9fd7a4e96ddf18dc9424a5d1', 11: '959bfd19bbb1c2918f3bba3d032e6bb61d92dcdca6d8e1eae3763bcafecfb159', 12: '717f50befce9a1281eb3ebfd748c417fb1bd9248fc186e8e41ddadc30771a5e8', 26: '4cc70661aa0dae8617fe2c8e215b5e23979b6135a52fa7066815e6c200a40618', 27: 'ab712e9be04c98cf3c44d3828b6fd44e49dc38f419760a8c9c58e13590137d6b', 28: '97b21cb83e64fc560c0df098a266f5dfefe0184d5a096ff41a14bfa5062b16f3', 29: '0be00a5ea3b33189777d033113a7b5cd6b969d953c82e42ce6b48d96a37fe84b', 30: 'be7aeb28bea7da24ace50643178b8da3a39a06de920d2a0b84f78c59abc35a4a'}  # Filled from the reviewed official source paragraphs.
+TISZA_RULE_SECTION_HASHES={7: 'cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03', 8: 'c1ad75b3cf38fd5a2d11113346acd72fc28c58ea9fd7a4e96ddf18dc9424a5d1', 11: '959bfd19bbb1c2918f3bba3d032e6bb61d92dcdca6d8e1eae3763bcafecfb159', 12: '717f50befce9a1281eb3ebfd748c417fb1bd9248fc186e8e41ddadc30771a5e8', 26: '4cc70661aa0dae8617fe2c8e215b5e23979b6135a52fa7066815e6c200a40618', 27: 'ab712e9be04c98cf3c44d3828b6fd44e49dc38f419760a8c9c58e13590137d6b', 28: '97b21cb83e64fc560c0df098a266f5dfefe0184d5a096ff41a14bfa5062b16f3', 29: '0be00a5ea3b33189777d033113a7b5cd6b969d953c82e42ce6b48d96a37fe84b', 30: '027d4b09225b44233e0b56180f4e61560f3c2d0512138ddbbf7d66cfdeb86033'}  # Filled from the reviewed official source paragraphs.
 
 
 class TiszaLegalParagraphs(HTMLParser):
@@ -2667,7 +2667,7 @@ class TiszaLegalParagraphs(HTMLParser):
         super().__init__()
         self.active=None;self.blocks={};self.anchors={};self.depth=0;self.legal_depth=None
         self.paragraph=None;self.skip=0;self.duplicates=set();self.seen=set()
-        self.editions=[];self.edition_depth=None;self.edition_parts=[]
+        self.editions=[];self.edition_depth=None;self.edition_parts=[];self.sup_notes=[]
 
     def handle_starttag(self,tag,attrs):
         attrs=dict(attrs)
@@ -2691,10 +2691,16 @@ class TiszaLegalParagraphs(HTMLParser):
                 self.legal_depth=self.depth
         if tag=='p' and self.legal_depth is not None and self.active:
             self.paragraph=[]
-        if tag in ('sup','script','style'):self.skip+=1
+        if tag=='sup':
+            note=('fnSup' in attrs.get('class','').split() or 'data-note-id' in attrs)
+            self.sup_notes.append(note)
+            if note:self.skip+=1
+        elif tag in ('script','style'):self.skip+=1
 
     def handle_endtag(self,tag):
-        if tag in ('sup','script','style'):
+        if tag=='sup':
+            if self.sup_notes and self.sup_notes.pop():self.skip=max(0,self.skip-1)
+        elif tag in ('script','style'):
             self.skip=max(0,self.skip-1)
         if tag=='p' and self.paragraph is not None:
             text=clean_text(''.join(self.paragraph))
@@ -2708,7 +2714,10 @@ class TiszaLegalParagraphs(HTMLParser):
 
     def handle_data(self,data):
         if self.edition_depth is not None and not self.skip:self.edition_parts.append(data)
-        if self.paragraph is not None and not self.skip:self.paragraph.append(data)
+        if self.paragraph is not None and not self.skip:
+            if self.sup_notes and not self.sup_notes[-1]:
+                data=data.translate(str.maketrans('0123456789+-=()', '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾'))
+            self.paragraph.append(data)
 
 
 def tisza_local_rules(html,source_url,zone,zone_verified=False):
@@ -2822,7 +2831,7 @@ def render_tisza_local_rules(result,zone,params):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.25 • nyilvános HRSZ API + telekgeometria • "
+        "v15.26 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
