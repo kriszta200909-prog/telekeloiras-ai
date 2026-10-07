@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.27
+# TelekElőírás AI v15.28
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.27",
+    page_title="TelekElőírás AI v15.28",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2946,10 +2946,52 @@ def render_national_rules(results,zone):
                 st.link_button(row['Forrás']+' – NJT',row['URL']);st.write(row['Forrásszöveg'])
 
 
+
+class InvestigationProgress:
+    """Report completed stages and measured durations; never imply verified permission."""
+    steps=('Telek és település azonosítása',
+           'Hatályos helyi rendelet ellenőrzése',
+           'Terv és paramétertábla betöltése',
+           'Pontos telekhely és övezet ellenőrzése',
+           'Helyi előírások összekapcsolása',
+           'Országos előírások ellenőrzése',
+           'Adatlap összeállítása')
+
+    def __init__(self,parcel_label):
+        self.parcel_label=parcel_label
+        self.started=time.monotonic();self.last_started=self.started
+        self.active=None;self.rows=[]
+        self.bar=st.progress(0.0,text='Vizsgálat indul: '+parcel_label)
+        st.caption('A folyamatjelző a feldolgozás szakaszait mutatja. A végleges keresési eredmény a feldolgozás lezárása után olvasható.')
+
+    def stage(self,name):
+        index=self.steps.index(name)
+        if self.active is not None and index<=self.steps.index(self.active):
+            raise ValueError('A vizsgálati szakaszok csak előre haladhatnak.')
+        now=time.monotonic()
+        if self.active is not None:
+            self.rows.append({'Szakasz':self.active,'Idő (mp)':round(max(0,now-self.last_started),2)})
+        self.active=name;self.last_started=now
+        self.bar.progress(index/len(self.steps),text=f'{index+1}/{len(self.steps)} · {name} · {self.parcel_label}')
+
+    def finish(self):
+        now=time.monotonic()
+        if self.active is not None:
+            self.rows.append({'Szakasz':self.active,'Idő (mp)':round(max(0,now-self.last_started),2)})
+            self.active=None
+        elapsed=max(0,now-self.started)
+        self.bar.progress(1.0,text=f'Feldolgozás lezárult · {self.parcel_label} · {elapsed:.1f} mp')
+        with st.expander('Keresési idők – hol telt el a várakozás?'):
+            st.write(f'Összes feldolgozási idő: {elapsed:.1f} másodperc.')
+            st.dataframe(self.rows,hide_index=True,use_container_width=True)
+            st.write('A nagy tervfájl első letöltése és egy új telek rajzi ellenőrzése hosszabb lehet. Azonos terv és változatlan telekgeometria mellett az ismételt térképi ellenőrzés korábbi eredménye legfeljebb 15 percig felhasználható.')
+        return elapsed
+
+
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.27 • nyilvános HRSZ API + telekgeometria • "
+        "v15.28 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -3016,6 +3058,9 @@ def main():
         st.error("A település és a helyrajzi szám megadása kötelező.")
         return
 
+    progress=InvestigationProgress(f"{town.strip()} {normalize_hrsz(hrsz)}")
+    progress.stage(progress.steps[0])
+
     # 0. HRSZ -> hivatalos telekgeometria
     st.header("0. Hivatalos telekazonosítás")
     parcel_api = None
@@ -3081,6 +3126,7 @@ def main():
             st.caption("A térképi kapcsolat létrejött. Az övezet ellenőrzése a hatályos tervlap feldolgozásával folytatódik.")
 
     # 1. NJT
+    progress.stage(progress.steps[1])
     st.header("1. Hatályos hivatalos forrás")
 
     # Budapesten a HÉSZ/KÉSZ kerületi jogszabály, ezért a már OÉNY-nel
@@ -3190,6 +3236,7 @@ def main():
         )
 
     # 2. Mellékletek
+    progress.stage(progress.steps[2])
     st.header("2. Szabályozási terv és mellékletek")
 
     if attachments:
@@ -3243,6 +3290,7 @@ def main():
             st.caption(f"1.2 melléklet: {zone_table_error}")
 
     # 3. Telek
+    progress.stage(progress.steps[3])
     st.header("3. Telekazonosítás")
     st.write(f"**{town} {normalize_hrsz(hrsz)} hrsz.**")
 
@@ -3387,6 +3435,7 @@ def main():
         )
 
     # 5. Előírások
+    progress.stage(progress.steps[4])
     st.header("5. Mit mond a hatályos szabályzat?")
 
     njt_text = page.get("text", "")
@@ -3450,11 +3499,13 @@ def main():
             bool(source_valid and (plan_zone.get('zone') or (manual_zone.strip() and map_verified))))
         if local_rules['ok']:
             render_tisza_local_rules(local_rules,zone,combined_params)
-            with st.spinner("Országos NJT-források ellenőrzése…"):
-                national_rules=load_national_rules(zone,True)
-            render_national_rules(national_rules,zone)
         else:
             st.info(local_rules['error'])
+    progress.stage(progress.steps[5])
+    if local_rules['ok']:
+        with st.spinner("Országos NJT-források ellenőrzése…"):
+            national_rules=load_national_rules(zone,True)
+        render_national_rules(national_rules,zone)
 
     # 6. Korlátozások
     st.header("6. Telekspecifikus korlátozások")
@@ -3465,6 +3516,7 @@ def main():
     )
 
     # 7. Összegzés
+    progress.stage(progress.steps[6])
     st.header("7. Forrásolt telek-adatlap")
 
     spatial_status = (
@@ -3536,6 +3588,8 @@ def main():
         "tervezői vagy jogi ellenőrzést. A program bizonytalan adatból nem készít "
         "biztos telekspecifikus állítást."
     )
+
+    progress.finish()
 
 
 if __name__ == "__main__":
