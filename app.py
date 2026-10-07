@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.23
+# TelekElőírás AI v15.24
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.23",
+    page_title="TelekElőírás AI v15.24",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2201,6 +2201,37 @@ def plan_crop_pixmap(page, scale, clip):
     return cache[page.number].get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
 
 
+def tisza_native_circle_crops(page, registration, parcel):
+    """Find native legend circles even when their control-point bounds are
+    taller than the drawn circle or a separator touches adjacent table lines.
+    Stroke geometry supplies candidates only; raster shape and OCR still verify.
+    """
+    import numpy as np
+    from shapely.geometry import Point
+    cache=getattr(page.parent,'_telek_circle_crops',None)
+    boxes=cache.get(page.number) if cache is not None else None
+    if boxes is None:
+        boxes=[];rotation=page.rotation_matrix
+        def collect(drawing):
+            if drawing.get('color')!=(0.,0.,0.) or not .20<(drawing.get('width') or 0)<.28:return
+            r=fitz.Rect(drawing['rect'])*rotation
+            if not (14<min(r.width,r.height)<24 and max(r.width,r.height)<26):return
+            curves=[i for i in drawing['items'] if i[0]=='c']
+            if len(curves)<2:return
+            points=[]
+            for item in curves:
+                control=np.array([tuple(fitz.Point(*p)*rotation) for p in item[1:]])
+                for t in np.linspace(0,1,41):
+                    points.append((1-t)**3*control[0]+3*(1-t)**2*t*control[1]+3*(1-t)*t*t*control[2]+t**3*control[3])
+            a=np.array(points);lo=a.min(axis=0);hi=a.max(axis=0)
+            if not (14<min(hi-lo)<20 and .9<(hi[0]-lo[0])/(hi[1]-lo[1])<1.1):return
+            boxes.append(fitz.Rect(lo[0]-4,lo[1]-4,hi[0]+4,hi[1]+4))
+        page.get_cdrawings(callback=collect)
+        if cache is not None:cache[page.number]=boxes
+        fitz.TOOLS.store_shrink(100)
+    return [r for r in boxes if parcel.contains(Point(plan_to_eov(((r.x0+r.x1)/2,(r.y0+r.y1)/2),registration)))]
+
+
 def outlined_text_crops(page, registration, parcel):
     import numpy as np
     from PIL import ImageFilter
@@ -2213,7 +2244,8 @@ def outlined_text_crops(page, registration, parcel):
     pix=plan_crop_pixmap(page,scale,clip)
     origin=(pix.x/scale,pix.y/scale)
     a=np.frombuffer(pix.samples,dtype=np.uint8).reshape(pix.height,pix.width,3)
-    ink=(a.max(axis=2)<110)&((a.max(axis=2)-a.min(axis=2))<15)
+    threshold=150 if page.number in (27,28) else 110
+    ink=(a.max(axis=2)<threshold)&((a.max(axis=2)-a.min(axis=2))<15)
     connected=np.asarray(Image.fromarray(ink.astype(np.uint8)*255).filter(ImageFilter.MaxFilter(7)))>0
     result=[]
     for x0,y0,x1,y1 in ink_components(connected):
@@ -2223,6 +2255,7 @@ def outlined_text_crops(page, registration, parcel):
         if not parcel.contains(Point(plan_to_eov(center,registration))):continue
         result.append(fitz.Rect(origin[0]+x0/scale-3,origin[1]+y0/scale-3,
                                 origin[0]+x1/scale+3,origin[1]+y1/scale+3)&page.rect)
+    if page.number in (27,28):result.extend(tisza_native_circle_crops(page,registration,parcel))
     return result
 
 
@@ -2255,9 +2288,10 @@ def confirm_outlined_hrsz(page, registration, parcel, hrsz, crops=None):
     candidates=crops if crops is not None else outlined_text_crops(page,registration,parcel)
     candidates=sorted(candidates,key=lambda r:math.dist(((r.x0+r.x1)/2,(r.y0+r.y1)/2),center))
     for crop in candidates:
-        for angle in (45,-45,0):
+        angles=(0,15,-15,30,-30,45,-45,90,-90) if getattr(page,'number',None) in (27,28) else (45,-45,0)
+        for angle in angles:
             matches=[]
-            for scale in (12,16):
+            for scale in ((24,32) if getattr(page,'number',None) in (27,28) else (12,16)):
                 text,words=ocr_rotated_crop(page,crop,scale,angle)
                 matches.append([p for word,p in words if word==target
                     and parcel.contains(Point(plan_to_eov(p,registration)))])
@@ -2386,8 +2420,34 @@ def tisza_red_zone_dots(page, registration, parcel, scale=6):
         w=x1-x0;h=y1-y0
         if (.66*scale<=min(w,h) and max(w,h)<=1.67*scale
                 and min(w,h)/max(w,h)>.65 and red[y0:y1,x0:x1].mean()>.65):
+            # This edition uses pure red zone dots; orange and burgundy utility
+            # symbols have the same shape. Classify the component's core colour,
+            # preserving antialiased red fringes in its size and centroid.
+            colours=a[y0:y1,x0:x1][red[y0:y1,x0:x1]]
+            if np.median(colours[:,1])>=35 or np.median(colours[:,2])>=35:continue
             center=(origin[0]+(x0+x1)/2/scale,origin[1]+(y0+y1)/2/scale)
             dots.append(Point(plan_to_eov(center,registration)))
+    return dots
+
+
+def tisza_checked_zone_dots(page, registration, parcel, scale):
+    """Inspect the entire target first; separate bounded source patches supply
+    positive readability controls where a large uniform zone has no nearby dots.
+    Control patches never replace inspection of the target area.
+    """
+    from shapely.geometry import box
+    dots=tisza_red_zone_dots(page,registration,parcel,scale)
+    if len(dots)>=20:return dots
+    dots+=tisza_red_zone_dots(page,registration,parcel.buffer(200),scale)
+    def unique(points):return list({(round(p.x,1),round(p.y,1)):p for p in points}.values())
+    dots=unique(dots)
+    if len(dots)>=20:return dots
+    left,top=plan_to_eov((75.001,52.46),registration)
+    for dx,dy in ((150,850),(150,150),(1350,850),(1350,150)):
+        x=left+dx;y=top-dy
+        dots+=tisza_red_zone_dots(page,registration,box(x-100,y-100,x+100,y+100),scale)
+        dots=unique(dots)
+        if len(dots)>=20:break
     return dots
 
 
@@ -2431,7 +2491,7 @@ def tisza_clear_zone_connection(doc, selected, parcel, point):
     for (number,reg),footprint in zip(selected,footprints):
         if not footprint.intersects(corridor):continue
         for scale in (6,8):
-            dots=tisza_red_zone_dots(doc[number],reg,corridor.buffer(200),scale)
+            dots=tisza_checked_zone_dots(doc[number],reg,corridor,scale)
             if len(dots)<20 or any(corridor.contains(p) for p in dots):return False
         fitz.TOOLS.store_shrink(100)
     return True
@@ -2461,6 +2521,7 @@ def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
         if len(doc)!=56:result['detail']='Eltérő tervlapszerkezet.';return result
         doc._telek_display_lists={}
         doc._telek_grid_frames={}
+        doc._telek_circle_crops={}
         # Source sheets 26 and 32 share a printed 1500 x 1000 m EOV grid.
         # The northern native vectors establish coordinates; sheet 32 is the
         # current raster replacement directly south of it. No parcel/zone is stored.
@@ -2476,8 +2537,18 @@ def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
         grid=plan_to_eov((75.001,52.46),registration)
         if math.dist(grid,(801000,289000))>.2:
             result['detail']='A vektorillesztés nem egyezik a forrás tervlapi koordinátahálójával.';return result
-        second=dict(registration,target=np.array(registration['target'])-np.array([0,1000*registration['scale']]))
-        selected=[(28,registration),(34,second)];footprints=[];labels=[];proof=None;chosen=None
+        # Frozen edition: sheets 25/26 above 31/32, confirmed by the official
+        # overview. The western native sheet uses the same printed frame.
+        selected=[]
+        for number,dx,dy in ((28,0,0),(34,0,-1000),(27,-1500,0),(33,-1500,-1000)):
+            reg=dict(registration,target=np.array(registration['target'])-np.array([dx,-dy])*registration['scale'])
+            footprint=Polygon([plan_to_eov(p,reg) for p in
+                ((75.001,52.46),(1138.021,52.46),(1138.021,761.12),(75.001,761.12))])
+            if not footprint.intersects(core):continue
+            if number==27 and not tisza_source_grid_registration(doc[number]):
+                result['detail']='A nyugati tervlap nyomtatott koordinátakerete nem ellenőrizhető.';return result
+            selected.append((number,reg))
+        footprints=[];labels=[];proof=None;chosen=None
         core=parcel.buffer(-1)
         if core.is_empty or core.area<.90*parcel.area:
             result['detail']='A telek túl keskeny a beszkennelt terv bizonytalanságához.';return result
@@ -2486,7 +2557,7 @@ def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
             footprints.append(Polygon(corners))
             result['registrations'].append({'PDF-oldal':number+1,'Egyező vektorok':registration['inliers'],
                 'Legnagyobb eltérés (m)':round(registration['error_m'],3),
-                'Illesztés':('ellenőrzött forrás-koordinátaháló' if registration.get('source_grid') else 'natív telekhatár') if number==28 else 'szomszédos forrás-szelvényháló'})
+                'Illesztés':('ellenőrzött forrás-koordinátaháló' if registration.get('source_grid') else 'natív telekhatár') if number==28 else 'ellenőrzött szomszédos forrás-szelvényháló'})
             crops=outlined_text_crops(doc[number],reg,parcel)
             labels.extend(read_tisza_zone_labels(doc[number],reg,parcel,crops))
             if proof is None and footprints[-1].contains(parcel.centroid):
@@ -2494,9 +2565,7 @@ def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
                 if proof:chosen=(number,reg)
             # Independent resolutions and visible neighbouring source boundaries.
             for scale in (6,8):
-                dots=tisza_red_zone_dots(doc[number],reg,parcel,scale)
-                if len(dots)<20:
-                    dots=tisza_red_zone_dots(doc[number],reg,parcel.buffer(200),scale)
+                dots=tisza_checked_zone_dots(doc[number],reg,parcel,scale)
                 if len(dots)<20:
                     result['detail']='Az övezethatár-jelölés nem olvasható ellenőrizhetően.';return result
                 if any(core.contains(p) for p in dots):
@@ -2554,26 +2623,41 @@ def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
 
 
 def verified_tisza_table_rows(doc, zone):
-    """Reference transcription of the three Gip rows, checked against the official
-    scanned 1.2 annex. Exact PDF fingerprint guards against silently using old data.
-    This is reference data, never a parcel-to-zone lookup.
+    """Source transcription, gated by the exact current official PDF edition.
+    These are zone-to-parameter rows, never a parcel-to-zone lookup.
     """
     import hashlib
-    if doc is None or zone not in {'Gip/1','Gip/2','Gip/3'}:return [],{},''
-    if hashlib.sha256(doc.stream or b'').hexdigest()!=TISZA_TABLE_SHA256:return [],{},''
-    params={'Beépítési mód':'SZ','Legnagyobb beépítettség':'30 %',
-            'Legkisebb telekterület':'10000 m²','Legkisebb zöldfelület':'25 %',
-            'Legnagyobb épületmagasság':'12,50 m; 2. lábjegyzet'}
+    if not isinstance(zone,str) or doc is None or doc.is_dirty or hashlib.sha256(doc.stream or b'').hexdigest()!=TISZA_TABLE_SHA256:return [],{},''
+    commercial={
+        '1':('SZ','40','1500','20','7,50'), '2':('SZ','40','5000','30','9,00'),
+        '3':('Z','40','1500','20','7,50'), '4':('O','60','900','20','6,00'),
+        '5':('SZ','60','2000','20','12,50'), '6':('SZ','40','2500','20','9,50'),
+        '7':('SZ','40','5000','20','9,00'), '8':('SZ','60','2000','20','7,50'),
+        '9':('SZ','40','1500','20','7,50'), '10':('SZ','60','1500','20','6,00'),
+        '11':('SZ','40','900','20','6,00'), '12':('O','40','1500','20','7,50'),
+        '13':('SZ','40','10000','20','20,00'), '14':('O','60','700','20','7,50'),
+        '15':('O','60','400','20','4,50'), 'g':('Z','60','K','20','3,00')}
+    note=''
+    if zone in {'Gip/1','Gip/2','Gip/3'}:
+        values=('SZ','30','10000','25','12,50')
+        note='2. lábjegyzet: Technológiai indokoltság esetére alkalmazható eltérés. (3. PDF-oldal)'
+    elif zone.startswith('Gksz/') and zone[5:] in commercial:values=commercial[zone[5:]]
+    else:return [],{},''
+    mode,built,area,green,height=values
+    params={'Beépítési mód':mode,'Legnagyobb beépítettség':built+' %',
+            'Legkisebb telekterület':area+(' m²' if area!='K' else ' (a forrás jelölése)'),
+            'Legkisebb zöldfelület':green+' %',
+            'Legnagyobb épületmagasság':height+' m'+('; 2. lábjegyzet' if note else '')}
     source='NJT – 1.2. melléklet, 2. PDF-oldal'
     rows=[{'Előírás':k,'Érték':v,'Forrás':source,
            'Bizonyosság':'ellenőrzött forrássor; azonos PDF-kiadás'} for k,v in params.items()]
-    note='2. lábjegyzet: Technológiai indokoltság esetére alkalmazható eltérés. (3. PDF-oldal)'
     return rows,params,note
+
 
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.23 • nyilvános HRSZ API + telekgeometria • "
+        "v15.24 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -2860,7 +2944,7 @@ def main():
             zone_table_doc, zone_table_source, zone_table_text, zone_table_error = load_zone_table(attachments)
 
         if zone_table_doc and verified_tisza_table_rows(zone_table_doc,"Gip/1")[0]:
-            st.success("A beszkennelt 1.2 melléklet forráskiadása és ipari övezeti sorai ellenőrizve.")
+            st.success("A beszkennelt 1.2 melléklet forráskiadása és gazdasági övezeti sorai ellenőrizve.")
         elif zone_table_doc and clean_text(zone_table_text):
             st.success("Az 1.2 melléklet övezeti paramétertáblája automatikusan betöltődött.")
         elif zone_table_error:
@@ -3039,8 +3123,8 @@ def main():
                 st.write(table_context)
                 if verified_tisza_table_rows(zone_table_doc,zone)[0]:
                     st.image(zone_table_doc[1].get_pixmap(matrix=fitz.Matrix(3,3),
-                             clip=fitz.Rect(62,730,576,783),alpha=False).tobytes('png'),
-                             caption="Az ipari övezetek eredeti forrássorai – 1.2. melléklet, 2. PDF-oldal",
+                             clip=fitz.Rect(62,534 if zone.startswith('Gksz/') else 730,576,783),alpha=False).tobytes('png'),
+                             caption="A gazdasági övezetek eredeti forrássorai – 1.2. melléklet, 2. PDF-oldal",
                              use_container_width=True)
         elif inline_tables:
             st.warning(f"A {zone} kódhoz nincs egyetlen, pontosan egyező és feldolgozható NJT-táblázatsor.")
