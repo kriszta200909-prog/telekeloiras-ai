@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.49
+# TelekElőírás AI v15.50
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -34,7 +34,7 @@ from plan_labels import native_hrsz_hits, outlined_label_index, verify_outlined_
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.49",
+    page_title="TelekElőírás AI v15.50",
     page_icon="🏗️",
     layout="wide",
 )
@@ -4116,7 +4116,7 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                          national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None, source_inventory=None, label_search=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.49 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.50 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -4256,7 +4256,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_49.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_50.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -4341,7 +4341,7 @@ class UncachedInvestigationResult(Exception):
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.49 • nyilvános HRSZ API + telekgeometria • "
+        "v15.50 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
