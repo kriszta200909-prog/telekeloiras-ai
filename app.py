@@ -4797,6 +4797,12 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
         if not scan.get('complete'):
             st.warning('A rajzi feliratkeresés nem teljes; további találat nem zárható ki. A hiányzó találat nem bizonyítja a telek hiányát.')
 
+    if spatial.get("hits"):
+        hit_pages = sorted({int(item["page_number"]) + 1 for item in spatial["hits"]})
+        st.caption("HRSZ-feliratot tartalmazó PDF-oldalak: " + ", ".join(map(str, hit_pages)))
+        if len(spatial["hits"]) > 1:
+            st.warning("A helyrajzi szám több feliraton is szerepel; a program nem választ önkényesen tervlapot vagy övezetet.")
+
     if parcel_api:
         bbox, gtype = geometry_summary(parcel_api.get("geometry", {}))
         st.success(
