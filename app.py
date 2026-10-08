@@ -619,6 +619,8 @@ def discover_njt_source(town, hrsz):
         body = key_text(page.get("text", ""))
         is_building_rule = any(x in body for x in ("epitesi szabalyzat", "helyi epitesi szabalyzat", "keruleti epitesi szabalyzat"))
         title_text = key_text(page.get("text", "")[:650])
+        # A teljes rendeletszöveg említhet más települést is: ez nem bizonyíték.
+        # A fejlécben pontos településnév vagy kerület szükséges.
         place_ok = any(term and term in title_text for term in town_terms)
         if is_building_rule and place_ok:
             title = clean_text(page.get("text", "").split("\n")[0])[:180] or "Automatikusan felderített NJT-forrás"
