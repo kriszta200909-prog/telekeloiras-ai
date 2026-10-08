@@ -71,8 +71,13 @@ class OCRWorker:
         except (BrokenPipeError,OSError) as exc:
             raise RuntimeError('A külön OCR-folyamat megszakadt.') from exc
         if not line:raise RuntimeError('A külön OCR-folyamat eredmény nélkül leállt.')
-        result=json.loads(line)
-        if 'error' in result:raise RuntimeError('OCR-feldolgozási hiba: '+result['error'])
+        try:
+            result=json.loads(line)
+        except (ValueError, TypeError) as exc:
+            raise RuntimeError('Az OCR-folyamat érvénytelen választ adott.') from exc
+        if not isinstance(result,dict):
+            raise RuntimeError('Az OCR-folyamat válasza nem objektum.')
+        if 'error' in result:raise RuntimeError('OCR-feldolgozási hiba: '+str(result['error']))
         return result['words']
 
     def __exit__(self,*args):
