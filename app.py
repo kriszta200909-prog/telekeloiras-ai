@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.37
+# TelekElőírás AI v15.38
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -28,12 +28,24 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.37",
+    page_title="TelekElőírás AI v15.38",
     page_icon="🏗️",
     layout="wide",
 )
 
 EKOZMU_MAP = "https://ekozmu.e-epites.hu/lakossag/#/lakossag/kozmuterkep"
+
+
+@st.cache_resource(show_spinner=False)
+def pdf_processing_lock():
+    """One process-wide gate, shared by all Streamlit sessions and reruns.
+
+    MuPDF/Leptonica must not be entered from concurrent session threads.
+    Lock the entire investigation because rendering and text extraction also
+    use MuPDF; protecting only the OCR call would leave those races open.
+    """
+    import threading
+    return threading.RLock()
 
 # Validált hivatalos forrásindex.
 # Új település később egyetlen új rekorddal felvehető.
@@ -3625,7 +3637,7 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                          national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.37 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.38 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -3728,7 +3740,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_37.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_38.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -3777,7 +3789,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.37 • nyilvános HRSZ API + telekgeometria • "
+        "v15.38 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -3871,6 +3883,19 @@ def main():
         st.error("A település és a helyrajzi szám megadása kötelező.")
         return
 
+    lock = pdf_processing_lock()
+    if not lock.acquire(blocking=False):
+        with st.spinner('Másik telekvizsgálat PDF-feldolgozása fut. A keresés sorra kerül; nem szükséges újraindítani.'):
+            lock.acquire()
+    try:
+        run_investigation(town, hrsz, budapest_district, uploaded_plan,
+                          manual_njt_url, manual_zone, map_verified, case)
+    finally:
+        lock.release()
+
+
+def run_investigation(town, hrsz, budapest_district, uploaded_plan,
+                      manual_njt_url, manual_zone, map_verified, case):
     progress=InvestigationProgress(f"{town.strip()} {normalize_hrsz(hrsz)}")
     progress.stage(progress.steps[0])
 
