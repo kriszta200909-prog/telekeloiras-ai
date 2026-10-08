@@ -10,6 +10,20 @@ class RuleInventoryTests(unittest.TestCase):
         values.update(changes)
         return Clause(**values)
 
+    def test_single_njt_discovery_path_for_budapest_and_other_towns(self):
+        import ast
+        from pathlib import Path
+        source = Path(__file__).with_name("app.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                  and n.name == "run_investigation")
+        calls = [n for n in ast.walk(fn) if isinstance(n, ast.Call)
+                 and isinstance(n.func, ast.Name)
+                 and n.func.id == "discover_njt_source"]
+        self.assertEqual(len(calls), 1)
+        self.assertEqual([a.id for a in calls[0].args],
+                         ["town", "hrsz", "detected_district"])
+
     def test_plan_filename_hyphenated_njt_annex(self):
         import ast
         import re
