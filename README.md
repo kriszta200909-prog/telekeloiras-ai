@@ -1,24 +1,21 @@
-# TelekElőírás AI – privát webes teszt
+# TelekElőírás AI
 
-Streamlit Community Cloud-ra feltölthető változat.
-
-## Aktuális verzió: v6.2
-
-A v6.2 fő javítása az NJT-forráskezelés:
-
-- a program elsődlegesen a `https://njt.jog.gov.hu/jogszabaly/...` hivatalos jogszabályoldalakat keresi és validálja;
-- Tiszaújváros HÉSZ-ének validált kanonikus forrása: `https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228`;
-- a Tiszaújváros-forrásnál nem generál `or.njt.hu` URL-t;
-- az ingyenes webes felderítő a találatot településnév, „építési szabályzat”, „szabályozási terv” és melléklet/övezeti tartalom alapján ellenőrzi;
-- történeti NJT URL-változat esetén a kanonikus jogszabályoldalt használja;
-- a kézi szabályozási terv PDF továbbra is tartalék/ellenőrzési lehetőség.
+**Állapot: fejlesztés és ellenőrzés alatt. Nem hiteles, automatikus telekvizsgálati szolgáltatás.**
 
 ## Cél
+Magyarországi település és helyrajzi szám alapján a hatályos helyi építési szabályzat (NJT), a szabályozási terv, az övezeti besorolás és az előírások forrásolt összekapcsolása. A térképi telek–övezet kapcsolatot bizonyítani kell, nem szabad becsülni.
 
-A vizsgálat végén közvetlenül erre a kérdésre adjon forrásolt választ:
+## Fájlok
+- `app.py` – a Streamlit alkalmazás.
+- `plan_labels.py` és `plan_ocr_worker.py` – tervlapfeliratok feldolgozása; a worker a tervlapolvasás része.
+- `rule_inventory.py` – a jogszabályi rendelkezések nyilvántartása.
+- `test_plan_labels.py` és `test_rule_inventory.py` – automatikus ellenőrzések.
+- `requirements.txt` és `packages.txt` – futtatáshoz szükséges csomagok.
+- `.github/workflows/regression.yml` – automatikus tesztfuttatás.
 
-> **Mit lehet és mit nem lehet ezen a konkrét telken csinálni, és ezt melyik hatályos forrás mondja?**
+## Állapot és ellenőrzés
+Az öt vizsgálati helyrajzi szám: Tiszaújváros 2200/8; Budapest XII. 8448/46; Komádi 1558; Gersekarát 034/15; Miskolc 4755/11.
 
-## GitHub / Streamlit
+**Egyik telek teljes, hatályos, pontos övezeti besorolással és összes előírással alátámasztott automatikus vizsgálata sincs még igazoltan kész.** A tesztfájlok megléte önmagában nem jelent sikeres tesztfutást.
 
-A GitHub repóban az `app.py` legyen a v6.2 fájl, és a `README.md` is ezt a verziót mutassa. A Streamlit Community Cloud az `app.py`-t futtassa.
+A régi verziószámokra és elavult fejlesztési állításokra épülő leírást eltávolítottuk. A régi Git-előzmények megmaradnak, mert a visszaállíthatósághoz szükségesek.
