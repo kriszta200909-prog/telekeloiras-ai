@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.41
+# TelekElőírás AI v15.42
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -28,7 +28,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.41",
+    page_title="TelekElőírás AI v15.42",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2988,6 +2988,82 @@ def verified_local_industrial_type(local_rules,zone):
     return category
 
 
+class TekaParkingAnnex(HTMLParser):
+    """Read the complete ME4 region; retain native paragraph anchors."""
+    def __init__(self):
+        super().__init__()
+        self.active = False
+        self.starts = 0
+        self.ends = 0
+        self.parts = []
+        self.sup_notes = []
+        self.skip = 0
+        self.anchor = ''
+        self.rows = {}
+        self.seen_anchors = set()
+        self.duplicates = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == 'span' and 'jhId' in attrs.get('class', '').split():
+            marker = attrs.get('id', '')
+            if marker == 'ME4':
+                self.starts += 1
+                self.active = True
+            elif marker == 'ME5':
+                self.ends += 1
+                self.active = False
+            if self.active and marker.startswith('RR'):
+                if marker in self.seen_anchors: self.duplicates = True
+                self.seen_anchors.add(marker)
+                self.anchor = marker
+        if tag == 'sup':
+            note = 'fnSup' in attrs.get('class', '').split() or 'data-note-id' in attrs
+            self.sup_notes.append(note)
+            if note: self.skip += 1
+        elif tag in ('script', 'style'): self.skip += 1
+
+    def handle_endtag(self, tag):
+        if tag == 'sup':
+            if self.sup_notes and self.sup_notes.pop(): self.skip = max(0, self.skip - 1)
+        elif tag in ('script', 'style'): self.skip = max(0, self.skip - 1)
+        if self.active and tag in ('p', 'div'): self.parts.append(' ')
+
+    def handle_data(self, data):
+        if self.active and not self.skip:
+            if self.sup_notes and not self.sup_notes[-1]: data = data.translate(str.maketrans('23', '²³'))
+            self.parts.append(data)
+            if self.anchor: self.rows.setdefault(self.anchor, []).append(data)
+
+
+TEKA_PARKING_ANNEX_SHA256 = '3b73b7e55080c75e58cc52edd6845d8ba8f00983c1bc24f123763b71224dc728'
+TEKA_PARKING_POINT_SHA256 = {
+    'RR5805': '06cdaf5b8e36d05057d993b93ac1a571bc1838b6875a748502d1844860042031',
+    'RR5808': '20e39460b95a00cb9f28700463acea0a0074d8ebcccbf6a37ffd24c19e3f2c5b',
+}
+
+
+def verify_teka_parking_annex(page):
+    import hashlib
+    out = {'ok': False, 'error': 'A parkolási melléklet teljes szövege vagy szerkezete nincs igazolva.', 'sources': []}
+    if not page.get('ok') or page.get('url') != NATIONAL_RULE_PROFILES['teka']['url']: return out
+    edition = TiszaLegalParagraphs('2024-280-20-22'); edition.feed(page.get('html', ''))
+    if edition.editions != [NATIONAL_RULE_PROFILES['teka']['edition']]: return out
+    reader = TekaParkingAnnex(); reader.feed(page.get('html', ''))
+    text = clean_text(''.join(reader.parts))
+    if (reader.starts != 1 or reader.ends != 1 or reader.duplicates
+            or hashlib.sha256(text.encode()).hexdigest() != TEKA_PARKING_ANNEX_SHA256): return out
+    sources = []
+    for anchor, ref in [('RR5805', '4. melléklet I. 11. pont'), ('RR5808', '4. melléklet I. 14. pont')]:
+        if anchor not in reader.rows: return out
+        source_text = clean_text(''.join(reader.rows[anchor]))
+        if hashlib.sha256(source_text.encode()).hexdigest() != TEKA_PARKING_POINT_SHA256[anchor]: return out
+        sources.append({'Forrás': ref, 'Forrásszöveg': source_text,
+                        'URL': page['url'] + '#' + anchor})
+    out.update(ok=True, error='', sources=sources, full_text=text, URL=page['url']+'#ME4')
+    return out
+
+
 def national_rule_profile(key, page, zone, local_verified=False, local_rules=None):
     """Verify a complete official edition; return conditional source rows, never building permission."""
     import hashlib
@@ -3039,6 +3115,7 @@ def national_rule_profile(key, page, zone, local_verified=False, local_rules=Non
         result['parking' if parking else 'green' if green else 'transition' if transition else 'comparison' if other_type else 'rows'].append(row)
     result['industrial_type']=category
     result.update(ok=True,label=cfg['label'],basis=cfg['basis'])
+    if key == 'teka': result['parking_annex'] = verify_teka_parking_annex(page)
     return result
 
 
@@ -3654,6 +3731,80 @@ def render_national_parking_review(result):
     for note in result['notes']: st.write(note)
 
 
+PARKING_DEMAND_TYPES = ('Nem ismert', 'Ipari / üzemi egység', 'Raktározási / logisztikai egység', 'Irodai egység')
+
+
+def parking_demand_review(case, national_rules, applicability):
+    from decimal import Decimal, InvalidOperation, ROUND_CEILING, localcontext
+    out = {'ok': False, 'rows': [], 'sources': [], 'inputs': [], 'notes': [], 'issues': []}
+    data = (case or {}).get('parking_demand') or {}
+    input_labels = {'situation': 'Parkolóigény vizsgálati helyzete',
+                    'type': 'Vizsgált önálló rendeltetési egység',
+                    'workers': 'Legnagyobb műszak helyben dolgozó létszáma (fő)',
+                    'area': 'Érintett helyiségek nettó alapterülete (m²)'}
+    out['inputs'] = [{'Ügyadat': input_labels[key], 'Megadott adat': value if value is not None else 'Nem ismert'}
+                     for key, value in data.items() if key in input_labels]
+    if not national_parking_review(case, national_rules, applicability)['ok']:
+        out['notes'].append('A parkolóigény részszámításához kiválasztott, új ügyhöz igazolt országos parkolási csomag szükséges.')
+        return out
+    profile = next((r for r in national_rules if r.get('key') == 'teka' and r.get('ok')), {})
+    annex = profile.get('parking_annex') or {}
+    if not annex.get('ok'):
+        out['notes'].append('A TÉKA 4. mellékletének teljes forrásellenőrzése hiányzik; rendeltetési alapérték nem számítható.')
+        return out
+    if data.get('situation') != 'Új önálló rendeltetési egység létesítése':
+        out['notes'].append('Ez a részszámítás új önálló rendeltetési egységre használható. Meglévő egység módosításának többletigénye és megtartandó parkolói külön vizsgálandók; az új hatósági eljárás önmagában nem jelent új rendeltetési egységet.')
+        return out
+    kind = data.get('type')
+    if kind not in PARKING_DEMAND_TYPES[1:]:
+        out['notes'].append('Válaszd ki a számítás tárgyát képező önálló rendeltetési egységet; a program nem állapítja meg a teljes épület parkolóigényét a rendeltetés szövegéből.')
+        return out
+    industrial = kind == 'Ipari / üzemi egység'
+    raw = data.get('workers' if industrial else 'area')
+    if raw is None:
+        out['notes'].append('A legnagyobb létszámú műszak helyben dolgozó létszáma hiányzik.' if industrial else 'A számításban érintett helyiségek nettó alapterülete hiányzik.')
+        return out
+    try:
+        value = Decimal(str(raw))
+        if isinstance(raw, bool) or not value.is_finite() or not 0 < value <= (1000000 if industrial else 1000000000000): raise ValueError()
+        if industrial and value != value.to_integral_value(): raise ValueError()
+    except (InvalidOperation, ValueError, TypeError):
+        out['issues'].append('A műszaklétszám pozitív egész szám, legfeljebb 1 000 000 fő lehet.' if industrial else 'A nettó helyiségterület pozitív, véges szám, legfeljebb 1 000 000 000 000 m² lehet.')
+        return out
+    divisor = 3 if industrial else (1500 if kind == 'Raktározási / logisztikai egység' else 20)
+    ref = '4. melléklet I. 11. pont' if kind == 'Irodai egység' else '4. melléklet I. 14. pont'
+    source = next((s for s in annex.get('sources', []) if s.get('Forrás') == ref), None)
+    legal = {s['Forrás']: s for s in profile.get('parking', [])}
+    if not source or any(r not in legal for r in ('59. § (1)', '59. § (2)', '59. § (5)', '59. § (6)')):
+        out['notes'].append('A mellékleti alapérték forráskapcsolata hiányos; részszámítás nem készül.')
+        return out
+    with localcontext() as ctx:
+        ctx.prec = max(28, len(value.as_tuple().digits) + 10)
+        spaces = int((value / Decimal(divisor)).to_integral_value(rounding=ROUND_CEILING))
+    basis = ('A legnagyobb létszámú műszak helyben dolgozó munkavállalói' if industrial else 'Raktárhelyiségek nettó alapterülete' if divisor == 1500 else 'Huzamos tartózkodásra szolgáló helyiségek nettó alapterülete')
+    out['rows'] = [{'Vizsgált egység': kind, 'Számítási alap': basis, 'Megadott mennyiség': str(value) + (' fő' if industrial else ' m²'),
+                    'Országos mellékleti parkoló-alapérték (db)': spaces, 'Forrás': 'TÉKA ' + ref, 'URL': source['URL']}]
+    out['sources'] = [source] + [legal[r] for r in ('59. § (1)', '59. § (2)', '59. § (5)', '59. § (6)')]
+    out['ok'] = True
+    out['notes'].append('Egész parkolóhelyre felfelé kerekített országos mellékleti alapérték, egy megadott új egységre. A helyi parkolási előírás és az engedélyezett egyedi eltérés nincs ebből igazolva; ez nem a telek végleges kötelező parkolóhelyszáma.')
+    out['notes'].append('Más önálló rendeltetési egységek, például iroda és raktár igényét külön kell vizsgálni. Az ipari számítás a legnagyobb műszak helyben dolgozó létszámára vonatkozik, nem az összes műszak vagy a teljes vállalat létszámára.')
+    out['notes'].append('A megadott felszíni parkoló kapacitása és fásítása külön adat: a mellékleti alapértéket a program nem írja automatikusan a felszíni parkoló helyszámába.')
+    return out
+
+
+def render_parking_demand_review(result):
+    st.subheader('Rendeltetés szerinti parkolóigény – mellékleti alapérték')
+    if result['ok']:
+        st.dataframe(result['rows'], hide_index=True, use_container_width=True,
+                     column_config={'URL': st.column_config.LinkColumn('Mellékleti forrás')})
+        with st.expander('A parkoló-alapérték és eltérések ellenőrzött forrásai'):
+            for source in result['sources']:
+                st.link_button('TÉKA '+source['Forrás']+' – parkoló-alapérték', source['URL'])
+                st.write(source['Forrásszöveg'])
+    for issue in result['issues']: st.warning(issue)
+    for note in result['notes']: st.write(note)
+
+
 def proposal_review(proposal, table_doc, zone, local_rules, source):
     """Compare declared design quantities with a hash-verified local table only."""
     from decimal import Decimal, InvalidOperation, localcontext
@@ -3767,7 +3918,7 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                          national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.41 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.42 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -3839,6 +3990,11 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
     for row in parking['rows'] + parking['calculation']: add_row(row)
     lines.extend(parking['issues'] + parking['notes'])
     for source in parking['sources']: add_row(source)
+    demand = parking_demand_review(case,national_rules,selection)
+    lines.extend(['', 'RENDELTETÉS SZERINTI PARKOLÓIGÉNY – MELLÉKLETI ALAPÉRTÉK'])
+    for row in demand['inputs'] + demand['rows']: add_row(row)
+    lines.extend(demand['issues'] + demand['notes'])
+    for source in demand['sources']: add_row(source)
     if proposal_result is not None:
         lines.extend(['', 'TERVEZETT BEÉPÍTÉS – HELYI TÁBLÁZATI ÖSSZEVETÉS'])
         for row in proposal_result['inputs']: add_row(row)
@@ -3881,7 +4037,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_41.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_42.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -3930,7 +4086,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.41 • nyilvános HRSZ API + telekgeometria • "
+        "v15.42 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -4002,6 +4158,14 @@ def main():
                 'surface': st.selectbox('Parkoló kialakítása', ['Nem ismert', 'Felszíni parkoló', 'Épületben vagy terepszint alatt']),
                 'spaces': st.number_input('Vizsgált parkoló gépjármű-várakozóhelyeinek száma', min_value=0, max_value=1000000, value=None, step=1)}
             st.caption('Egy adott parkoló kapacitását add meg. Ez nem a rendeltetés alapján szükséges parkolóhelyszám; a program nem következtet rá a beépített területből.')
+
+        with st.expander('Parkolóigény – számítás egy rendeltetési egységre'):
+            case['parking_demand'] = {
+                'situation': st.selectbox('Parkolóigény vizsgálati helyzete', ['Nem ismert', 'Új önálló rendeltetési egység létesítése', 'Meglévő egység bővítése / átalakítása / rendeltetésváltozása']),
+                'type': st.selectbox('A vizsgált önálló rendeltetési egység', PARKING_DEMAND_TYPES),
+                'workers': st.number_input('Legnagyobb műszak helyben dolgozó létszáma (fő)', min_value=0, max_value=1000000, value=None, step=1),
+                'area': st.number_input('Érintett helyiségek nettó alapterülete (m²)', min_value=0.0, value=None, step=1.0)}
+            st.caption('Ipari egységnél a műszaklétszám, raktárnál csak a raktárhelyiségek, irodánál a huzamos tartózkodásra szolgáló helyiségek nettó területe a számítás alapja. A teljes beépített terület nem helyettesíti ezeket.')
 
         start = st.button(
             "Telekvizsgálat indítása",
@@ -4509,6 +4673,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     render_proposal_review(proposal_result)
     render_national_green_review(national_green_review(case,national_rules,applicability))
     render_national_parking_review(national_parking_review(case,national_rules,applicability))
+    render_parking_demand_review(parking_demand_review(case,national_rules,applicability))
     render_case_review(case)
 
     # 6. Korlátozások
