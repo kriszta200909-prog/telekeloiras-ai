@@ -1501,12 +1501,13 @@ def locate_parcel(doc, hrsz, outlined=False, on_progress=None):
     hit = hits[0]
     page = doc[hit["page_number"]]
     candidates = zone_candidates(page, hit["pdf_rect"]) if len(hits)==1 and not scan else []
-
+    # A felirat közelsége nem bizonyítja, hogy a kód ugyanazon telek
+    # övezetéhez tartozik. Csak ellenőrizendő jelöltet közlünk.
     return {
-        "status": "candidate" if candidates else "zone_not_found",
+        "status": "candidate_unverified" if candidates else "zone_not_found",
         "hit": hit,
         "candidates": candidates,
-        "zone": candidates[0]["Övezeti kód"] if candidates else "",
+        "zone": "",
         "hits":hits,
         "scan":scan,
     }
