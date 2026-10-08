@@ -10,6 +10,33 @@ class RuleInventoryTests(unittest.TestCase):
         values.update(changes)
         return Clause(**values)
 
+    def test_nationwide_source_discovery_rejects_wrong_budapest_district(self):
+        import ast
+        from pathlib import Path
+        source = Path(__file__).with_name("app.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "discover_njt_source")
+        import re
+        import unicodedata
+        def key_text(value):
+            value = unicodedata.normalize("NFKD", str(value).strip())
+            return "".join(c for c in value if not unicodedata.combining(c)).casefold()
+        def clean_text(value):
+            return str(value).strip()
+        def fake_search(_):
+            return ["https://njt.jog.gov.hu/jogszabaly/wrong", "https://njt.jog.gov.hu/jogszabaly/right"]
+        def fake_fetch(url):
+            district = "XI." if url.endswith("wrong") else "XII."
+            return {"ok": True, "url": url, "text": f"Budapest {district} kerület helyi építési szabályzat"}
+        scope = dict(key_text=key_text, clean_text=clean_text,
+                     discover_budapest_district=lambda hrsz: ("XII. kerület", "teszt"),
+                     _search_web=fake_search, is_official_njt_url=lambda url: True,
+                     fetch_njt_page=fake_fetch)
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), "<app>", "exec"), scope)
+        meta, page = scope["discover_njt_source"]("Budapest", "8448/46")
+        self.assertTrue(meta["url"].endswith("/right"), meta)
+        self.assertTrue(page["url"].endswith("/right"), page)
+
     def test_multiple_parcel_labels_are_not_arbitrarily_resolved(self):
         import ast
         from pathlib import Path
