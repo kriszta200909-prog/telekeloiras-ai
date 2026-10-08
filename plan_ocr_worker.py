@@ -2,6 +2,12 @@
 import base64
 import json
 import sys
+import os
+
+# MuPDF/Tesseract builds may write diagnostics to C stdout. Keep the response
+# pipe on a private descriptor, and redirect native stdout before importing.
+protocol=os.fdopen(os.dup(sys.stdout.fileno()),'w',encoding='utf-8')
+os.dup2(sys.stderr.fileno(),sys.stdout.fileno())
 
 import fitz
 
@@ -18,7 +24,7 @@ def main():
             result={'words':words}
         except Exception as exc:
             result={'error':str(exc)}
-        print(json.dumps(result),flush=True)
+        protocol.write('TELEK_OCR_RESULT:'+json.dumps(result)+'\n');protocol.flush()
 
 
 if __name__=='__main__':main()
