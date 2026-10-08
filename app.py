@@ -768,9 +768,10 @@ def public_parcel_geometry(ksh_code, hrsz):
     matches = _all_exact_parcel_ids(data, h)
     if len(matches) > 1:
         raise RuntimeError("A HRSZ-kereső több különböző ingatlanazonosítót adott ugyanarra a helyrajzi számra; nem választunk önkényesen.")
-    parcel_id = _extract_id(record)
+    parcel_id = next((str(record[key]) for key in ("id", "parcelId", "parcel_id", "objectId", "objectID")
+                      if isinstance(record, dict) and record.get(key) not in (None, "")), "")
     if not parcel_id:
-        raise RuntimeError("A HRSZ-kereső válaszából nem sikerült ingatlan-azonosítót kinyerni.")
+        raise RuntimeError("A pontos HRSZ-rekord nem tartalmaz közvetlen ingatlan-azonosítót; beágyazott másik rekord azonosítóját nem használjuk.")
     bbox_url = f"{HRSZ_API_BASE}/bounding-box?" + urllib.parse.urlencode({"id": parcel_id})
     geom = _json_get(bbox_url)
     if (geom.get('lotNumber') is not None
