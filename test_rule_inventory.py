@@ -28,6 +28,7 @@ class RuleInventoryTests(unittest.TestCase):
                 "links": [("melléklet", "https://evil.example/plan.pdf"),
                           ("melléklet", "http://njt.jog.gov.hu/document/x.pdf"),
                           ("melléklet", "https://njt.jog.gov.hu.evil.example/document/x.pdf"),
+                          ("melléklet", "https://njt.jog.gov.hu/jogszabaly/other"),
                           ("melléklet", "https://njt.jog.gov.hu/document/good.pdf")]}
         rows = scope["discover_attachments"](page)
         self.assertEqual([row["URL"] for row in rows],
