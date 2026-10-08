@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.48
+# TelekElőírás AI v15.49
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -34,7 +34,7 @@ from plan_labels import native_hrsz_hits, outlined_label_index, verify_outlined_
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.48",
+    page_title="TelekElőírás AI v15.49",
     page_icon="🏗️",
     layout="wide",
 )
@@ -1322,16 +1322,26 @@ class IncompletePlanLabelIndex(Exception):
 
 @st.cache_data(show_spinner=False,ttl=3600,max_entries=8)
 def cached_outlined_plan_index(pdf_sha,algorithm_version,_doc,_on_progress=None):
-    index=outlined_label_index(_doc,plan_ocr_data(),max_seconds=600,on_progress=_on_progress)
+    checkpoint=outlined_plan_checkpoint(pdf_sha,algorithm_version)
+    saved=checkpoint.get('index')
+    if saved and saved.get('complete'):return saved
+    index=outlined_label_index(_doc,plan_ocr_data(),max_seconds=600,on_progress=_on_progress,
+                              resume=saved,on_checkpoint=lambda state:checkpoint.update(index=state))
     if not index['complete']:raise IncompletePlanLabelIndex(index)
     return index
+
+
+@st.cache_resource(show_spinner=False,ttl=3600,max_entries=8)
+def outlined_plan_checkpoint(pdf_sha,algorithm_version):
+    # Contains plain label data only; never retain a live MuPDF document.
+    return {}
 
 
 def load_outlined_plan_labels(doc,hrsz,on_progress=None):
     # The key is always computed from this actual document, not source metadata.
     raw=doc.tobytes(no_new_id=True) if doc.is_dirty else (doc.stream or doc.tobytes(no_new_id=True))
     digest=source_digest(raw)
-    try:index=cached_outlined_plan_index(digest,'outlined-label-index-v2',_doc=doc,_on_progress=on_progress)
+    try:index=cached_outlined_plan_index(digest,'outlined-label-index-v3',_doc=doc,_on_progress=on_progress)
     except IncompletePlanLabelIndex as exc:index=exc.result
     result=verify_outlined_hrsz(doc,index,normalize_hrsz(hrsz),plan_ocr_data())
     result['source_sha256']=digest
@@ -4105,7 +4115,7 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                          national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None, source_inventory=None, label_search=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.48 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.49 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -4245,7 +4255,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_48.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_49.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -4291,10 +4301,46 @@ class InvestigationProgress:
         return elapsed
 
 
+@st.cache_resource(show_spinner=False)
+def recoverable_investigation_requests():
+    import threading
+    return {},threading.RLock()
+
+
+def investigation_request_fingerprint(town,hrsz,district,uploaded,manual_url,manual_zone,verified,case):
+    data={'town':town,'hrsz':normalize_hrsz(hrsz),'district':district,
+          'uploaded_sha':source_digest(uploaded.getvalue()) if uploaded is not None else '',
+          'manual_url':manual_url,'manual_zone':manual_zone,'verified':verified,'case':case,
+          'date':datetime.now(ZoneInfo('Europe/Budapest')).date().isoformat()}
+    return source_digest(json.dumps(data,sort_keys=True,ensure_ascii=False,default=str).encode('utf-8'))
+
+
+def matching_investigation_request(fingerprint,token='',start=False):
+    """An opaque URL token resumes only the same restored form, for 15 minutes."""
+    import uuid
+    requests,lock=recoverable_investigation_requests();now=time.monotonic()
+    with lock:
+        for key in list(requests):
+            if now-requests[key]['created']>900:requests.pop(key,None)
+        if start:
+            token=uuid.uuid4().hex
+            requests[token]={'fingerprint':fingerprint,'created':now}
+            while len(requests)>32:requests.pop(next(iter(requests)))
+            return token
+        record=requests.get(token)
+        return token if record and record['fingerprint']==fingerprint else ''
+
+
+class UncachedInvestigationResult(Exception):
+    def __init__(self,result):
+        super().__init__('A részleges vagy sikertelen vizsgálat nem kerül az eredmény-gyorsítótárba.')
+        self.result=result
+
+
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.48 • nyilvános HRSZ API + telekgeometria • "
+        "v15.49 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -4393,7 +4439,12 @@ def main():
             "A program nem állítja, hogy publikus API-ból automatikusan kiolvasta az övezetet."
         )
 
-    if not start:
+    fingerprint=investigation_request_fingerprint(town,hrsz,budapest_district,uploaded_plan,
+                                                  manual_njt_url,manual_zone,map_verified,case)
+    active=matching_investigation_request(fingerprint,str(st.query_params.get('run','')),start=start)
+    if start and active:st.query_params['run']=active
+    if not active:
+        if 'run' in st.query_params:del st.query_params['run']
         st.info(
             "Add meg a települést és a helyrajzi számot, majd indítsd el a vizsgálatot."
         )
@@ -4408,14 +4459,23 @@ def main():
         with st.spinner('Másik telekvizsgálat PDF-feldolgozása fut. A keresés sorra kerül; nem szükséges újraindítani.'):
             lock.acquire()
     try:
-        run_investigation(town, hrsz, budapest_district, uploaded_plan,
-                          manual_njt_url, manual_zone, map_verified, case)
+        try:
+            result=run_investigation(town, hrsz, budapest_district, uploaded_plan,
+                                    manual_njt_url, manual_zone, map_verified, case,
+                                    request_day=datetime.now(ZoneInfo('Europe/Budapest')).date().isoformat())
+        except UncachedInvestigationResult as exc:result=exc.result
     finally:
         lock.release()
+    render_report_download(result['report'],hrsz)
+    if result.get('minerva_geometry'):
+        st.download_button('Övezeti geometria ellenőrzési adatainak letöltése',
+            data=result['minerva_geometry'],file_name='minerva_geometry_snapshot.json',
+            mime='application/json',on_click='ignore')
 
 
+@st.cache_data(show_spinner=False,ttl=900,max_entries=8)
 def run_investigation(town, hrsz, budapest_district, uploaded_plan,
-                      manual_njt_url, manual_zone, map_verified, case):
+                      manual_njt_url, manual_zone, map_verified, case, request_day=None):
     progress=InvestigationProgress(f"{town.strip()} {normalize_hrsz(hrsz)}")
     progress.stage(progress.steps[0])
 
@@ -4471,10 +4531,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
             with st.expander("Telek és zárt övezethatár összekapcsolása"):
                 st.dataframe(minerva_diag["topology"], hide_index=True, use_container_width=True)
         if minerva_diag.get("geometry_snapshots"):
-            st.download_button("Övezeti geometria ellenőrzési adatainak letöltése",
-                data=json.dumps(minerva_diag["geometry_snapshots"], ensure_ascii=False).encode("utf-8"),
-                file_name="minerva_geometry_snapshot.json", mime="application/json",
-                on_click="ignore")
+            st.caption('Az övezeti geometria ellenőrzési adatai a vizsgálat lezárása után letölthetők.')
         if minerva_diag.get("parcel_geometry"):
             st.write("**OÉNY → MINERVA térbeli lekérdezés bemenete:** telek MultiPolygon/bounding box rendelkezésre áll.")
         if minerva_diag.get("candidates"):
@@ -5016,8 +5073,11 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
                                   parameter_source=zone_table_source, plan_source=plan_source,
                                   applicability=applicability, plan_basis=plan_basis, proposal_result=proposal_result,
                                   source_inventory=source_inventory,label_search=spatial)
-    render_report_download(report, hrsz)
     progress.finish()
+    result={'report':report,'minerva_geometry':json.dumps(minerva_diag['geometry_snapshots'],ensure_ascii=False).encode('utf-8') if minerva_diag.get('geometry_snapshots') else None}
+    if not source_valid or not (plan_zone.get('zone') or spatial.get('hits')) or (spatial.get('scan') and not spatial['scan'].get('complete')):
+        raise UncachedInvestigationResult(result)
+    return result
 
 
 if __name__ == "__main__":
