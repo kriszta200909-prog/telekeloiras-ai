@@ -13,6 +13,13 @@ class PlanLabelTests(unittest.TestCase):
         self.assertEqual(len(hits),2)
         self.assertTrue(all(hit['label_only'] for hit in hits))
 
+    def test_spaced_suffix_is_not_parent_parcel(self):
+        doc=fitz.open();page=doc.new_page()
+        page.insert_text((30,40),'1558 /1 1558 - 2 1558 .3 (1558)')
+        hits=native_hrsz_hits(doc,'1558')
+        self.assertEqual(len(hits),1)
+        self.assertTrue(hits[0]['label_only'])
+
     def test_zero_and_separator_are_preserved(self):
         doc=fitz.open();page=doc.new_page()
         page.insert_text((30,40),'034/15 34/15 034/150 034 / 15 034-15')
