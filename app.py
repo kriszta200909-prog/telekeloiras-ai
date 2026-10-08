@@ -4688,7 +4688,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     plan_source = "feltöltött hivatalos PDF" if plan_doc else ""
     auto_plan_error = ""
 
-    if plan_doc is None and attachments:
+    if plan_doc is None and (attachments or (source_valid and meta.get("plan_url"))):
         with st.spinner("Szabályozási terv automatikus letöltésének kísérlete…"):
             plan_doc, plan_source, auto_plan_error = try_auto_plan(attachments, page.get("text", ""), meta if source_valid else None, hrsz)
 
