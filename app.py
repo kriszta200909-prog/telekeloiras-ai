@@ -1689,9 +1689,9 @@ def choose_plan_attachment(attachments, legal_text=""):
         if annex and re.search(r"\b"+re.escape(annex.group(1))+r"\.\s*melleklet\b[^.;]{0,100}szabalyozasi terv",key_text(legal_text)):
             score += 12
 
-        if "szabalyozasi terv" in label:
+        if "szabalyozasi terv" in label or "szabalyozasi_terv" in key_text(url):
             score += 12
-        elif "szabalyozasi" in label:
+        elif "szabalyozasi" in label or "szabalyozasi" in key_text(url):
             score += 7
 
         if "tervlap" in label or "tervlap" in key_text(url):
