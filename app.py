@@ -1694,9 +1694,9 @@ def choose_plan_attachment(attachments, legal_text=""):
         elif "szabalyozasi" in label:
             score += 7
 
-        if "tervlap" in label:
+        if "tervlap" in label or "tervlap" in key_text(url):
             score += 5
-        elif "terv" in label:
+        elif "terv" in label or "terv" in key_text(url):
             score += 3
 
         if any(x in label for x in ("terkep", "szelveny")):
