@@ -140,6 +140,20 @@ class RuleInventoryTests(unittest.TestCase):
         self.assertIn('"status": "ambiguous_parcel_labels"', body)
         self.assertIn('"hits": hits', body)
 
+    def test_polygon_intersection_requires_matching_crs(self):
+        import app
+        def polygon(x0, y0, x1, y1):
+            return {"type": "Polygon", "coordinates": [[
+                [x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]]]}
+        parcel = polygon(0, 0, 10, 10)
+        half = polygon(5, 0, 15, 10)
+        result = app.parcel_zone_overlap(parcel, half, "EPSG:23700", "EPSG:23700")
+        self.assertTrue(result["verified"])
+        self.assertEqual(result["overlap_ratio"], 0.5)
+        self.assertFalse(app.parcel_zone_overlap(parcel, half, "EPSG:23700", "EPSG:4326")["verified"])
+        self.assertFalse(app.parcel_zone_overlap(parcel, polygon(10,0,20,10), "EPSG:23700", "EPSG:23700")["verified"])
+        self.assertFalse(app.parcel_zone_overlap(parcel, {"type":"Point","coordinates":[5,5]}, "EPSG:23700", "EPSG:23700")["verified"])
+
     def test_spatial_evidence_is_explicitly_unverified(self):
         import fitz
         import app
