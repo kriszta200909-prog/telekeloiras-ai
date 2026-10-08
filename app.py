@@ -4601,7 +4601,12 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
             st.success(f"A telek azonosítva. Ingatlan ID: **{parcel_api['id']}**")
             c1, c2 = st.columns(2)
             c1.write(f"**Forrás:** nyilvános HRSZ-kereső (`kshCode={ksh}`)")
-            c2.write(f"**Geometria:** {gtype or 'elérhető'}")
+            c2.write(f"**Geometria típusa:** {gtype or 'nem ismert'}")
+            if parcel_api.get("parcel_polygon_candidate"):
+                st.info("Poligonjelölt elérhető, de a telekhatár hitelessége és az övezeti metszés még nincs igazolva.")
+            else:
+                st.warning("Csak HRSZ-azonosítás / befoglaló geometria ismert; ebből nem határozható meg az övezet.")
+            st.caption(parcel_api.get("geometry_evidence_note", ""))
             if bbox:
                 st.json({"boundingBox": bbox})
         except Exception as exc:
