@@ -1931,7 +1931,7 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
             exact_hits = find_hrsz(doc, hrsz) if hrsz else []
             attachment_name = key_text(candidate.get("Megnevezés", "") + " " + urllib.parse.unquote(urllib.parse.urlsplit(candidate.get("URL", "")).path))
             named_plan = bool(re.search(r"szabalyozasi[ _-]*terv", attachment_name))
-            if not opening.strip() and legal_text and not (named_plan and exact_hits):
+            if not opening.strip() and legal_text and not named_plan:
                 recognized = []
                 for scale in (2, 3):
                     pix = doc[0].get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
@@ -1942,10 +1942,10 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
                     opening = recognized[0]
                 fitz.TOOLS.store_shrink(100)
             title_ok = any(term in opening for term in ("szabalyozasi terv", "szabalyozasi tervlap"))
-            # A tervlap címe CAD-export esetén rajzi görbévé alakulhat.
-            # Ilyenkor a melléklet kifejezett tervmegnevezése ÉS a pontos
-            # HRSZ-felirat együtt elegendő a PDF további feldolgozásához.
-            if title_ok or (named_plan and exact_hits):
+            # A hivatalos NJT-melléklet tervmegnevezése akkor is használható
+            # tervlapjelöltként, ha a CAD-exportban minden felirat görbe.
+            # A pontos HRSZ és övezet igazolása későbbi, külön lépés.
+            if title_ok or named_plan:
                 # Prefer the official plan containing the exact requested parcel label.
                 if exact_hits:
                     if fallback_doc is not None:
