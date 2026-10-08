@@ -6,6 +6,14 @@ from plan_labels import native_hrsz_hits, exact_hrsz_token
 
 
 class PlanLabelTests(unittest.TestCase):
+    def test_worker_diagnostics_do_not_corrupt_response(self):
+        import io,json
+        from types import SimpleNamespace
+        from plan_labels import OCRWorker
+        worker=OCRWorker()
+        worker.process=SimpleNamespace(stdin=io.StringIO(),stdout=io.StringIO('Native diagnostic\n'+'TELEK_OCR_RESULT:'+json.dumps({'words':[['034/15',20,30]]})+'\n'))
+        self.assertEqual(worker.words(b'png','data'),[['034/15',20,30]])
+
     def test_spaced_suffix_is_not_parent_parcel(self):
         doc=fitz.open();page=doc.new_page()
         page.insert_text((30,40),'1558 /1 1558 - 2 1558 .3 (1558)')
