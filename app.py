@@ -1455,10 +1455,8 @@ def zone_candidates(page, pdf_rect):
     candidates = []
     seen = set()
 
-    # Egyes CAD-PDF-ekben a kód egyetlen szó, másokban szóközökkel tördelődik.
-    # A távolság szerint sorba rendezett külön szavakat nem szabad
-    # összefűzni: a rajzon egymástól független feliratokból hamis kód keletkezhet.
-    strings = [text for _, text in nearby]
+    # Csak egyetlen PDF-szóban található teljes kódot fogadunk el.
+    # A távolság szerint rendezett külön feliratok összefűzése hamis kódot adhat.
 
     for distance, text in nearby:
         for match in ZONE_PATTERN.finditer(text):
