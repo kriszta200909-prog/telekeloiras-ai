@@ -10,6 +10,20 @@ class RuleInventoryTests(unittest.TestCase):
         values.update(changes)
         return Clause(**values)
 
+    def test_miskolc_hyphenated_zone_pattern(self):
+        import ast
+        import re
+        from pathlib import Path
+        source = Path(__file__).with_name('app.py').read_text(encoding='utf-8')
+        tree = ast.parse(source)
+        assign = next(node for node in tree.body
+                      if isinstance(node, ast.Assign)
+                      and any(isinstance(t, ast.Name) and t.id == 'ZONE_PATTERN' for t in node.targets))
+        expression = ast.literal_eval(assign.value.args[0])
+        pattern = re.compile(expression, re.I)
+        self.assertEqual(pattern.findall('4755/11 Gipe-60.63.5'), ['Gipe-60.63.5'])
+        self.assertEqual(pattern.findall('Gip/3'), ['Gip/3'])
+
     def test_exact_zone_does_not_borrow_neighbor(self):
         for text in ['Lke1.2','Lke 1.2 övezet','(Lke1.2)']:
             self.assertTrue(has_exact_zone(text,'Lke1.2'))
