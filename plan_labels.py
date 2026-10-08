@@ -76,12 +76,12 @@ def outlined_label_index(doc, tessdata, max_seconds=180, on_progress=None):
                 if time.monotonic()-started>max_seconds:
                     return {'labels':labels,'complete':False,'scanned':scanned,'candidates':total,'pages':pages}
                 batch=groups[offset:offset+64]
-                cell_w,cell_h=360,128;columns=4
+                cell_w,cell_h=200,80;columns=4
                 montage=Image.new('RGB',(cell_w*columns,cell_h*math.ceil(len(batch)/columns)),'white')
                 for i,group in enumerate(batch):
                     label=_label_image(display_list,group,16)
-                    if label.width>cell_w-40 or label.height>cell_h-40:
-                        label.thumbnail((cell_w-40,cell_h-40),Image.Resampling.LANCZOS)
+                    if label.width>cell_w-16 or label.height>cell_h-16:
+                        label.thumbnail((cell_w-16,cell_h-16),Image.Resampling.LANCZOS)
                     montage.paste(label,((i%columns)*cell_w+(cell_w-label.width)//2,
                                          (i//columns)*cell_h+(cell_h-label.height)//2))
                 words=_ocr_words(montage,tessdata)
