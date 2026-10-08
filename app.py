@@ -80,7 +80,11 @@ HESZ_INDEX = {
         "title": "Miskolc Megyei Jogú Város Építési Szabályzata",
         "regulation": "38/2022. (XII. 16.) önkormányzati rendelet",
         "url": "https://njt.jog.gov.hu/jogszabaly/2022-38-SP-5Y1070",
-        "plan_scope": "belterület és külterület; a megfelelő szabályozási tervlap telekhez kötött azonosítása szükséges",
+        "plan_scope": "belterület",
+        "plan_url": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
+        "plan_reference": "4755/11: PDF 31/92. A felhasználó által bemutatott hivatalos tervlap alapján a felirat Gipe-60.63.5; a programnak ezt önállóan ellenőriznie kell, nem használhatja automatikus övezet-megállapításként.",
+        "legend_url": "https://njt.jog.gov.hu/document/03/0366LL_EJR_83921015-Jelmagyarazat_modositasa.pdf",
+        "parameter_legend_url": "https://njt.jog.gov.hu/document/f3/f327LL_EJR_124216758-Param_terek_magyar_zata.pdf",
     },
     "tiszaujvaros": {
         "municipality": "Tiszaújváros",
