@@ -75,6 +75,13 @@ HESZ_INDEX = {
         "plan_scope": "igazgatási terület",
         "scope_note": "A 2/2007. rendelet területi hatálya a déli községrészt kizárja; arra külön rendelet vonatkozik. A megfelelő helyi rendelet telekre való alkalmazhatóságához a telek helyét is igazolni kell.",
     },
+    "miskolc": {
+        "municipality": "Miskolc",
+        "title": "Miskolc Megyei Jogú Város Építési Szabályzata",
+        "regulation": "38/2022. (XII. 16.) önkormányzati rendelet",
+        "url": "https://njt.jog.gov.hu/jogszabaly/2022-38-SP-5Y1070",
+        "plan_scope": "belterület és külterület; a megfelelő szabályozási tervlap telekhez kötött azonosítása szükséges",
+    },
     "tiszaujvaros": {
         "municipality": "Tiszaújváros",
         "title": "Tiszaújváros Építési Szabályzatáról",
