@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.35
+# TelekElőírás AI v15.36
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -28,7 +28,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.35",
+    page_title="TelekElőírás AI v15.36",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2875,7 +2875,7 @@ def tisza_local_rules(html,source_url,zone,zone_verified=False):
             'Forrásszöveg':clean_text(' '.join(reader.blocks[(1,2)])),
             'Eredmény':'Az OTÉK-ra hivatkozás igazolt. Az alkalmazandó OTÉK-időállapotot ez a bekezdés nem határozza meg.'}
     out['zone']=zone
-    out['checks']=['Országos rendeltetési és építési szabályok, valamint átmeneti rendelkezések külön ellenőrzendők.',
+    out['checks']=['Az országos alkalmazási csomag és a rendeltetési részvizsgálat eredménye az alábbi fejezetekben olvasható; valamennyi építési követelmény teljesülése külön ellenőrizendő.',
         'A szabályozási/építési vonal, az építési hely, a beültetési sáv helye és a védőterületi érintettség nincs teljeskörűen automatikusan feldolgozva.',
         'A meglévő beépítés, a közműellátottság és a telekalakítási feltételek teljesülése külön ellenőrizendő.']
     out['ok']=True
@@ -3356,7 +3356,7 @@ def buildability_summary(local_rules, national_rules, zone):
                     'Állapot':'feltételes; ügyadat még igazolandó','Forrásszöveg ellenőrizve':True,'URL':row['URL']})
     out['missing']=['A terv készítési követelményei és jelmagyarázata.',
         'Az ügy típusa és kezdete; korábbi engedély/bejelentés, használatbavétel és eltérés adatai.',
-        'A konkrét tervezett rendeltetés, meglévő beépítés és közműellátottság.',
+        'A tervezett rendeltetés részletes technológiai leírása, a meglévő beépítés és a közműellátottság.',
         'Az építési hely, szabályozási vonal és védőterületi érintettség.']
     if zone.startswith('Gip/') and not verified_local_industrial_type(local_rules,zone):
         out['missing'].append('A jelentős környezeti hatású vagy egyéb ipari besorolás igazolása.')
@@ -3442,24 +3442,94 @@ def case_data_review(case, today=None):
     return out
 
 
+def purpose_review(case, local_rules, national_rules, zone, applicability):
+    """A bounded source-linked review, not permission inferred from free text."""
+    purpose = clean_text(str((case or {}).get('purpose') or ''))
+    out = {'purpose': purpose, 'status': 'Nem értékelhető', 'answer': '', 'sources': [], 'checks': []}
+    if not purpose:
+        out['answer'] = 'Add meg a tervezett rendeltetést a vizsgálati beállítások között.'
+        return out
+    if not (applicability or {}).get('ok'):
+        out['answer'] = 'A rendeltetés értékeléséhez előbb az országos alkalmazási csomagot kell kiválasztani.'
+        return out
+    if ((case or {}).get('scenario') != 'prospective'
+            or applicability.get('base_key') != 'otek2021'
+            or not verified_local_industrial_type(local_rules, zone)):
+        out['answer'] = 'Ehhez az ügyhöz vagy övezethez még nincs ellenőrzött rendeltetési értékelés. A kiválasztott forrásszövegek alapján külön vizsgálat szükséges.'
+        return out
+    profile = next((r for r in national_rules if r.get('key') == 'otek2021' and r.get('ok')), {})
+    if profile.get('industrial_type') != verified_local_industrial_type(local_rules, zone):
+        out['answer'] = 'Az országos forrás és a helyi ipari besorolás kapcsolata nem igazolt.'
+        return out
+    national = {r['Forrás']: r for r in profile.get('rows', [])}
+    local = {r['Forrás']: r for r in local_rules.get('rows', [])}
+    required = ('20. § (1)', '20. § (3)', '20. § (5)')
+    if any(ref not in national for ref in required) or '29. § (3)' not in local:
+        out['answer'] = 'A rendeltetési válasz ellenőrzött forráskapcsolata hiányos.'
+        return out
+    # Exact complete names only: negations, composite descriptions and unfamiliar
+    # functions must not be converted into permission by keyword matching.
+    name = purpose.casefold().strip().rstrip('.').strip()
+    if name in ('gyártócsarnok', 'üzemcsarnok', 'ipari üzem', 'ipari csarnok'):
+        out['status'] = 'Feltételek vizsgálandók'
+        out['answer'] = ('A gyártócsarnok megnevezése önmagában nem igazolja az elhelyezhetőséget. '
+            'Ebben a jelentős hatású ipari övezetben a technológia veszélyes, bűzös vagy nagy zajjal járó '
+            'jellegét és a más beépítésre szánt területen való elhelyezhetőségét is vizsgálni kell.')
+        out['sources'] = [dict(national[r], Forrás='OTÉK ' + r) for r in required[:2]]
+        out['checks'] = ['A technológia, a veszélyesség, a szag- és zajhatás leírása.',
+            'A más beépítésre szánt területen történő elhelyezés vizsgálata.']
+    elif name in ('lakás', 'lakóépület', 'szolgálati lakás', 'családi ház'):
+        out['status'] = 'Lakásra vonatkozó tiltás'
+        out['answer'] = ('A kiválasztott OTÉK 20. § (5) szerint a környezetre jelentős hatást gyakorló '
+            'iparterületen lakás nem helyezhető el. Ez a lakó rendeltetésre vonatkozó szabály; '
+            'az egyéb ipari terület lakásmegengedése erre a besorolásra nem alkalmazható.')
+        out['sources'] = [dict(national['20. § (5)'], Forrás='OTÉK 20. § (5)')]
+    else:
+        out['answer'] = ('A megadott rendeltetéshez még nincs ellenőrzött automatikus értékelés. '
+            'Összetett használatnál az egyes rendeltetéseket és a technológiát külön kell vizsgálni.')
+        return out
+    out['sources'].append(dict(local['29. § (3)'], Forrás='TÉSZ 29. § (3)'))
+    out['checks'].extend(['Teljes közművesítés igazolása.',
+        'Az övezeti beépítési mutatók, az építési hely és a telek térbeli korlátozásai.',
+        'A kiválasztott kötelező TÉKA-kiegészítések teljesítése; ez a rendeltetési részvizsgálat nem ellenőrzi valamennyi építési követelményt.'])
+    return out
+
+
+def render_purpose_review(result):
+    st.subheader('A tervezett rendeltetés vizsgálata')
+    if result['purpose']:
+        st.write('**Megadott rendeltetés:** ' + result['purpose'])
+    if result['status'] == 'Lakásra vonatkozó tiltás':
+        st.warning(result['answer'])
+    else:
+        st.info(result['answer'])
+    for check in result['checks']:
+        st.write('• ' + check)
+    if result['sources']:
+        with st.expander('A rendeltetési válasz pontos forrásai'):
+            for source in result['sources']:
+                st.link_button(source['Forrás'], source['URL'])
+                st.write(source['Forrásszöveg'])
+
+
 def render_case_review(case):
     review = case_data_review(case)
     st.subheader('Tervezett használat és ügyadatok')
-    st.caption('A megadott ügyadatok a vizsgálat előkészítését segítik. Nem igazolják a rendeltetés megengedettségét és nem választják ki automatikusan az OTÉK/TÉKA időállapotát.')
+    st.caption('Az ügyadatok alapján végzett OTÉK/TÉKA-kiválasztás eredménye fent olvasható. A felhasználói közlés nem dokumentummal igazolt ügytörténet és önmagában nem igazolja a rendeltetés megengedettségét.')
     st.dataframe(review['rows'], hide_index=True, use_container_width=True)
     for issue in review['issues']:
         st.warning(issue)
     if review['missing']:
         st.write('Még megadandó ügyadatok: ' + '; '.join(review['missing']) + '.')
     else:
-        st.info('A szükséges ügyadatmezők kitöltve. A dokumentumok és a tervi alap forrásellenőrzése még szükséges.')
+        st.info('A szükséges ügyadatmezők kitöltve. A felhasználói közlés dokumentumokkal történő igazolása külön feladat; a tervi alap forrásellenőrzésének eredménye fent olvasható.')
 
 
 def investigation_report(town, hrsz, zone, params, summary, local_rules,
                          national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.35 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.36 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -3514,6 +3584,12 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
         lines.append(plan_basis['proof'])
         for source in plan_basis['sources']: add_row(source)
     for source in selection.get('sources', []): add_row(source)
+    purpose = purpose_review(case, local_rules, national_rules, zone, selection)
+    lines.extend(['', 'TERVEZETT RENDELTETÉS – FORRÁSOLT RÉSZVIZSGÁLAT',
+                  'Megadott rendeltetés: ' + (purpose['purpose'] or 'nincs megadva'),
+                  'Állapot: ' + purpose['status'], purpose['answer']])
+    lines.extend('Vizsgálandó: ' + item for item in purpose['checks'])
+    for source in purpose['sources']: add_row(source)
     lines.extend(['', 'ORSZÁGOS FORRÁSOK – A KIVÁLASZTOTT CSOMAGGAL EGYÜTT ÉRTÉKELENDŐ'])
     for result in national_rules:
         cfg = NATIONAL_RULE_PROFILES[result['key']]
@@ -3549,7 +3625,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_35.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_36.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -3598,7 +3674,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.35 • nyilvános HRSZ API + telekgeometria • "
+        "v15.36 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -4144,6 +4220,7 @@ def main():
         render_applicability(applicability,plan_basis)
         render_national_rules(national_rules,zone,local_rules,applicability)
         render_buildability_summary(local_rules,national_rules,zone,applicability)
+    render_purpose_review(purpose_review(case,local_rules,national_rules,zone,applicability))
     render_case_review(case)
 
     # 6. Korlátozások
