@@ -7,6 +7,11 @@ import math
 import io
 import re
 import time
+import base64
+import json
+import subprocess
+import sys
+from pathlib import Path
 from collections import defaultdict
 
 import fitz
@@ -50,31 +55,75 @@ def _label_image(display_list, group, scale):
     return image.rotate(group['angle'],expand=True,fillcolor='white')
 
 
-def _ocr_words(image, tessdata):
+class OCRWorker:
+    """One child per index scan; waiting on its pipe releases the server GIL."""
+    def __enter__(self):
+        self.process=subprocess.Popen([sys.executable,'-u',str(Path(__file__).with_name('plan_ocr_worker.py'))],
+            stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True)
+        return self
+
+    def words(self,png,tessdata):
+        request={'png':base64.b64encode(png).decode('ascii'),'tessdata':tessdata}
+        try:
+            self.process.stdin.write(json.dumps(request)+'\n');self.process.stdin.flush()
+            line=self.process.stdout.readline()
+        except (BrokenPipeError,OSError) as exc:
+            raise RuntimeError('A külön OCR-folyamat megszakadt.') from exc
+        if not line:raise RuntimeError('A külön OCR-folyamat eredmény nélkül leállt.')
+        result=json.loads(line)
+        if 'error' in result:raise RuntimeError('OCR-feldolgozási hiba: '+result['error'])
+        return result['words']
+
+    def __exit__(self,*args):
+        self.process.stdin.close()
+        try:self.process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            self.process.kill();self.process.wait()
+        self.process.stdout.close()
+
+
+def _ocr_words(image, tessdata, worker=None):
     data=io.BytesIO();image.save(data,format='PNG')
+    if worker is not None:return worker.words(data.getvalue(),tessdata)
     pix=fitz.Pixmap(data.getvalue());pix.set_dpi(150,150)
     with fitz.open(stream=pix.pdfocr_tobytes(language='eng',tessdata=tessdata),filetype='pdf') as doc:
         return [(w[4],(w[0]+w[2])/2*150/72,(w[1]+w[3])/2*150/72)
                 for w in doc[0].get_text('words')]
 
 
-def outlined_label_index(doc, tessdata, max_seconds=180, on_progress=None):
+def outlined_label_index(doc, tessdata, max_seconds=180, on_progress=None, resume=None, on_checkpoint=None):
+    with OCRWorker() as worker:
+        return _outlined_label_index(doc,tessdata,max_seconds,on_progress,resume,on_checkpoint,worker)
+
+
+def _outlined_label_index(doc, tessdata, max_seconds=180, on_progress=None, resume=None, on_checkpoint=None, worker=None):
     """Bounded montage OCR supplies reusable number-label candidates.
 
     Completeness means all eligible path groups were processed, not that every
     printed label was recognised. No municipal name or HRSZ is embedded.
     """
-    started=time.monotonic();labels=[];scanned=0;total=0;pages=0
-    for number,page in enumerate(doc):
+    state=resume or {}
+    started=time.monotonic();labels=list(state.get('labels',[]));scanned=state.get('scanned',0)
+    total=state.get('candidates',0);pages=state.get('pages',0)
+    first_page=state.get('next_page',0);first_offset=state.get('next_offset',0)
+    counted_page=state.get('counted_page',-1)
+    def checkpoint(next_page,next_offset,complete=False):
+        result={'labels':list(labels),'complete':complete,'scanned':scanned,'candidates':total,'pages':pages,
+                'next_page':next_page,'next_offset':next_offset,'counted_page':counted_page}
+        if on_checkpoint:on_checkpoint(result)
+        return result
+    for number in range(first_page,len(doc)):
+        page=doc[number]
         groups=outlined_label_groups(page)
         # Rotated long numbers remain eligible; orientation comes from paths.
         groups=[g for g in groups if max(fitz.Rect(g['rect']).width,fitz.Rect(g['rect']).height)<30]
-        total+=len(groups)
+        if number>counted_page:
+            total+=len(groups);counted_page=number
         display_list=page.get_displaylist()
         try:
-            for offset in range(0,len(groups),64):
+            for offset in range(first_offset if number==first_page else 0,len(groups),64):
                 if time.monotonic()-started>max_seconds:
-                    return {'labels':labels,'complete':False,'scanned':scanned,'candidates':total,'pages':pages}
+                    return checkpoint(number,offset)
                 batch=groups[offset:offset+64]
                 cell_w,cell_h=200,80;columns=4
                 montage=Image.new('RGB',(cell_w*columns,cell_h*math.ceil(len(batch)/columns)),'white')
@@ -84,7 +133,7 @@ def outlined_label_index(doc, tessdata, max_seconds=180, on_progress=None):
                         label.thumbnail((cell_w-16,cell_h-16),Image.Resampling.LANCZOS)
                     montage.paste(label,((i%columns)*cell_w+(cell_w-label.width)//2,
                                          (i//columns)*cell_h+(cell_h-label.height)//2))
-                words=_ocr_words(montage,tessdata)
+                words=_ocr_words(montage,tessdata,worker)
                 matched=defaultdict(set)
                 for word,x,y in words:
                     i=int(y//cell_h)*columns+int(x//cell_w)
@@ -97,18 +146,28 @@ def outlined_label_index(doc, tessdata, max_seconds=180, on_progress=None):
                         labels.append({'page_number':number,'pdf_rect':group['rect'],
                                        'angle':group['angle'],'text':token,'label_only':True})
                 scanned+=len(batch)
+                checkpoint(number,offset+len(batch))
                 if on_progress:on_progress(number+1,len(doc),scanned,len(labels))
             pages+=1
+            checkpoint(number+1,0)
         finally:
             del display_list
             fitz.TOOLS.store_shrink(100)
-    return {'labels':labels,'complete':True,'scanned':scanned,'candidates':total,'pages':pages}
+    return checkpoint(len(doc),0,complete=True)
 
 
 def verify_outlined_hrsz(doc, index, target, tessdata):
     """Re-read source crops at two larger resolutions; never infer a zone."""
-    hits=[]
     candidates=[label for label in index.get('labels',[]) if exact_hrsz_token(label['text'],target)]
+    if not candidates:
+        return {'hits':[],'complete':index.get('complete',False),'scanned':index.get('scanned',0),
+                'candidates':index.get('candidates',0),'pages':index.get('pages',0)}
+    with OCRWorker() as worker:
+        return _verify_outlined_hrsz(doc,index,target,tessdata,candidates,worker)
+
+
+def _verify_outlined_hrsz(doc,index,target,tessdata,candidates,worker):
+    hits=[]
     for number in sorted({label['page_number'] for label in candidates}):
         display_list=doc[number].get_displaylist()
         try:
@@ -117,7 +176,7 @@ def verify_outlined_hrsz(doc, index, target, tessdata):
                 group={'rect':candidate['pdf_rect'],'angle':candidate['angle']};confirmed=[]
                 for scale in (24,32):
                     label=ImageOps.expand(_label_image(display_list,group,scale),border=30,fill='white')
-                    confirmed.append(any(exact_hrsz_token(word,target) for word,_,_ in _ocr_words(label,tessdata)))
+                    confirmed.append(any(exact_hrsz_token(word,target) for word,_,_ in _ocr_words(label,tessdata,worker)))
                     if not confirmed[-1]:break
                 if confirmed==[True,True]:
                     hits.append({**candidate,'method':'rajzi HRSZ-felirat, három felbontásban egyező felismerés'})
