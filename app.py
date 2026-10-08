@@ -1711,7 +1711,7 @@ def choose_plan_attachment(attachments, legal_text=""):
         if re.match(r"^1\.\s*melleklet\b", label) and "szabalyozasi terv" in key_text(legal_text):
             score += 1
 
-        if any(x in label or x in key_text(url) for x in (
+        if any(x in label or x in url_name for x in (
             "akadalymentes", "nyilatkozat", "jelmagyarazat",
             "parameter", "parameterek", "tajekoztato"
         )):
