@@ -772,6 +772,39 @@ def public_parcel_geometry(ksh_code, hrsz):
                 "A bounding-box válasz nem igazol tényleges telekhatár-poligont."
             )}
 
+def parcel_zone_overlap(parcel_geojson, zone_geojson, parcel_crs, zone_crs):
+    """Térbeli metszés kizárólag azonos, explicit koordinátarendszerben.
+
+    A számítás nem igazolja a bemeneti források jogi hitelességét vagy
+    időállapotát. Hiányzó CRS, érvénytelen geometria vagy puszta
+    határérintkezés esetén nem ad pozitív övezeti besorolást.
+    """
+    result = {"verified": False, "overlap_ratio": None, "reason": ""}
+    if not parcel_crs or not zone_crs or parcel_crs != zone_crs:
+        result["reason"] = "Hiányzó vagy eltérő koordinátarendszer."
+        return result
+    try:
+        from shapely.geometry import shape
+        if not isinstance(parcel_geojson, dict) or not isinstance(zone_geojson, dict):
+            raise ValueError("Hiányzó GeoJSON-poligon.")
+        if parcel_geojson.get("type") not in ("Polygon", "MultiPolygon"):
+            raise ValueError("A telek nem poligon.")
+        if zone_geojson.get("type") not in ("Polygon", "MultiPolygon"):
+            raise ValueError("Az övezet nem poligon.")
+        parcel, zone = shape(parcel_geojson), shape(zone_geojson)
+        if (not parcel.is_valid or not zone.is_valid or parcel.is_empty
+                or zone.is_empty or parcel.area <= 0 or zone.area <= 0):
+            raise ValueError("Érvénytelen vagy nulla területű poligon.")
+        ratio = parcel.intersection(zone).area / parcel.area
+        result["overlap_ratio"] = round(float(ratio), 8)
+        result["verified"] = ratio > 0
+        result["reason"] = ("Pozitív területű metszés; forráshitelesség külön ellenőrizendő."
+                            if ratio > 0 else "Nincs pozitív területű metszés.")
+    except (ValueError, TypeError, KeyError, AttributeError) as exc:
+        result["reason"] = str(exc)
+    return result
+
+
 def geometry_summary(geom):
     if not isinstance(geom, dict):
         return {}, ""
