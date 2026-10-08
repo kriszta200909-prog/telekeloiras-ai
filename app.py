@@ -1925,7 +1925,13 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
                     fitz.TOOLS.store_shrink(100)
                     if 'szabalyozasi terv' in opening:
                         break
-            if not opening.strip() and legal_text:
+            # A pontos HRSZ-t előbb a PDF saját szövegrétegében keressük.
+            # A költséges OCR-t csak akkor indítjuk, ha a tervlap egyébként
+            # sem a melléklet megnevezéséből, sem HRSZ-ből nem igazolható.
+            exact_hits = find_hrsz(doc, hrsz) if hrsz else []
+            attachment_name = key_text(candidate.get("Megnevezés", "") + " " + urllib.parse.unquote(urllib.parse.urlsplit(candidate.get("URL", "")).path))
+            named_plan = bool(re.search(r"szabalyozasi[ _-]*terv", attachment_name))
+            if not opening.strip() and legal_text and not (named_plan and exact_hits):
                 recognized = []
                 for scale in (2, 3):
                     pix = doc[0].get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
@@ -1935,13 +1941,10 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
                 if all('szabalyozasi terv' in title for title in recognized):
                     opening = recognized[0]
                 fitz.TOOLS.store_shrink(100)
-            exact_hits = find_hrsz(doc, hrsz) if hrsz else []
             title_ok = any(term in opening for term in ("szabalyozasi terv", "szabalyozasi tervlap"))
             # A tervlap címe CAD-export esetén rajzi görbévé alakulhat.
             # Ilyenkor a melléklet kifejezett tervmegnevezése ÉS a pontos
             # HRSZ-felirat együtt elegendő a PDF további feldolgozásához.
-            attachment_name = key_text(candidate.get("Megnevezés", "") + " " + urllib.parse.unquote(urllib.parse.urlsplit(candidate.get("URL", "")).path))
-            named_plan = bool(re.search(r"szabalyozasi[ _-]*terv", attachment_name))
             if title_ok or (named_plan and exact_hits):
                 # Prefer the official plan containing the exact requested parcel label.
                 if exact_hits:
