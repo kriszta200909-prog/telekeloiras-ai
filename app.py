@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.38
+# TelekElőírás AI v15.39
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -28,7 +28,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.38",
+    page_title="TelekElőírás AI v15.39",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2960,6 +2960,9 @@ NATIONAL_RULE_PROFILES = {'otek2012': {'document': '1997-253-20-22',
           'hashes': {21: '95381ed1fcbb8dd1c0036cc4dfc7a1e76d7c4430a23ac504700fd3b9534c4e83',
                      23: '416a4d00c5198d1e260ab8377ca93095a48369c8b2651eac077360e2105b773d',
                      24: 'ed31d487c5c52e3e8b9f1b490036f975efc4e910b39a739abcc82b7d7907eb33',
+                     50: 'da4904d6e8f4c89372a020c7bdc6d895aa2beb6dd3193ff2203893d91286a825',
+                     51: 'b6feee39733bd89e31d0bb3da9f08a863cab5dfce730702d705dce6c25bcd4a0',
+                     52: '72cb341ecea0bd85818c8b6cd4d729ed80d3c261cfb5ea99f2b9bef46302e904',
                      136: '279f0b4598a01e654070022052be22417f346701f7900ae2481b967338863622',
                      '137/A': '5115e6a1dbe1838d55def08a7788f1c0cb472977036abc4476c2d386ddff231b',
                      138: '276277578723c8fd9867d149d881eadd2868850e67a250833ad085c04532fcd7',
@@ -2985,7 +2988,7 @@ def verified_local_industrial_type(local_rules,zone):
 def national_rule_profile(key, page, zone, local_verified=False, local_rules=None):
     """Verify a complete official edition; return conditional source rows, never building permission."""
     import hashlib
-    result={'ok':False,'rows':[],'transition':[],'comparison':[],'error':'','key':key}
+    result={'ok':False,'rows':[],'transition':[],'comparison':[],'green':[],'error':'','key':key}
     cfg=NATIONAL_RULE_PROFILES.get(key)
     if not cfg or not local_verified or not isinstance(zone,str) or not re.fullmatch(r'Gip/[1-3]|Gksz/(?:[1-9]|1[0-5]|g)',zone):
         result['error']='Nincs ellenőrzött helyi övezeti kapcsolat az országos szabályokhoz.';return result
@@ -3002,13 +3005,15 @@ def national_rule_profile(key, page, zone, local_verified=False, local_rules=Non
     category=verified_local_industrial_type(local_rules,zone)
     for (section,clause),parts in reader.blocks.items():
         transition=key=='teka' and section in (136,'137/A',138,139)
-        if section not in sections and not transition:continue
+        green=key=='teka' and section in (50,51,52)
+        if section not in sections and not transition and not green:continue
         text=clean_text(' '.join(parts))
         # Repealed clauses have a number but no operative text.
         if re.fullmatch(r'\(?\d+\)?',text):continue
         ref=f'{section}. §'+(f' ({clause})' if clause is not None else '')
         scope='Alkalmazási és átmeneti rendelkezés' if transition else ('Kereskedelmi, szolgáltató gazdasági terület' if zone.startswith('Gksz/') else ('Ipari és egyéb ipari típus: a pontos besorolás külön igazolandó'))
-        if not transition and zone.startswith('Gip/'):
+        if green:scope='Zöldfelületi, fásítási és elhelyezési feltételek'
+        if not transition and not green and zone.startswith('Gip/'):
             scope=({'19/A':'Ipari gazdasági terület – jelentős környezeti hatás',20:'Egyéb ipari gazdasági terület'} if key=='otek2024' else {23:'Ipari gazdasági terület',24:'Egyéb ipari gazdasági terület'} if key=='teka' else {20:'Ipari gazdasági terület – altípus is igazolandó'}).get(section,scope)+'; a pontos besorolás külön igazolandó'
         row={'Területtípus':scope,'Forrás':ref,'Forrásszöveg':text,
              'URL':cfg['url']+'#'+urllib.parse.quote(reader.anchors[(section,clause)],safe='.@()')}
@@ -3017,7 +3022,7 @@ def national_rule_profile(key, page, zone, local_verified=False, local_rules=Non
              or (key in ('otek2012','otek2021') and section==20 and clause==4)))
         if other_type:
             row['Kapcsolat']='Más ipari típus: a helyi Gip-besoroláshoz nem kapcsolt összehasonlító forrás.'
-        elif category and not transition:
+        elif category and not transition and not green:
             row['Területtípus']=category['label']+' – az időállapot alkalmazhatósága még igazolandó'
             if key in ('otek2012','otek2021') and section==20 and clause==2:
                 row['Kapcsolat']='Általános típusfelsorolás; a helyi besorolás a jelentős hatású típus.'
@@ -3026,7 +3031,7 @@ def national_rule_profile(key, page, zone, local_verified=False, local_rules=Non
                     if key=='otek2012' else 'Jelentős hatású területen lakás nem helyezhető el; az egyéb ipari típusra írt lakásmegengedés nem kapcsolható ide.')
             else:
                 row['Kapcsolat']='A helyi ipari típushoz kapcsolt, feltételes országos szabály.'
-        result['transition' if transition else 'comparison' if other_type else 'rows'].append(row)
+        result['green' if green else 'transition' if transition else 'comparison' if other_type else 'rows'].append(row)
     result['industrial_type']=category
     result.update(ok=True,label=cfg['label'],basis=cfg['basis'])
     return result
@@ -3524,6 +3529,56 @@ def render_purpose_review(result):
                 st.write(source['Forrásszöveg'])
 
 
+def national_green_review(case, national_rules, applicability):
+    """Attach current green obligations only to a verified new-case package."""
+    out = {'ok': False, 'rows': [], 'sources': [], 'notes': []}
+    if not (applicability or {}).get('ok'):
+        out['notes'].append('Az országos alkalmazási csomag még nincs kiválasztva; TÉKA-zöldfelületi feltétel nem kapcsolható automatikusan az ügyhöz.')
+        return out
+    if (case or {}).get('scenario') != 'prospective':
+        out['notes'].append('Korábbi ügy zöldfelületi követelményeinek időállapota külön ellenőrzendő; a mai 50–52. § nem kerül automatikusan erre az ügyre.')
+        return out
+    if applicability.get('base_key') != 'teka' and not applicability.get('overlay'):
+        out['notes'].append('A kiválasztott csomaghoz nem igazolt a kötelező TÉKA-zöldfelületi kiegészítés.')
+        return out
+    teka = next((r for r in national_rules if r.get('key') == 'teka' and r.get('ok')), {})
+    sources = {r['Forrás']: r for r in teka.get('green', [])}
+    needed = ('50. § (1)', '50. § (2)', '50. § (3)', '50. § (4)', '51. §',
+              '52. § (1)', '52. § (2)', '52. § (3)', '52. § (4)')
+    if any(ref not in sources for ref in needed):
+        out['notes'].append('A TÉKA 50–52. § ellenőrzött forráslánca hiányos; automatikus feltétellista nem készül.')
+        return out
+    for ref, topic, condition in (
+        ('50. § (1)', 'Fásítás', 'A legkisebb teljes értékű zöldfelület, a helyi szigorúbb előírás és a meglévő faállomány alapján kell meghatározni a fásítást. A forrás nagy, közepes és kis lombkoronához eltérő területi arányt rendel; ezek alternatívák, nem összeadandó darabszámok.'),
+        ('50. § (2)', 'Nyári árnyékolás', 'A fák elhelyezésével biztosítani kell az épület nyári árnyékolását.'),
+        ('50. § (3)', 'Faültetési távolságok', 'A fa méretétől függően 3, 2 vagy 1 m távolság szerepel az épülettől és a telek kerítésétől; a közterületi határvonalon álló kerítés kivétel. A gyökérzet és ágrendszer károsító hatása is vizsgálandó.'),
+        ('50. § (4)', 'Parkolófásítás beszámítása', 'A hivatkozott parkolófásítási követelmény teljesítése beleszámít a zöldfelületi ellátottságba; a parkoló és a fásítás kialakítása külön igazolandó.'),
+        ('51. §', 'Visszaváltó automata – feltételes beszámítás', 'A korábban zöldfelületként használt terület csak a szakaszban meghatározott visszaváltó automata és az épületen belüli vagy burkolt elhelyezés hiánya esetén számítható be ezen a jogcímen. Ez nem általános zöldfelület-csökkentési kedvezmény.'),
+        ('52. § (1)', 'Telek megközelítése és közterületi fák', 'A megközelítés nem eredményezhet közterületi fakivágást; ha csak fakivágással oldható meg, a hivatkozott zöldinfrastruktúra-szabály szerinti pótlás szükséges.'),
+        ('52. § (2)', 'Közterületi parkoló átalakítása', 'Fásítás érdekében várakozóhely megszüntethető az előírás feltételeivel; ez lehetőség, nem minden telekre előírt kötelezettség.'),
+        ('52. § (3)', 'Szomszédos építmény használata', 'A közterületi fásítás nem korlátozhatja a szomszédos telken álló építmény használatát.'),
+        ('52. § (4)', 'Növénytelepítés helye', 'Növényzet a gyalogossáv és a telekhatár közötti területen is telepíthető; a konkrét kialakítás külön vizsgálandó.')):
+        out['rows'].append({'Téma': topic, 'Vizsgálandó feltétel': condition,
+                            'Állapot': 'forrás és alkalmazási kapcsolat igazolt; teljesülés nincs igazolva',
+                            'Forrás': 'TÉKA ' + ref, 'URL': sources[ref]['URL']})
+        out['sources'].append(sources[ref])
+    out['notes'].append('A helyi zöldfelületi százalék számszerű összevetése mellett ezek a kiválasztott országos feltételek is vizsgálandók. A beszámítható zöldfelület és a teljes értékű zöldfelület nem kezelhető automatikusan azonos adatként.')
+    out['ok'] = True
+    return out
+
+
+def render_national_green_review(result):
+    st.subheader('Országos zöldfelületi és fásítási feltételek')
+    if result['ok']:
+        st.dataframe(result['rows'], hide_index=True, use_container_width=True,
+                     column_config={'URL': st.column_config.LinkColumn('TÉKA-forrás')})
+        with st.expander('TÉKA 50–52. § – teljes, ellenőrzött forrásszöveg'):
+            for source in result['sources']:
+                st.link_button('TÉKA '+source['Forrás']+' – zöldfelületi feltétel', source['URL'])
+                st.write(source['Forrásszöveg'])
+    for note in result['notes']: st.write(note)
+
+
 def proposal_review(proposal, table_doc, zone, local_rules, source):
     """Compare declared design quantities with a hash-verified local table only."""
     from decimal import Decimal, InvalidOperation, localcontext
@@ -3637,7 +3692,7 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                          national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.38 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.39 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -3698,6 +3753,11 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                   'Állapot: ' + purpose['status'], purpose['answer']])
     lines.extend('Vizsgálandó: ' + item for item in purpose['checks'])
     for source in purpose['sources']: add_row(source)
+    green = national_green_review(case, national_rules, selection)
+    lines.extend(['', 'ORSZÁGOS ZÖLDFELÜLETI ÉS FÁSÍTÁSI FELTÉTELEK'])
+    for row in green['rows']: add_row(row)
+    lines.extend(green['notes'])
+    for source in green['sources']: add_row(source)
     if proposal_result is not None:
         lines.extend(['', 'TERVEZETT BEÉPÍTÉS – HELYI TÁBLÁZATI ÖSSZEVETÉS'])
         for row in proposal_result['inputs']: add_row(row)
@@ -3740,7 +3800,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_38.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_39.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -3789,7 +3849,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.38 • nyilvános HRSZ API + telekgeometria • "
+        "v15.39 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -4360,6 +4420,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     render_purpose_review(purpose_review(case,local_rules,national_rules,zone,applicability))
     proposal_result = proposal_review(case.get('proposal'),zone_table_doc,zone,local_rules,zone_table_source)
     render_proposal_review(proposal_result)
+    render_national_green_review(national_green_review(case,national_rules,applicability))
     render_case_review(case)
 
     # 6. Korlátozások
