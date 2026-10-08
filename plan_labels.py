@@ -67,16 +67,19 @@ class OCRWorker:
         request={'png':base64.b64encode(png).decode('ascii'),'tessdata':tessdata}
         try:
             self.process.stdin.write(json.dumps(request)+'\n');self.process.stdin.flush()
-            line=self.process.stdout.readline()
+            prefix='TELEK_OCR_RESULT:'
+            for _ in range(64):
+                line=self.process.stdout.readline()
+                if not line or line.startswith((prefix,'{"words":','{"error":')):break
+            else:raise RuntimeError('Az OCR-folyamat nem adott azonosítható választ.')
         except (BrokenPipeError,OSError) as exc:
             raise RuntimeError('A külön OCR-folyamat megszakadt.') from exc
         if not line:raise RuntimeError('A külön OCR-folyamat eredmény nélkül leállt.')
         try:
-            result=json.loads(line)
-        except (ValueError, TypeError) as exc:
+            result=json.loads(line[len(prefix):] if line.startswith(prefix) else line)
+        except (ValueError,TypeError) as exc:
             raise RuntimeError('Az OCR-folyamat érvénytelen választ adott.') from exc
-        if not isinstance(result,dict):
-            raise RuntimeError('Az OCR-folyamat válasza nem objektum.')
+        if not isinstance(result,dict):raise RuntimeError('Az OCR-folyamat válasza nem objektum.')
         if 'error' in result:raise RuntimeError('OCR-feldolgozási hiba: '+str(result['error']))
         return result['words']
 
