@@ -13,6 +13,24 @@ class PlanLabelTests(unittest.TestCase):
         self.assertEqual(len(hits),2)
         self.assertTrue(all(hit['label_only'] for hit in hits))
 
+    def test_four_reference_parcels_native_matching(self):
+        cases = [
+            ('Tiszaújváros', '2200/8', '2200/80'),
+            ('Budapest XII.', '8448/46', '8448/460'),
+            ('Komádi', '1558', '1558/1'),
+            ('Gersekarát', '034/15', '34/15'),
+        ]
+        for town, target, distractor in cases:
+            with self.subTest(town=town, hrsz=target):
+                doc = fitz.open()
+                page = doc.new_page()
+                page.insert_text((30, 40), f'({target}) {distractor}')
+                hits = native_hrsz_hits(doc, target)
+                self.assertEqual(len(hits), 1)
+                self.assertTrue(exact_hrsz_token(target, target))
+                self.assertFalse(exact_hrsz_token(distractor, target))
+                doc.close()
+
     def test_spaced_suffix_is_not_parent_parcel(self):
         doc=fitz.open();page=doc.new_page()
         page.insert_text((30,40),'1558 /1 1558 - 2 1558 .3 (1558)')
