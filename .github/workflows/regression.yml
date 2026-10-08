@@ -1,0 +1,26 @@
+name: TelekEloiras regression tests
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt numpy
+      - name: Syntax check
+        run: python -m compileall -q app.py plan_labels.py rule_inventory.py test_plan_labels.py test_rule_inventory.py
+      - name: Unit and regression tests
+        env:
+          STREAMLIT_SERVER_HEADLESS: 'true'
+        run: python -m unittest discover -v
