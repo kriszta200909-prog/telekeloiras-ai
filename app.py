@@ -717,6 +717,29 @@ def _find_parcel_record(data, hrsz):
                 return hit
     return None
 
+def _all_exact_parcel_ids(data, hrsz):
+    """Egy HRSZ-hez tartozó eltérő ingatlanazonosítók felismerése."""
+    target = normalize_hrsz(hrsz).casefold()
+    found = set()
+    def visit(obj):
+        if isinstance(obj, dict):
+            if any(k.casefold() in {"lotnumber", "hrsz", "landregister"}
+                   and normalize_hrsz(v).casefold() == target
+                   for k, v in obj.items() if isinstance(v, (str, int, float))):
+                for key in ("id", "parcelId", "parcel_id", "objectId", "objectID"):
+                    if obj.get(key) not in (None, ""):
+                        found.add(str(obj[key]))
+                        break
+            for value in obj.values():
+                if isinstance(value, (dict, list)):
+                    visit(value)
+        elif isinstance(obj, list):
+            for value in obj:
+                visit(value)
+    visit(data)
+    return found
+
+
 def _extract_id(obj):
     if isinstance(obj, dict):
         for k in ("id", "parcelId", "parcel_id", "objectId", "objectID"):
@@ -742,6 +765,9 @@ def public_parcel_geometry(ksh_code, hrsz):
     record = _find_parcel_record(data, h)
     if record is None:
         raise RuntimeError("A kereső nem adott pontosan egyező HRSZ-rekordot.")
+    matches = _all_exact_parcel_ids(data, h)
+    if len(matches) > 1:
+        raise RuntimeError("A HRSZ-kereső több különböző ingatlanazonosítót adott ugyanarra a helyrajzi számra; nem választunk önkényesen.")
     parcel_id = _extract_id(record)
     if not parcel_id:
         raise RuntimeError("A HRSZ-kereső válaszából nem sikerült ingatlan-azonosítót kinyerni.")
