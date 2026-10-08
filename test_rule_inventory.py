@@ -151,6 +151,21 @@ class RuleInventoryTests(unittest.TestCase):
         self.assertTrue(any(len(call.args) == 3 and isinstance(call.args[2], ast.Name)
                             and call.args[2].id == "budapest_district" for call in calls))
 
+    def test_ambiguous_parcel_ids_are_detected(self):
+        import ast
+        from pathlib import Path
+        tree = ast.parse(Path(__file__).with_name("app.py").read_text(encoding="utf-8"))
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                  and n.name == "_all_exact_parcel_ids")
+        scope = {"normalize_hrsz": lambda value: str(value).strip()}
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), "<app>", "exec"), scope)
+        ids = scope["_all_exact_parcel_ids"]
+        self.assertEqual(ids([{"id": 1, "lotNumber": "2200/8"},
+                              {"id": 2, "lotNumber": "2200/8"}], "2200/8"), {"1", "2"})
+        self.assertEqual(ids([{"id": 1, "lotNumber": "2200/8"},
+                              {"id": 1, "lotNumber": "2200/8"}], "2200/8"), {"1"})
+        self.assertEqual(ids([{"id": 1, "lotNumber": "2200/9"}], "2200/8"), set())
+
     def test_parcel_lookup_does_not_confuse_id_with_hrsz(self):
         import ast
         from pathlib import Path
