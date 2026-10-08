@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.42
+# TelekElőírás AI v15.43
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -28,7 +28,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.42",
+    page_title="TelekElőírás AI v15.43",
     page_icon="🏗️",
     layout="wide",
 )
@@ -3663,7 +3663,7 @@ def render_national_green_review(result):
 
 def national_parking_review(case, national_rules, applicability):
     """Current prospective source checklist and explicit surface-parking arithmetic."""
-    out = {'ok': False, 'rows': [], 'sources': [], 'calculation': [], 'notes': [], 'issues': []}
+    out = {'ok': False, 'rows': [], 'sources': [], 'calculation': [], 'accessible': [], 'notes': [], 'issues': []}
     if not (applicability or {}).get('ok') or (case or {}).get('scenario') != 'prospective':
         out['notes'].append('A mai parkolási feltételek csak kiválasztott országos csomaghoz és új ügy forgatókönyvéhez kapcsolhatók; korábbi ügy időállapota külön ellenőrizendő.')
         return out
@@ -3711,6 +3711,15 @@ def national_parking_review(case, national_rules, applicability):
         out['notes'].append('A két faállomány-változat nem összeadandó. Ez a megadott felszíni parkolókapacitás részszámítása; a helyi szigorúbb előírás, a kivételek, a tényleges elhelyezés és a faállomány minősége külön igazolandó.')
     else:
         out['notes'].append('Fásítási részszámításhoz 10-nél több helyből álló felszíni parkolót kell megadni. Üres vagy más kialakítású adat, illetve legfeljebb 10 hely nem eredményez automatikus nulla fa követelményt.')
+    if parking.get('public_building') == 'Igen' and count is not None and 0 < count <= 200:
+        out['accessible'] = [{'Megadott parkolókapacitás (db)': count,
+                              'Országos arány szerinti akadálymentes hely (db)': (count + 19) // 20,
+                              'Forrás': 'TÉKA 59. § (8) a)', 'URL': sources['59. § (8)']['URL']}]
+        out['notes'].append('A részszámítás a közhasználatú építményhez kapcsolódó, legfeljebb 200 férőhelyes parkoló megadott teljes kapacitására vonatkozik, kialakítástól függetlenül. A helyek mérete, megközelítése és tényleges akadálymentessége külön vizsgálandó.')
+    elif parking.get('public_building') == 'Igen' and count is not None and count > 200:
+        out['notes'].append('200 férőhely felett az 59. § (8) b) pont további követelményét is vizsgálni kell. Erre a tartományra ez a részszámítás még nem ad végleges helyszámot; a teljes forrásszöveg alább olvasható.')
+    else:
+        out['notes'].append('Az akadálymentes helyek részszámításához a közhasználatú építményhez való kapcsolódást és pozitív parkolókapacitást meg kell adni. Ismeretlen adat vagy nem közhasználatú kapcsolat nem igazol nulla akadálymentes helyigényt.')
     out['notes'].append('A parkolóhelyigény, akadálymentesség, elektromos töltés, napelemes árnyékolás és méretezés teljes megfelelése nincs automatikusan igazolva. A teljes 59–60. § és mellékletei, a helyi szabályok és a terv együtt ellenőrizendők.')
     return out
 
@@ -3723,6 +3732,10 @@ def render_national_parking_review(result):
         if result['calculation']:
             st.write('**A megadott felszíni parkoló fásításának két alternatívája:**')
             st.dataframe(result['calculation'], hide_index=True, use_container_width=True)
+        if result['accessible']:
+            st.write('**Akadálymentes parkolóhelyek – számarány részszámítása:**')
+            st.dataframe(result['accessible'], hide_index=True, use_container_width=True,
+                         column_config={'URL': st.column_config.LinkColumn('TÉKA-forrás')})
         with st.expander('TÉKA 59–60. § – teljes, ellenőrzött forrásszöveg'):
             for source in result['sources']:
                 st.link_button('TÉKA '+source['Forrás']+' – parkolási feltétel', source['URL'])
@@ -3918,7 +3931,7 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                          national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.42 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.43 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -3987,7 +4000,8 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
     parking = national_parking_review(case, national_rules, selection)
     lines.extend(['', 'PARKOLÁS ÉS PARKOLÓFÁSÍTÁS – ORSZÁGOS RÉSZVIZSGÁLAT'])
     add_row({'Megadott parkolási adat': 'Felhasználói közlés; tervből nincs igazolva', **((case or {}).get('parking') or {})})
-    for row in parking['rows'] + parking['calculation']: add_row(row)
+    add_row({'Ügyadat': 'Közhasználatú építményhez kapcsolódik a parkoló?', 'Megadott adat': ((case or {}).get('parking') or {}).get('public_building', 'Nem ismert')})
+    for row in parking['rows'] + parking['calculation'] + parking['accessible']: add_row(row)
     lines.extend(parking['issues'] + parking['notes'])
     for source in parking['sources']: add_row(source)
     demand = parking_demand_review(case,national_rules,selection)
@@ -4037,7 +4051,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_42.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_43.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -4086,7 +4100,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.42 • nyilvános HRSZ API + telekgeometria • "
+        "v15.43 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -4156,7 +4170,8 @@ def main():
         with st.expander('Parkoló – tervezett kialakítás'):
             case['parking'] = {
                 'surface': st.selectbox('Parkoló kialakítása', ['Nem ismert', 'Felszíni parkoló', 'Épületben vagy terepszint alatt']),
-                'spaces': st.number_input('Vizsgált parkoló gépjármű-várakozóhelyeinek száma', min_value=0, max_value=1000000, value=None, step=1)}
+                'spaces': st.number_input('Vizsgált parkoló gépjármű-várakozóhelyeinek száma', min_value=0, max_value=1000000, value=None, step=1),
+                'public_building': st.selectbox('Közhasználatú építményhez kapcsolódik a parkoló?', ['Nem ismert', 'Igen', 'Nem'])}
             st.caption('Egy adott parkoló kapacitását add meg. Ez nem a rendeltetés alapján szükséges parkolóhelyszám; a program nem következtet rá a beépített területből.')
 
         with st.expander('Parkolóigény – számítás egy rendeltetési egységre'):
