@@ -10,6 +10,16 @@ class RuleInventoryTests(unittest.TestCase):
         values.update(changes)
         return Clause(**values)
 
+    def test_nearby_zone_is_not_automatically_confirmed(self):
+        import ast
+        from pathlib import Path
+        source = Path(__file__).with_name('app.py').read_text(encoding='utf-8')
+        tree = ast.parse(source)
+        function = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'locate_parcel')
+        body = ast.get_source_segment(source, function)
+        self.assertIn('"status": "candidate_unverified" if candidates else "zone_not_found"', body)
+        self.assertIn('"zone": ""', body)
+
     def test_map_zone_candidates_do_not_join_unrelated_words(self):
         import ast
         from pathlib import Path
