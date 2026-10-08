@@ -609,9 +609,7 @@ def discover_njt_source(town, hrsz):
 
     # A kereső rangsora nem jogforrás: minden találatot külön ellenőrzünk.
     # A település nevét a címben is keressük, ne csak a rendelet szövegében.
-    town_terms = [key_text(town)]
-    if district:
-        town_terms += [key_text(district), key_text(place)]
+    town_terms = [key_text(place)] if district else [key_text(town)]
     for u in candidates[:16]:
         page = fetch_njt_page(u)
         if not page.get("ok"):
@@ -622,6 +620,9 @@ def discover_njt_source(town, hrsz):
         # A teljes rendeletszöveg említhet más települést is: ez nem bizonyíték.
         # A fejlécben pontos településnév vagy kerület szükséges.
         place_ok = any(term and term in title_text for term in town_terms)
+        if district:
+            # Budapest önmagában nem azonosítja a kerületi rendeletet.
+            place_ok = place_ok or (key_text("budapest") in title_text and key_text(district) in title_text)
         if is_building_rule and place_ok:
             title = clean_text(page.get("text", "").split("\n")[0])[:180] or "Automatikusan felderített NJT-forrás"
             return {
