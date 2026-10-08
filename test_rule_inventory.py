@@ -151,6 +151,21 @@ class RuleInventoryTests(unittest.TestCase):
         self.assertTrue(any(len(call.args) == 3 and isinstance(call.args[2], ast.Name)
                             and call.args[2].id == "budapest_district" for call in calls))
 
+    def test_njt_plan_search_retries_multiple_official_annexes(self):
+        import ast
+        from pathlib import Path
+        tree = ast.parse(Path(__file__).with_name("app.py").read_text(encoding="utf-8"))
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
+                  and n.name == "try_auto_plan")
+        calls = [n for n in ast.walk(fn) if isinstance(n, ast.Call)
+                 and isinstance(n.func, ast.Name) and n.func.id == "choose_plan_attachment"]
+        self.assertTrue(calls, "NJT mellékletválasztó hiányzik")
+        self.assertTrue(any(isinstance(n, ast.While) for n in ast.walk(fn)),
+                        "A következő mellékletet is meg kell próbálni")
+        self.assertTrue(any(isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                            and n.func.attr == "remove" for n in ast.walk(fn)),
+                        "A hibás jelöltet ki kell venni a további keresésből")
+
     def test_ambiguous_parcel_ids_are_detected(self):
         import ast
         from pathlib import Path
