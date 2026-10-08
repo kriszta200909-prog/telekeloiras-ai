@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.46
+# TelekElőírás AI v15.47
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,10 +26,11 @@ import fitz
 import streamlit as st
 from PIL import Image, ImageDraw
 from rule_inventory import Clause, build_inventory, source_digest
+from plan_labels import native_hrsz_hits, outlined_label_index, verify_outlined_hrsz
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.46",
+    page_title="TelekElőírás AI v15.47",
     page_icon="🏗️",
     layout="wide",
 )
@@ -1298,30 +1299,46 @@ def open_pdf_bytes(raw):
 
 
 def find_hrsz(doc, hrsz):
-    hits = []
-    seen = set()
+    return [{**hit,'pdf_rect':fitz.Rect(hit['pdf_rect'])} for hit in native_hrsz_hits(doc,hrsz)]
 
-    for page_no in range(len(doc)):
-        page = doc[page_no]
-        textpage = page.get_textpage()
-        for variant in hrsz_variants(hrsz):
-            for rect in page.search_for(variant, textpage=textpage):
-                signature = (
-                    page_no,
-                    round(rect.x0, 1),
-                    round(rect.y0, 1),
-                    round(rect.x1, 1),
-                    round(rect.y1, 1),
-                )
-                if signature not in seen:
-                    seen.add(signature)
-                    hits.append({
-                        "page_number": page_no,
-                        "pdf_rect": fitz.Rect(rect),
-                    })
-        del textpage
-        fitz.TOOLS.store_shrink(100)
-    return hits
+
+class IncompletePlanLabelIndex(Exception):
+    def __init__(self,result):
+        super().__init__('A rajzi feliratkeresés feldolgozási kerete lejárt.')
+        self.result=result
+
+
+@st.cache_data(show_spinner=False,ttl=3600,max_entries=8)
+def cached_outlined_plan_index(pdf_sha,algorithm_version,_doc):
+    index=outlined_label_index(_doc,plan_ocr_data(),max_seconds=180)
+    if not index['complete']:raise IncompletePlanLabelIndex(index)
+    return index
+
+
+def load_outlined_plan_labels(doc,hrsz):
+    # The key is always computed from this actual document, not source metadata.
+    raw=doc.tobytes(no_new_id=True) if doc.is_dirty else (doc.stream or doc.tobytes(no_new_id=True))
+    digest=source_digest(raw)
+    try:index=cached_outlined_plan_index(digest,'outlined-label-index-v1',_doc=doc)
+    except IncompletePlanLabelIndex as exc:index=exc.result
+    result=verify_outlined_hrsz(doc,index,normalize_hrsz(hrsz),plan_ocr_data())
+    result['source_sha256']=digest
+    return result
+
+
+def label_crop(page,hit):
+    """Render a bounded source region; the red box marks text, not a parcel."""
+    rect=fitz.Rect(hit['pdf_rect'])
+    if hit.get('coordinate_space')!='display':rect=visible_rect(page,rect)
+    cx,cy=(rect.x0+rect.x1)/2,(rect.y0+rect.y1)/2
+    clip=fitz.Rect(cx-150,cy-100,cx+150,cy+100)&page.rect
+    scale=4
+    pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+    image=Image.frombytes('RGB',(pix.width,pix.height),pix.samples)
+    draw=ImageDraw.Draw(image)
+    draw.rectangle((rect.x0*scale-pix.x-4,rect.y0*scale-pix.y-4,
+                    rect.x1*scale-pix.x+4,rect.y1*scale-pix.y+4),outline='red',width=3)
+    return image
 
 
 def visible_rect(page, pdf_rect):
@@ -1435,7 +1452,7 @@ def zone_candidates(page, pdf_rect):
     ]
 
 
-def locate_parcel(doc, hrsz):
+def locate_parcel(doc, hrsz, outlined=False):
     if doc is None:
         return {
             "status": "missing_plan",
@@ -1445,23 +1462,31 @@ def locate_parcel(doc, hrsz):
         }
 
     hits = find_hrsz(doc, hrsz)
+    scan={}
+    if not hits and outlined:
+        scan=load_outlined_plan_labels(doc,hrsz)
+        hits=[{**hit,'pdf_rect':fitz.Rect(hit['pdf_rect']),'coordinate_space':'display'}
+              for hit in scan['hits']]
     if not hits:
         return {
             "status": "parcel_not_found",
             "hit": None,
             "candidates": [],
             "zone": "",
+            "scan":scan,
         }
 
     hit = hits[0]
     page = doc[hit["page_number"]]
-    candidates = zone_candidates(page, hit["pdf_rect"])
+    candidates = zone_candidates(page, hit["pdf_rect"]) if len(hits)==1 and not scan else []
 
     return {
         "status": "candidate" if candidates else "zone_not_found",
         "hit": hit,
         "candidates": candidates,
         "zone": candidates[0]["Övezeti kód"] if candidates else "",
+        "hits":hits,
+        "scan":scan,
     }
 
 
@@ -4065,10 +4090,10 @@ def render_case_review(case):
 
 
 def investigation_report(town, hrsz, zone, params, summary, local_rules,
-                         national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None, source_inventory=None):
+                         national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None, source_inventory=None, label_search=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.46 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.47 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -4083,6 +4108,21 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
         add_row(row)
     if plan_source:
         lines.extend(['Szabályozási terv forrása: ' + plan_source, ''])
+    if label_search is not None:
+        lines.extend(['HRSZ-FELIRAT KERESÉSE – NEM TELEKHATÁR- VAGY ÖVEZETIGAZOLÁS'])
+        scan=label_search.get('scan',{})
+        if scan:
+            add_row({'PDF SHA-256':scan.get('source_sha256',''),
+                     'Feldolgozott rajzi feliratcsoport':scan.get('scanned',0),
+                     'Lezárt PDF-oldal':scan.get('pages',0),
+                     'Alkalmas feliratcsoportok keresése lezárult':scan.get('complete',False)})
+            lines.append('A feldolgozás lezárása nem bizonyítja minden térképi felirat felismerését; a hiányzó találat nem bizonyítja a telek hiányát.')
+        for hit in label_search.get('hits',[]):
+            add_row({'Pontos HRSZ-felirat':normalize_hrsz(hrsz),'PDF-oldal':hit['page_number']+1,
+                     'Felirat téglalapja PDF-pontban':str(tuple(hit['pdf_rect'])),
+                     'Koordináták':hit.get('coordinate_space','natív PDF'),
+                     'Felismerés':hit.get('method',''),
+                     'Állapot':'Felirattalálat; telekhatár és övezet nincs igazolva'})
     lines.extend(['ÖVEZETI PARAMÉTEREK'])
     if parameter_source:
         lines.append('Paraméterek forrása: ' + parameter_source)
@@ -4193,7 +4233,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_46.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_47.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -4242,7 +4282,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.46 • nyilvános HRSZ API + telekgeometria • "
+        "v15.47 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -4657,8 +4697,20 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
 
     # Native text is a fallback. Do not scan every large CAD sheet before the
     # geometric method or keep a second open document during that computation.
-    spatial = ({'status':'verified','hit':None,'candidates':[],'zone':''}
-               if plan_zone.get('zone') else locate_parcel(plan_doc,hrsz))
+    if plan_zone.get('zone'):
+        spatial={'status':'verified','hit':None,'candidates':[],'zone':''}
+    else:
+        try:
+            with st.spinner('Pontos HRSZ-felirat keresése – szükség esetén rajzi betűalakok feldolgozása, első alkalommal akár 3 perc…'):
+                spatial=locate_parcel(plan_doc,hrsz,outlined=source_valid)
+        except Exception as exc:
+            spatial={'status':'parcel_not_found','hit':None,'candidates':[],'zone':'','scan':{'error':str(exc)}}
+            st.warning('A rajzi HRSZ-felismerés nem fejeződött be: '+str(exc))
+    scan=spatial.get('scan',{})
+    if scan:
+        st.caption(f"Rajzi keresés: {scan.get('scanned',0)} feliratcsoport feldolgozva, {scan.get('pages',0)} tervlap feldolgozása lezárult. Ez az alkalmas betűalakok keresése; nem bizonyítja, hogy minden térképi felirat felismerhető volt.")
+        if not scan.get('complete'):
+            st.warning('A rajzi feliratkeresés nem teljes; további találat nem zárható ki. A hiányzó találat nem bizonyítja a telek hiányát.')
 
     if parcel_api:
         bbox, gtype = geometry_summary(parcel_api.get("geometry", {}))
@@ -4691,14 +4743,15 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
             )
     else:
         hit = spatial["hit"]
-        st.success(
-            f"A helyrajzi szám megtalálva a szabályozási terv "
-            f"{hit['page_number'] + 1}. PDF-oldalán."
-        )
+        st.success(f"A pontos HRSZ-felirat megtalálva a szabályozási terv {hit['page_number'] + 1}. PDF-oldalán.")
+        st.caption(hit.get('method','Pontos szöveges találat')+'. Ez a felirat helyét igazolja; a telekhatár és az övezet összekapcsolása külön ellenőrzés.')
+        if len(spatial.get('hits',[]))>1:
+            st.warning(f"{len(spatial['hits'])} pontos felirattalálat van. A legelső találatot nem tekintem automatikusan a vizsgált teleknek.")
+            st.dataframe([{'PDF-oldal':h['page_number']+1,'Felirat helye':str(tuple(h['pdf_rect'])),'Felismerés':h.get('method','')} for h in spatial['hits']],hide_index=True,use_container_width=True)
         page_obj = plan_doc[hit["page_number"]]
         st.image(
-            parcel_crop(page_obj, hit["pdf_rect"]),
-            caption="A helyrajzi szám környezete",
+            label_crop(page_obj,hit),
+            caption="A HRSZ-felirat környezete – a piros keret a feliratot jelöli, nem a telekhatárt",
             use_container_width=True,
         )
         if plan_source:
@@ -4883,6 +4936,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
             "Adat": "Telek",
             "Eredmény": f"{town} {normalize_hrsz(hrsz)}",
             "Forrás": ("hivatalos HRSZ-szolgáltatás + hatályos szabályozási terv" if plan_zone.get("zone")
+                       else "nyilvános HRSZ-szolgáltatás – pontos település és HRSZ, telekgeometriával" if parcel_api
                        else "felhasználói adat + hivatalos térképi ellenőrzés" if map_verified
                        else "felhasználói adat / hivatalos térképen ellenőrzendő"),
             "Bizonyosság": ("pontos HRSZ és geometria alapján ellenőrzött" if plan_zone.get("zone")
@@ -4913,6 +4967,11 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
             "Bizonyosság": "felhasználó által ellenőrzött" if map_verified else "nincs automatizálva",
         },
     ]
+    if spatial.get('hits'):
+        summary.append({'Adat':'Pontos HRSZ-felirat a terven',
+                        'Eredmény':f"{len(spatial['hits'])} felirattalálat; telekhatár és övezet külön igazolandó",
+                        'Forrás':plan_source,
+                        'Bizonyosság':'pontos natív felirat vagy több felbontásban egyező OCR-jelölt'})
     if meta and meta.get('scope_note'):
         summary.append({'Adat': 'Helyi rendelet területi hatálya',
                         'Eredmény': meta['scope_note'],
@@ -4938,7 +4997,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
                                   local_rules, national_rules, case,
                                   parameter_source=zone_table_source, plan_source=plan_source,
                                   applicability=applicability, plan_basis=plan_basis, proposal_result=proposal_result,
-                                  source_inventory=source_inventory)
+                                  source_inventory=source_inventory,label_search=spatial)
     render_report_download(report, hrsz)
     progress.finish()
 
