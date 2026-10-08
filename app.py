@@ -700,8 +700,7 @@ def _find_parcel_record(data, hrsz):
     target = normalize_hrsz(hrsz).casefold()
     if isinstance(data, dict):
         # Először azt a rekordot keressük, amelyben a HRSZ ténylegesen egyezik.
-        vals = {str(v).strip().casefold() for v in data.values() if isinstance(v, (str,int,float))}
-        if target in vals or any(k.casefold() in {"lotnumber","hrsz","landregister"} and normalize_hrsz(v).casefold()==target for k,v in data.items() if isinstance(v,(str,int,float))):
+        if any(k.casefold() in {"lotnumber","hrsz","landregister"} and normalize_hrsz(v).casefold()==target for k,v in data.items() if isinstance(v,(str,int,float))):
             return data
         for v in data.values():
             hit = _find_parcel_record(v, hrsz)
