@@ -10,6 +10,16 @@ class RuleInventoryTests(unittest.TestCase):
         values.update(changes)
         return Clause(**values)
 
+    def test_map_zone_candidates_do_not_join_unrelated_words(self):
+        import ast
+        from pathlib import Path
+        source = Path(__file__).with_name('app.py').read_text(encoding='utf-8')
+        tree = ast.parse(source)
+        function = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'zone_candidates')
+        body = ast.get_source_segment(source, function)
+        self.assertNotIn('ZONE_PATTERN.finditer(joined)', body)
+        self.assertIn('ZONE_PATTERN.finditer(text)', body)
+
     def test_miskolc_hyphenated_zone_pattern(self):
         import ast
         import re
