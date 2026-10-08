@@ -140,6 +140,17 @@ class RuleInventoryTests(unittest.TestCase):
         self.assertIn('"status": "ambiguous_parcel_labels"', body)
         self.assertIn('"hits": hits', body)
 
+    def test_selected_budapest_district_reaches_njt_discovery(self):
+        import ast
+        from pathlib import Path
+        tree = ast.parse(Path(__file__).with_name("app.py").read_text(encoding="utf-8"))
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "run_investigation")
+        calls = [n for n in ast.walk(fn) if isinstance(n, ast.Call)
+                 and isinstance(n.func, ast.Name) and n.func.id == "discover_njt_source"]
+        self.assertTrue(calls)
+        self.assertTrue(any(len(call.args) == 3 and isinstance(call.args[2], ast.Name)
+                            and call.args[2].id == "budapest_district" for call in calls))
+
     def test_parcel_lookup_does_not_confuse_id_with_hrsz(self):
         import ast
         from pathlib import Path
