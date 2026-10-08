@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.43
+# TelekElőírás AI v15.44
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -28,7 +28,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.43",
+    page_title="TelekElőírás AI v15.44",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2578,8 +2578,43 @@ TISZA_PLAN_SHA256='dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d
 TISZA_TABLE_SHA256='646f63c2c6da99ea9862dc6da3abfc3ed54883be718180f48e446496eac62a42'
 
 
-@st.cache_data(show_spinner=False,ttl=900,max_entries=2)
+class UnverifiedTiszaPlanZone(Exception):
+    def __init__(self, result):
+        super().__init__(result.get('detail', 'Az övezet nem igazolt.'))
+        self.result = result
+
+
+@st.cache_data(show_spinner=False, ttl=3600, max_entries=8)
+def cached_tisza_plan_zone(pdf_sha, geometry_json, hrsz, algorithm_version, _pdf_bytes):
+    # Only positive, complete evidence is reusable; exceptions are not cached.
+    result = compute_tiszaujvaros_plan_zone(_pdf_bytes, json.loads(geometry_json), hrsz)
+    if not result.get('zone'):
+        raise UnverifiedTiszaPlanZone(result)
+    return result
+
+
 def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
+    import hashlib
+    pdf_sha = hashlib.sha256(pdf_bytes).hexdigest()
+    if pdf_sha != TISZA_PLAN_SHA256:
+        return {'zone': '', 'detail': 'A tiszaújvárosi terv kiadása megváltozott; új forrásellenőrzés szükséges.', 'registrations': []}
+    normalized_hrsz = normalize_hrsz(hrsz)
+    if (str((geometry.get('settlement') or {}).get('kshCode')) != '28352'
+            or normalize_hrsz(geometry.get('lotNumber', '')) != normalized_hrsz):
+        return {'zone': '', 'detail': 'A geometria települése vagy pontos helyrajzi száma nem egyezik.', 'registrations': []}
+    # Keep every coordinate unchanged. Labels, timestamps and display metadata
+    # cannot change the geometry used by the verified native/OCR algorithm.
+    stable_geometry = {'settlement': {'kshCode': '28352'}, 'lotNumber': normalized_hrsz,
+                       'outline': geometry['outline']}
+    geometry_json = json.dumps(stable_geometry, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    try:
+        return cached_tisza_plan_zone(pdf_sha, geometry_json, normalized_hrsz,
+                                      'tisza-plan-zone-v15.44', _pdf_bytes=pdf_bytes)
+    except UnverifiedTiszaPlanZone as exc:
+        return exc.result
+
+
+def compute_tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
     import hashlib,numpy as np
     from shapely.geometry import Polygon
     from shapely.ops import unary_union
@@ -3931,7 +3966,7 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                          national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.43 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.44 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -4051,7 +4086,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_43.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_44.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -4100,7 +4135,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.43 • nyilvános HRSZ API + telekgeometria • "
+        "v15.44 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
