@@ -1935,9 +1935,16 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
                 if all('szabalyozasi terv' in title for title in recognized):
                     opening = recognized[0]
                 fitz.TOOLS.store_shrink(100)
-            if any(term in opening for term in ("szabalyozasi terv", "szabalyozasi tervlap")):
+            exact_hits = find_hrsz(doc, hrsz) if hrsz else []
+            title_ok = any(term in opening for term in ("szabalyozasi terv", "szabalyozasi tervlap"))
+            # A tervlap címe CAD-export esetén rajzi görbévé alakulhat.
+            # Ilyenkor a melléklet kifejezett tervmegnevezése ÉS a pontos
+            # HRSZ-felirat együtt elegendő a PDF további feldolgozásához.
+            attachment_name = key_text(candidate.get("Megnevezés", "") + " " + urllib.parse.unquote(urllib.parse.urlsplit(candidate.get("URL", "")).path))
+            named_plan = bool(re.search(r"szabalyozasi[ _-]*terv", attachment_name))
+            if title_ok or (named_plan and exact_hits):
                 # Prefer the official plan containing the exact requested parcel label.
-                if hrsz and find_hrsz(doc, hrsz):
+                if exact_hits:
                     if fallback_doc is not None:
                         fallback_doc.close()
                     return doc, final_url, ""
