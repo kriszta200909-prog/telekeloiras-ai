@@ -39,6 +39,13 @@ def main():
         # Zoning remains unverified without parcel-to-zone geometry.
         nearby = page.get_text("text")
         print("Gipe code visible in text layer:", bool(re.search(r"Gipe\s*-\s*60\.63\.5", nearby, re.I)), flush=True)
+        from app import zone_candidates
+        parcel_hit = next(m for m in matches if m["page_number"] == 30)
+        candidates = zone_candidates(page, fitz.Rect(parcel_hit["pdf_rect"]))
+        print("Nearby zoning candidates:", candidates, flush=True)
+        print("Expected Gipe label among nearby candidates:",
+              any(c["Övezeti kód"].casefold() == "gipe-60.63.5" for c in candidates), flush=True)
+
 
 
 if __name__ == "__main__":
