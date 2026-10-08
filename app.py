@@ -817,16 +817,19 @@ def parcel_zone_coverage(parcel_geojson, zone_features, crs):
         if parcel.geom_type not in ("Polygon", "MultiPolygon") or not parcel.is_valid or parcel.area <= 0:
             return out
         pieces = []
+        grouped = {}
         for item in zone_features:
             if item.get("crs") != crs or not item.get("code"):
                 return out
             zone = shape(item["geometry"])
             if zone.geom_type not in ("Polygon", "MultiPolygon") or not zone.is_valid or zone.area <= 0:
                 return out
-            part = parcel.intersection(zone)
+            grouped.setdefault(str(item["code"]), []).append(zone)
+        for code, polygons in grouped.items():
+            part = parcel.intersection(unary_union(polygons))
             if part.area > 0:
                 pieces.append(part)
-                out["zones"].append({"code": item["code"], "fraction": round(part.area / parcel.area, 8)})
+                out["zones"].append({"code": code, "fraction": round(part.area / parcel.area, 8)})
         if not pieces:
             return out
         covered = unary_union(pieces).area
