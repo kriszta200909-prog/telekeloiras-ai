@@ -140,6 +140,19 @@ class RuleInventoryTests(unittest.TestCase):
         self.assertIn('"status": "ambiguous_parcel_labels"', body)
         self.assertIn('"hits": hits', body)
 
+    def test_spatial_evidence_is_explicitly_unverified(self):
+        import fitz
+        import app
+        doc = fitz.open()
+        page = doc.new_page()
+        page.insert_text((40, 60), '034/15')
+        page.insert_text((65, 80), 'Gip/3')
+        result = app.locate_parcel(doc, '034/15')
+        self.assertEqual(result['zone'], '')
+        self.assertFalse(result['spatial_evidence']['parcel_boundary_verified'])
+        self.assertFalse(result['spatial_evidence']['zone_boundary_verified'])
+        self.assertFalse(result['spatial_evidence']['intersection_verified'])
+
     def test_nearby_zone_is_not_automatically_confirmed(self):
         import ast
         from pathlib import Path
