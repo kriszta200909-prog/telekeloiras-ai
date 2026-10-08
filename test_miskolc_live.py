@@ -38,7 +38,7 @@ def main():
         print("PASS: official PDF page 31 contains native HRSZ 4755/11", flush=True)
         # Zoning remains unverified without parcel-to-zone geometry.
         nearby = page.get_text("text")
-        print("Gipe code visible in text layer:", bool(re.search(r"Gipe\\s*-\\s*60\\.63\\.5", nearby, re.I)), flush=True)
+        print("Gipe code visible in text layer:", bool(re.search(r"Gipe\s*-\s*60\.63\.5", nearby, re.I)), flush=True)
 
 
 if __name__ == "__main__":
