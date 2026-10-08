@@ -86,6 +86,24 @@ def main():
         zone_words.sort(key=lambda w: ((w[0]+w[2])/2-center.x)**2 + ((w[1]+w[3])/2-center.y)**2)
         print("Closest zone-like PDF words:", [(w[4], round(((w[0]+w[2])/2-center.x)**2 + ((w[1]+w[3])/2-center.y)**2, 1)) for w in zone_words[:8]], flush=True)
 
+        # Inspect whether the source contains reusable vector geometry near the parcel.
+        drawings = page.get_drawings()
+        nearby_strokes = []
+        for d in drawings:
+            bounds = d.get("rect")
+            if bounds is None:
+                continue
+            expanded = fitz.Rect(rect.x0-75, rect.y0-75, rect.x1+75, rect.y1+75)
+            if fitz.Rect(bounds).intersects(expanded):
+                nearby_strokes.append(d)
+        print("Native drawing paths on parcel page:", len(drawings), flush=True)
+        print("Drawing paths within 75 PDF units of parcel:", len(nearby_strokes), flush=True)
+        print("Nearby vector line samples:", [
+            (str(d.get("type")), round(d.get("width") or 0, 3),
+             len(d.get("items", [])), str(d.get("color")))
+            for d in nearby_strokes[:12]], flush=True)
+
+
 
 
 if __name__ == "__main__":
