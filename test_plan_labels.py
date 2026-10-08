@@ -19,6 +19,7 @@ class PlanLabelTests(unittest.TestCase):
             ('Budapest XII.', '8448/46', '8448/460'),
             ('Komádi', '1558', '1558/1'),
             ('Gersekarát', '034/15', '34/15'),
+            ('Miskolc', '4755/11', '4755/110'),
         ]
         for town, target, distractor in cases:
             with self.subTest(town=town, hrsz=target):
