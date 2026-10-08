@@ -805,6 +805,45 @@ def parcel_zone_overlap(parcel_geojson, zone_geojson, parcel_crs, zone_crs):
     return result
 
 
+def parcel_zone_coverage(parcel_geojson, zone_features, crs):
+    """Több övezet együttes fedése; hiányos/átfedő forrás nem igazolt."""
+    from shapely.geometry import shape
+    from shapely.ops import unary_union
+    out = {"status": "unverified", "zones": [], "coverage": 0.0}
+    if not crs or not zone_features or not isinstance(parcel_geojson, dict):
+        return out
+    try:
+        parcel = shape(parcel_geojson)
+        if parcel.geom_type not in ("Polygon", "MultiPolygon") or not parcel.is_valid or parcel.area <= 0:
+            return out
+        pieces = []
+        for item in zone_features:
+            if item.get("crs") != crs or not item.get("code"):
+                return out
+            zone = shape(item["geometry"])
+            if zone.geom_type not in ("Polygon", "MultiPolygon") or not zone.is_valid or zone.area <= 0:
+                return out
+            part = parcel.intersection(zone)
+            if part.area > 0:
+                pieces.append(part)
+                out["zones"].append({"code": item["code"], "fraction": round(part.area / parcel.area, 8)})
+        if not pieces:
+            return out
+        covered = unary_union(pieces).area
+        out["coverage"] = round(covered / parcel.area, 8)
+        if sum(part.area for part in pieces) - covered > 0.000001 * parcel.area:
+            out["status"] = "overlapping_zones"
+        elif covered < 0.999999 * parcel.area:
+            out["status"] = "partial_coverage"
+        elif len(pieces) > 1:
+            out["status"] = "multiple_zones"
+        else:
+            out["status"] = "single_zone_spatial"
+    except (ValueError, TypeError, KeyError, AttributeError):
+        return {"status": "unverified", "zones": [], "coverage": 0.0}
+    return out
+
+
 def geometry_summary(geom):
     if not isinstance(geom, dict):
         return {}, ""
