@@ -140,6 +140,27 @@ class RuleInventoryTests(unittest.TestCase):
         self.assertIn('"status": "ambiguous_parcel_labels"', body)
         self.assertIn('"hits": hits', body)
 
+    def test_multiple_zone_coverage(self):
+        import ast
+        from pathlib import Path
+        source = Path(__file__).with_name("app.py").read_text(encoding="utf-8")
+        fn = next(n for n in ast.parse(source).body
+                  if isinstance(n, ast.FunctionDef) and n.name == "parcel_zone_coverage")
+        scope = {}
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), "<app>", "exec"), scope)
+        classify = scope["parcel_zone_coverage"]
+        def rect(a, b):
+            return {"type": "Polygon", "coordinates": [[
+                [a,0],[b,0],[b,10],[a,10],[a,0]]]}
+        parcel = rect(0,10)
+        def item(code, a, b, crs="EPSG:23700"):
+            return {"code": code, "geometry": rect(a,b), "crs": crs}
+        self.assertEqual(classify(parcel,[item("A",0,10)],"EPSG:23700")["status"],"single_zone_spatial")
+        self.assertEqual(classify(parcel,[item("A",0,5),item("B",5,10)],"EPSG:23700")["status"],"multiple_zones")
+        self.assertEqual(classify(parcel,[item("A",0,5)],"EPSG:23700")["status"],"partial_coverage")
+        self.assertEqual(classify(parcel,[item("A",0,7),item("B",5,10)],"EPSG:23700")["status"],"overlapping_zones")
+        self.assertEqual(classify(parcel,[item("A",0,10,"EPSG:4326")],"EPSG:23700")["status"],"unverified")
+
     def test_polygon_intersection_requires_matching_crs(self):
         import app
         def polygon(x0, y0, x1, y1):
