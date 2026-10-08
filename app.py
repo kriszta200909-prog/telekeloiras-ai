@@ -4880,6 +4880,16 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
         st.warning("A konkrét telek övezeti kódja nem állapítható meg biztonságosan.")
 
     if spatial.get("candidates"):
+        first_candidate = spatial["candidates"][0].get("Övezeti kód", "")
+        if not zone and first_candidate:
+            page_note = ""
+            if spatial.get("hit"):
+                page_note = f" (szabályozási terv PDF {spatial['hit']['page_number'] + 1}. oldal)"
+            st.info(
+                f"**Automatikusan megtalált legközelebbi övezeti jelölt: {first_candidate}**"
+                f"{page_note}. Ez még nem igazolt telekbesorolás: az övezethatár"
+                " és a telekhatár geometriai ellenőrzése hiányzik."
+            )
         st.caption("Az alábbi feliratok csak térképi jelöltek; a telek övezeti besorolását önmagukban nem igazolják.")
         st.dataframe(
             spatial["candidates"],
