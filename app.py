@@ -1424,8 +1424,9 @@ def parcel_crop(page, hit_rect, scale=0.11, zoom=0.8):
 
 ZONE_PATTERN = re.compile(
     r"\b(?:"
-    r"L[1-9]|Lk|Lke|Lk|Vt|Vi|Gip|Gksz|K|KÖu|KÖk|Ev|Eg|Má|Mk|Kb|Üh|Üü|Lf|Lke"
-    r")[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű0-9._-]*(?:\s*/\s*[A-Za-z0-9._-]+)+\b",
+    r"L[1-9]|Lk|Lke|Vt|Vi|Gipe|Gip|Gksz|KÖu|KÖk|Ev|Eg|Má|Mk|Kb|Üh|Üü|Lf|K"
+    r")[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű0-9._-]*"
+    r"(?:\s*/\s*[A-Za-z0-9._-]+|-[0-9]+(?:\.[0-9]+){1,})\b",
     flags=re.I,
 )
 
