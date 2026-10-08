@@ -1705,9 +1705,10 @@ def choose_plan_attachment(attachments, legal_text=""):
         if ".pdf" in url:
             score += 1
 
-        # Biztosan nem szabályozási terv.
-        if re.match(r"^1\.\s*melleklet\b", label):
-            score += 4
+        # A melléklet sorszáma önmagában nem bizonyítja, hogy tervlap.
+        # Csak a rendelet kifejezett tervhivatkozása vagy a fájl tartalma dönthet.
+        if re.match(r"^1\.\s*melleklet\b", label) and "szabalyozasi terv" in key_text(legal_text):
+            score += 1
 
         if any(x in label for x in ("akadalymentes", "nyilatkozat")):
             score -= 20
