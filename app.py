@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.36
+# TelekElőírás AI v15.37
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -28,7 +28,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.36",
+    page_title="TelekElőírás AI v15.37",
     page_icon="🏗️",
     layout="wide",
 )
@@ -3512,6 +3512,102 @@ def render_purpose_review(result):
                 st.write(source['Forrásszöveg'])
 
 
+def proposal_review(proposal, table_doc, zone, local_rules, source):
+    """Compare declared design quantities with a hash-verified local table only."""
+    from decimal import Decimal, InvalidOperation, localcontext
+    out = {'rows': [], 'inputs': [], 'issues': [], 'notes': [], 'sources': []}
+    proposal = proposal or {}
+    labels = {'area_basis': 'Mutatószámítás telekterületi alapja (m²)',
+              'built_area': 'Beépített terület összesen a tervezett állapotban (m²)',
+              'green_area': 'Beszámítható zöldfelület a tervezett állapotban (m²)',
+              'height': 'Tervezett épületmagasság (m)'}
+    values = {}
+    for key, label in labels.items():
+        raw = proposal.get(key)
+        out['inputs'].append({'Adat': label, 'Megadott érték': str(raw) if raw is not None else 'nincs megadva',
+                              'Bizonyosság': 'felhasználói közlés; számítási alap nincs igazolva'})
+        if raw is None:
+            continue
+        try:
+            if isinstance(raw, bool): raise InvalidOperation
+            value = Decimal(str(raw))
+            if not value.is_finite() or value < 0 or value > Decimal('1e12') or (key == 'area_basis' and value == 0):
+                raise InvalidOperation
+            values[key] = value
+        except (InvalidOperation, ValueError):
+            out['issues'].append(label + ': véges, 0 és 10¹² közötti szám szükséges; a területi alapnak pozitívnak kell lennie.')
+    if not any(v is not None for v in proposal.values()):
+        out['notes'].append('A tervezett beépítés számszerű adatai még nincsenek megadva.')
+        return out
+    if not local_rules.get('ok') or local_rules.get('zone') != zone:
+        out['notes'].append('Nincs igazolt helyi övezetkapcsolat; számszerű összevetés nem készül.')
+        return out
+    _, params, _ = verified_tisza_table_rows(table_doc, zone)
+    if not params:
+        out['notes'].append('Az övezeti paramétertábla kiadása vagy az övezeti sor nem igazolt; számszerű összevetés nem készül.')
+        return out
+    area = values.get('area_basis')
+    for key in ('built_area', 'green_area'):
+        if area is not None and key in values and values[key] > area:
+            out['issues'].append(labels[key] + ': nagyobb a megadott számítási alapnál; ellenőrizd a területeket és a beszámítás módját.')
+            values.pop(key)
+    def shown(value):
+        with localcontext() as context:
+            context.prec = max(28, value.adjusted() + 8)
+            return format(value.quantize(Decimal('0.001')), 'f').rstrip('0').rstrip('.').replace('.', ',')
+    for key, param, unit, minimum in (
+            ('built_area', 'Legnagyobb beépítettség', '%', False),
+            ('green_area', 'Legkisebb zöldfelület', '%', True),
+            ('height', 'Legnagyobb épületmagasság', 'm', False)):
+        match = re.fullmatch(r'(\d+(?:,\d+)?) '+re.escape(unit)+r'(?:; 2\. lábjegyzet)?', params.get(param, ''))
+        if not match: continue
+        limit = Decimal(match.group(1).replace(',', '.'))
+        value = values.get(key)
+        if key != 'height':
+            value = value * 100 / area if value is not None and area is not None else None
+        row = {'Mutató': param, 'Helyi táblázati határ': params[param],
+               'Számított / megadott érték': shown(value)+' '+unit if value is not None else 'nem számítható',
+               'Eredmény': 'Hiányzó vagy hibás adat', 'Számítás': '',
+               'Forrás': 'NJT – 1.2. melléklet, 2. PDF-oldal', 'URL': source}
+        if value is not None:
+            # Compare unrounded quantities; displayed rounding must not turn a
+            # small excess or deficit into a false pass at the threshold.
+            within = value >= limit if minimum else value <= limit
+            row['Eredmény'] = 'Helyi táblázati határon belül' if within else 'Helyi táblázati határtól eltér'
+            row['Számítás'] = (shown(values[key])+' / '+shown(area)+' × 100' if key != 'height'
+                               else 'megadott épületmagasság')
+            if key != 'height':
+                row['Határ területben'] = shown(area * limit / 100) + ' m²'
+            elif not within:
+                row['Eredmény'] = 'Táblázati magasság felett; technológiai eltérés külön vizsgálandó'
+        out['rows'].append(row)
+    for r in local_rules.get('rows', []):
+        if r['Forrás'] == '26. §': out['sources'].append(r)
+    for r in local_rules.get('conditional', []):
+        if r['Forrás'] in ('30. § (2)', '30. § (3)'): out['sources'].append(r)
+    out['notes'].extend(['Az összevetés a helyi táblázat számaira és a megadott tervezett állapotra vonatkozik; nem igazolja a teljes építési megfelelést.',
+        'A kijelzés három tizedesre kerekít; a határérték összevetése a kijelzési kerekítés előtt történik.',
+        'A beépített területbe a megmaradó és tervezett beépítést együtt kell beszámítani. Az épületmagasság nem azonos a legmagasabb pont magasságával.',
+        'A számítási telekterület és a zöldfelület beszámításának jogszerűségét külön igazolni kell. A nyilvános telekgeometria területe nem kerül automatikusan a számítás nevezőjébe.',
+        'TVK/MOL-területi érintettség esetén a TÉSZ 30. § külön számítási és megállapodási feltételeket írhat elő; az érintettség nincs igazolva.',
+        'A kötelező országos kiegészítések – így az alkalmazandó TÉKA-zöldfelületi követelmények – felülírhatják a helyi táblázati határt. Ezek teljesülését ez az összevetés nem állapítja meg.'])
+    return out
+
+
+def render_proposal_review(result):
+    st.subheader('Tervezett beépítés – számszerű összevetés')
+    for issue in result['issues']: st.warning(issue)
+    if result['rows']:
+        st.dataframe(result['rows'], hide_index=True, use_container_width=True,
+                     column_config={'URL': st.column_config.LinkColumn('Helyi táblázat')})
+    for note in result['notes']: st.write(note)
+    if result['sources']:
+        with st.expander('Magassági eltérés és sajátos területszámítás – pontos helyi források'):
+            for source in result['sources']:
+                st.link_button(source['Forrás']+' – számítási feltétel', source['URL'])
+                st.write(source['Forrásszöveg'])
+
+
 def render_case_review(case):
     review = case_data_review(case)
     st.subheader('Tervezett használat és ügyadatok')
@@ -3526,10 +3622,10 @@ def render_case_review(case):
 
 
 def investigation_report(town, hrsz, zone, params, summary, local_rules,
-                         national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None):
+                         national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.36 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.37 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -3590,6 +3686,13 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                   'Állapot: ' + purpose['status'], purpose['answer']])
     lines.extend('Vizsgálandó: ' + item for item in purpose['checks'])
     for source in purpose['sources']: add_row(source)
+    if proposal_result is not None:
+        lines.extend(['', 'TERVEZETT BEÉPÍTÉS – HELYI TÁBLÁZATI ÖSSZEVETÉS'])
+        for row in proposal_result['inputs']: add_row(row)
+        for row in proposal_result['rows']: add_row(row)
+        lines.extend('Hibás adat: ' + item for item in proposal_result['issues'])
+        lines.extend(proposal_result['notes'])
+        for row in proposal_result['sources']: add_row(row)
     lines.extend(['', 'ORSZÁGOS FORRÁSOK – A KIVÁLASZTOTT CSOMAGGAL EGYÜTT ÉRTÉKELENDŐ'])
     for result in national_rules:
         cfg = NATIONAL_RULE_PROFILES[result['key']]
@@ -3625,7 +3728,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_36.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_37.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -3674,7 +3777,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.36 • nyilvános HRSZ API + telekgeometria • "
+        "v15.37 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -3731,6 +3834,15 @@ def main():
                     case['prior_date'] = st.date_input('Korábbi engedély / bejelentés dátuma', value=None, min_value=date(1900, 1, 1), format='YYYY-MM-DD')
                     case['occupied'] = st.selectbox('Használatbavételi állapot 2025. július 1-jén', ['Nem ismert', 'Használatba vett', 'Nem vették használatba'])
                     case['deviation'] = st.selectbox('Eltérés a korábbi engedélytől / bejelentéstől', ['Nem ismert', 'Nincs eltérés', 'Van eltérés; kötöttsége még vizsgálandó', 'Engedély- vagy bejelentésköteles eltérés', 'Engedélyhez / bejelentéshez nem kötött eltérés'])
+
+        with st.expander('Tervezett beépítés – számítási adatok'):
+            st.caption('Opcionális adatok a tervezett végállapotról, a megmaradó beépítéssel együtt. Az üres mező ismeretlen adatot jelent.')
+            case['proposal'] = {
+                'area_basis': st.number_input('Mutatószámítás telekterületi alapja (m²)', min_value=0.0, value=None, step=1.0),
+                'built_area': st.number_input('Beépített terület összesen a tervezett állapotban (m²)', min_value=0.0, value=None, step=1.0),
+                'green_area': st.number_input('Beszámítható zöldfelület a tervezett állapotban (m²)', min_value=0.0, value=None, step=1.0),
+                'height': st.number_input('Tervezett épületmagasság (m)', min_value=0.0, value=None, step=0.1)}
+            st.caption('A számítási alapot és a zöldfelületi beszámítást tervből kell megadni. A helyi táblázati összevetés mellett az országos és sajátos területi feltételeket is ellenőrizni kell.')
 
         start = st.button(
             "Telekvizsgálat indítása",
@@ -4221,6 +4333,8 @@ def main():
         render_national_rules(national_rules,zone,local_rules,applicability)
         render_buildability_summary(local_rules,national_rules,zone,applicability)
     render_purpose_review(purpose_review(case,local_rules,national_rules,zone,applicability))
+    proposal_result = proposal_review(case.get('proposal'),zone_table_doc,zone,local_rules,zone_table_source)
+    render_proposal_review(proposal_result)
     render_case_review(case)
 
     # 6. Korlátozások
@@ -4308,7 +4422,7 @@ def main():
     report = investigation_report(town, hrsz, zone, combined_params, summary,
                                   local_rules, national_rules, case,
                                   parameter_source=zone_table_source, plan_source=plan_source,
-                                  applicability=applicability, plan_basis=plan_basis)
+                                  applicability=applicability, plan_basis=plan_basis, proposal_result=proposal_result)
     render_report_download(report, hrsz)
     progress.finish()
 
