@@ -38,7 +38,10 @@ def main():
         print("PASS: official PDF page 31 contains native HRSZ 4755/11", flush=True)
         # Zoning remains unverified without parcel-to-zone geometry.
         nearby = page.get_text("text")
-        print("Gipe code visible in text layer:", bool(re.search(r"Gipe\s*-\s*60\.63\.5", nearby, re.I)), flush=True)
+        zone_in_text = bool(re.search(r"Gipe\s*-\s*60\.63\.5", nearby, re.I))
+        print("Gipe code visible in text layer:", zone_in_text, flush=True)
+        if not zone_in_text:
+            raise AssertionError("Expected Gipe-60.63.5 label is missing from official PDF page 31")
         import ast
         # Extract only the pure zone matching helpers without importing Streamlit.
         from pathlib import Path
