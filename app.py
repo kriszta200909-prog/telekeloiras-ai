@@ -1,9 +1,13 @@
-# TelekElőírás AI v15.47
+# TelekElőírás AI v15.48
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
 #
 # Fontos: döntéstámogató eszköz, nem hatósági vagy jogi állásfoglalás.
+
+import os
+# Avoid oversubscribing CPU-limited hosting during Tesseract OCR.
+os.environ.setdefault("OMP_THREAD_LIMIT", "1")
 
 import io
 import json
@@ -30,7 +34,7 @@ from plan_labels import native_hrsz_hits, outlined_label_index, verify_outlined_
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.47",
+    page_title="TelekElőírás AI v15.48",
     page_icon="🏗️",
     layout="wide",
 )
@@ -1309,17 +1313,17 @@ class IncompletePlanLabelIndex(Exception):
 
 
 @st.cache_data(show_spinner=False,ttl=3600,max_entries=8)
-def cached_outlined_plan_index(pdf_sha,algorithm_version,_doc):
-    index=outlined_label_index(_doc,plan_ocr_data(),max_seconds=180)
+def cached_outlined_plan_index(pdf_sha,algorithm_version,_doc,_on_progress=None):
+    index=outlined_label_index(_doc,plan_ocr_data(),max_seconds=600,on_progress=_on_progress)
     if not index['complete']:raise IncompletePlanLabelIndex(index)
     return index
 
 
-def load_outlined_plan_labels(doc,hrsz):
+def load_outlined_plan_labels(doc,hrsz,on_progress=None):
     # The key is always computed from this actual document, not source metadata.
     raw=doc.tobytes(no_new_id=True) if doc.is_dirty else (doc.stream or doc.tobytes(no_new_id=True))
     digest=source_digest(raw)
-    try:index=cached_outlined_plan_index(digest,'outlined-label-index-v1',_doc=doc)
+    try:index=cached_outlined_plan_index(digest,'outlined-label-index-v2',_doc=doc,_on_progress=on_progress)
     except IncompletePlanLabelIndex as exc:index=exc.result
     result=verify_outlined_hrsz(doc,index,normalize_hrsz(hrsz),plan_ocr_data())
     result['source_sha256']=digest
@@ -1452,7 +1456,7 @@ def zone_candidates(page, pdf_rect):
     ]
 
 
-def locate_parcel(doc, hrsz, outlined=False):
+def locate_parcel(doc, hrsz, outlined=False, on_progress=None):
     if doc is None:
         return {
             "status": "missing_plan",
@@ -1464,7 +1468,7 @@ def locate_parcel(doc, hrsz, outlined=False):
     hits = find_hrsz(doc, hrsz)
     scan={}
     if not hits and outlined:
-        scan=load_outlined_plan_labels(doc,hrsz)
+        scan=load_outlined_plan_labels(doc,hrsz,on_progress=on_progress)
         hits=[{**hit,'pdf_rect':fitz.Rect(hit['pdf_rect']),'coordinate_space':'display'}
               for hit in scan['hits']]
     if not hits:
@@ -4093,7 +4097,7 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                          national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None, source_inventory=None, label_search=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.47 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.48 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -4233,7 +4237,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_47.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_48.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -4282,7 +4286,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.47 • nyilvános HRSZ API + telekgeometria • "
+        "v15.48 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -4701,8 +4705,12 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
         spatial={'status':'verified','hit':None,'candidates':[],'zone':''}
     else:
         try:
-            with st.spinner('Pontos HRSZ-felirat keresése – szükség esetén rajzi betűalakok feldolgozása, első alkalommal akár 3 perc…'):
-                spatial=locate_parcel(plan_doc,hrsz,outlined=source_valid)
+            label_progress=st.empty()
+            def show_label_progress(page,pages,scanned,labels):
+                label_progress.caption(f'Rajzi felismerés folyamatban: {page}/{pages}. tervlap, {scanned} feldolgozott feliratcsoport, {labels} számtartalmú jelölt. Az első keresés nagy tervlapon lassabb szerveren akár 10 percet is igényelhet.')
+            with st.spinner('Pontos HRSZ-felirat keresése – az első rajzi feldolgozás akár 10 perc; az elkészült feliratindex egy óráig újra felhasználható…'):
+                spatial=locate_parcel(plan_doc,hrsz,outlined=source_valid,on_progress=show_label_progress)
+            label_progress.empty()
         except Exception as exc:
             spatial={'status':'parcel_not_found','hit':None,'candidates':[],'zone':'','scan':{'error':str(exc)}}
             st.warning('A rajzi HRSZ-felismerés nem fejeződött be: '+str(exc))
@@ -4737,10 +4745,12 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
                 "a PDF szövegében a telek helyettesítőjeként használni."
             )
         else:
-            st.error(
-                "A helyrajzi számot nem találtam meg a szabályozási terv natív szövegrétegében, "
-                "és automatikus telekgeometria sem áll rendelkezésre."
-            )
+            if scan and not scan.get('complete'):
+                st.warning('A feldolgozott térképi feliratok között még nincs ellenőrzött HRSZ-találat. A keresés részleges, és automatikus telekgeometria sem áll rendelkezésre; ebből a telek hiányára nem lehet következtetni.')
+            elif scan:
+                st.warning('A natív szövegben és a feldolgozott rajzi feliratok között nincs ellenőrzött HRSZ-találat. Nem minden betűalak ismerhető fel; ez nem bizonyítja a telek hiányát. Automatikus telekgeometria sem áll rendelkezésre.')
+            else:
+                st.error('A helyrajzi számot nem találtam meg a szabályozási terv natív szövegrétegében, és automatikus telekgeometria sem áll rendelkezésre.')
     else:
         hit = spatial["hit"]
         st.success(f"A pontos HRSZ-felirat megtalálva a szabályozási terv {hit['page_number'] + 1}. PDF-oldalán.")
