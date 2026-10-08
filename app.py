@@ -1894,39 +1894,54 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
             if doc is not None:
                 doc.close()
             return None, preferred, f"Ellenőrzött NJT-tervmelléklet: {type(exc).__name__}: {exc}"
-    candidate = choose_plan_attachment(attachments, legal_text)
-    if not candidate:
-        return None, "", ""
-
-    doc = None
-    phase = "PDF-letöltés"
-    try:
-        raw, final_url = download_pdf(candidate["URL"])
-        phase = "PDF megnyitása és tervtartalom ellenőrzése"
-        doc = open_pdf_bytes(raw)
-        opening = key_text(doc[0].get_text("text")) if doc else ""
-        if opening.strip() and 'szabalyozasi terv' not in opening:
-            for index in range(1,min(6,len(doc))):
-                opening+=' '+key_text(doc[index].get_text('text'))
+    # A legelső találat gyakran jelmagyarázat vagy hibás PDF. A többi
+    # hivatalos NJT-mellékletet is megvizsgáljuk, nem állunk meg egynél.
+    remaining = list(attachments)
+    problems = []
+    checked = 0
+    while remaining and checked < 5:
+        candidate = choose_plan_attachment(remaining, legal_text)
+        if not candidate:
+            break
+        remaining.remove(candidate)
+        checked += 1
+        doc = None
+        phase = "PDF-letöltés"
+        try:
+            raw, final_url = download_pdf(candidate["URL"])
+            phase = "PDF megnyitása és tervtartalom ellenőrzése"
+            doc = open_pdf_bytes(raw)
+            if not doc or not len(doc):
+                problems.append(f"{candidate['URL']}: üres PDF")
+                if doc is not None:
+                    doc.close()
+                continue
+            opening = key_text(doc[0].get_text("text"))
+            if opening.strip() and 'szabalyozasi terv' not in opening:
+                for index in range(1, min(6, len(doc))):
+                    opening += ' ' + key_text(doc[index].get_text('text'))
+                    fitz.TOOLS.store_shrink(100)
+                    if 'szabalyozasi terv' in opening:
+                        break
+            if not opening.strip() and legal_text:
+                recognized = []
+                for scale in (2, 3):
+                    pix = doc[0].get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
+                    pix.set_dpi(72 * scale, 72 * scale)
+                    with fitz.open(stream=pix.pdfocr_tobytes(language='eng', tessdata=plan_ocr_data()), filetype='pdf') as cover:
+                        recognized.append(key_text(cover[0].get_text()))
+                if all('szabalyozasi terv' in title for title in recognized):
+                    opening = recognized[0]
                 fitz.TOOLS.store_shrink(100)
-                if 'szabalyozasi terv' in opening:break
-        if not opening.strip() and doc and legal_text:
-            recognized=[]
-            for scale in (2,3):
-                pix=doc[0].get_pixmap(matrix=fitz.Matrix(scale,scale),alpha=False)
-                pix.set_dpi(72*scale,72*scale)
-                with fitz.open(stream=pix.pdfocr_tobytes(language='eng',tessdata=plan_ocr_data()),filetype='pdf') as cover:
-                    recognized.append(key_text(cover[0].get_text()))
-            if all('szabalyozasi terv' in title for title in recognized):opening=recognized[0]
-            fitz.TOOLS.store_shrink(100)
-        if not any(term in opening for term in ("szabalyozasi terv", "szabalyozasi tervlap")):
+            if any(term in opening for term in ("szabalyozasi terv", "szabalyozasi tervlap")):
+                return doc, final_url, ""
             doc.close()
-            return None, final_url, "A melléklet PDF megnyitható, de szabályozási tervként nem igazolható a szövegéből."
-        return doc, final_url, ""
-    except Exception as exc:
-        if doc is not None:
-            doc.close()
-        return None, candidate.get("URL", ""), f"{phase}: {type(exc).__name__}: {exc}"
+            problems.append(f"{candidate['URL']}: nem igazolt szabályozási terv")
+        except Exception as exc:
+            if doc is not None:
+                doc.close()
+            problems.append(f"{candidate.get('URL', '')}: {phase}: {type(exc).__name__}: {exc}")
+    return None, "", " | ".join(problems[:5])
 
 
 
