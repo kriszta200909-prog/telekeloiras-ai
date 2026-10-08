@@ -315,6 +315,15 @@ def discover_attachments(page):
         )):
             continue
 
+        # Csak dokumentum/melléklet végpontokra engedünk automatikus PDF-letöltést.
+        # Egy másik NJT-rendeletre mutató hivatkozás nem tervmelléklet.
+        if not (
+            parsed.path.casefold().startswith("/document/")
+            or parsed.path.casefold().startswith("/download/")
+            or parsed.path.casefold().endswith(".pdf")
+        ):
+            continue
+
         if full in seen:
             continue
 
