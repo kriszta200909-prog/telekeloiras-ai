@@ -4769,48 +4769,10 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
 
     if meta is None:
         with st.spinner("Hivatalos NJT-forrás automatikus felderítése…"):
-            if detected_district:
-                # Ne keressük újra a kerületet: közvetlenül a már igazolt kerületre
-                # szűkített NJT-felderítést használjuk.
-                place_for_search = f"Budapest {detected_district}"
-                queries = [
-                    f'site:or.njt.hu "{place_for_search}" "kerületi építési szabályzat"',
-                    f'site:njt.jog.gov.hu "{place_for_search}" "kerületi építési szabályzat"',
-                    f'site:or.njt.hu "{place_for_search}" KÉSZ',
-                    f'site:or.njt.hu "{place_for_search}" "szabályozási terv"',
-                ]
-                candidates = []
-                for q in queries:
-                    for u in _search_web(q):
-                        if is_official_njt_url(u) and u not in candidates:
-                            candidates.append(u)
-                page = {}
-                meta = None
-                terms = [key_text("Budapest"), key_text(detected_district), key_text(place_for_search)]
-                for u in candidates[:10]:
-                    p = fetch_njt_page(u)
-                    if not p.get("ok"):
-                        continue
-                    body = key_text(p.get("text", ""))
-                    is_rule = any(x in body for x in (
-                        "epitesi szabalyzat", "helyi epitesi szabalyzat",
-                        "keruleti epitesi szabalyzat", "kesz"
-                    ))
-                    place_ok = any(t and t in body for t in terms[1:])
-                    if is_rule and place_ok:
-                        meta = {
-                            "municipality": town,
-                            "title": clean_text(p.get("text", "").split("\n")[0])[:180] or "Automatikusan felderített NJT-forrás",
-                            "regulation": "",
-                            "url": p.get("url") or u,
-                            "source": "kerületre szűkített automatikus NJT-forrásfelderítés",
-                            "district": detected_district,
-                            "district_evidence": detected_district_source,
-                        }
-                        page = p
-                        break
-            else:
-                meta, page = discover_njt_source(town, hrsz, budapest_district)
+            # Egységes, országos NJT-felderítés. Budapesten a kiválasztott
+            # kerület a rendelet fejlécében is ellenőrzendő; a teljes
+            # rendeletszövegben előforduló kerületnév önmagában nem bizonyíték.
+            meta, page = discover_njt_source(town, hrsz, detected_district)
 
     if meta:
         with st.spinner("NJT-forrás ellenőrzése…"):
