@@ -10,6 +10,29 @@ class RuleInventoryTests(unittest.TestCase):
         values.update(changes)
         return Clause(**values)
 
+    def test_annex_discovery_only_accepts_official_njt_https(self):
+        import ast
+        import re
+        import unicodedata
+        import urllib.parse
+        from pathlib import Path
+        source = Path(__file__).with_name("app.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "discover_attachments")
+        def key_text(value):
+            value = unicodedata.normalize("NFKD", str(value))
+            return "".join(c for c in value if not unicodedata.combining(c)).casefold()
+        scope = {"urllib": urllib, "urljoin": urllib.parse.urljoin, "key_text": key_text}
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), "<app>", "exec"), scope)
+        page = {"url": "https://njt.jog.gov.hu/jogszabaly/2022-38-SP-5Y1070",
+                "links": [("melléklet", "https://evil.example/plan.pdf"),
+                          ("melléklet", "http://njt.jog.gov.hu/document/x.pdf"),
+                          ("melléklet", "https://njt.jog.gov.hu.evil.example/document/x.pdf"),
+                          ("melléklet", "https://njt.jog.gov.hu/document/good.pdf")]}
+        rows = scope["discover_attachments"](page)
+        self.assertEqual([row["URL"] for row in rows],
+                         ["https://njt.jog.gov.hu/document/good.pdf"])
+
     def test_nationwide_source_discovery_rejects_wrong_budapest_district(self):
         import ast
         from pathlib import Path
