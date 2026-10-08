@@ -58,8 +58,12 @@ def main():
         parcel_hit = next(m for m in matches if m["page_number"] == 30)
         candidates = zone_candidates(page, fitz.Rect(parcel_hit["pdf_rect"]))
         print("Nearby zoning candidates:", candidates, flush=True)
-        print("Expected Gipe label among nearby candidates:",
-              any(c["Övezeti kód"].casefold() == "gipe-60.63.5" for c in candidates), flush=True)
+        expected_candidate = any(c["Övezeti kód"].casefold() == "gipe-60.63.5" for c in candidates)
+        print("Expected Gipe label among nearby candidates:", expected_candidate, flush=True)
+        if not expected_candidate:
+            raise AssertionError("Actual zoning candidate search missed Gipe-60.63.5 near 4755/11")
+        if candidates[0]["Övezeti kód"].casefold() != "gipe-60.63.5":
+            raise AssertionError("Nearest zoning candidate changed; inspect actual map geometry")
 
         # Also inspect actual PDF word geometry; this is evidence, not a parcel overlay.
         target = next(m for m in matches if m["page_number"] == 30)
