@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.33
+# TelekElőírás AI v15.35
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -16,6 +16,8 @@ import http.cookiejar
 import ssl
 import math
 import time
+from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from urllib.parse import urljoin
@@ -26,7 +28,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.33",
+    page_title="TelekElőírás AI v15.35",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2948,6 +2950,7 @@ NATIONAL_RULE_PROFILES = {'otek2012': {'document': '1997-253-20-22',
                      24: 'ed31d487c5c52e3e8b9f1b490036f975efc4e910b39a739abcc82b7d7907eb33',
                      136: '279f0b4598a01e654070022052be22417f346701f7900ae2481b967338863622',
                      '137/A': '5115e6a1dbe1838d55def08a7788f1c0cb472977036abc4476c2d386ddff231b',
+                     138: '276277578723c8fd9867d149d881eadd2868850e67a250833ad085c04532fcd7',
                      139: '9c20201cb2e3f1d91bf3f0822895b2f11717fb088f5e5d41152024c5b71764d0'},
           'label': 'TÉKA – ellenőrzött 2026. február 27-i kiadás',
           'basis': 'TÉKA 136. § (1) d): a TÉKA alapján készült terv; egyes rendelkezések más tervi alap '
@@ -2986,7 +2989,7 @@ def national_rule_profile(key, page, zone, local_verified=False, local_rules=Non
     sections=([21] if zone.startswith('Gksz/') else [23,24]) if key=='teka' else ([19] if zone.startswith('Gksz/') else ([20] if key in ('otek2012','otek2021') else ['19/A',20]))
     category=verified_local_industrial_type(local_rules,zone)
     for (section,clause),parts in reader.blocks.items():
-        transition=key=='teka' and section in (136,'137/A',139)
+        transition=key=='teka' and section in (136,'137/A',138,139)
         if section not in sections and not transition:continue
         text=clean_text(' '.join(parts))
         # Repealed clauses have a number but no operative text.
@@ -3030,21 +3033,254 @@ def load_national_rules(zone,local_verified,local_rules=None):
         return list(pool.map(load,keys))
 
 
-def render_national_rules(results,zone,local_rules=None):
+
+TISZA_BASIS_DOCUMENTS = (
+    ('https://tiszaujvaros.hu/images/doks/teszkoz/TISZAUJVAROS_2023_TOBB_RESZTER_TERVIRATOK_JOVAHAGYOTT.pdf',
+     '299c7ddac1bdcf51a755fe67c889e2df36815de27d6d3140640323d3ab217c02'),
+    ('https://www.tiszaujvaros.hu/images/doks/teszkoz/TISZAUJVAROS_2023_TOBB_RESZTER_JOVAHAGYOTT.pdf',
+     'bc380a7f3ca8c1ae329decbe9c73eceaf32b6aa416c7a82dd0970a19b36c505d'),
+)
+
+
+def verify_tisza_plan_basis(paths, plan_sha, local_rules, zone):
+    import hashlib
+    out = {'ok': False, 'key': '', 'error': '', 'sources': []}
+    if (plan_sha != TISZA_PLAN_SHA256 or not local_rules.get('ok')
+            or local_rules.get('zone') != zone or not local_rules.get('basis_evidence')):
+        out['error'] = 'A tervi alaphoz nincs azonos kiadású, ellenőrzött terv és helyi szabálykapcsolat.'
+        return out
+    if len(paths) != len(TISZA_BASIS_DOCUMENTS):
+        out['error'] = 'A tervi alap forráslánca hiányos.'
+        return out
+    try:
+        for path, (url, expected) in zip(paths, TISZA_BASIS_DOCUMENTS):
+            digest = hashlib.sha256()
+            with open(path, 'rb') as handle:
+                for chunk in iter(lambda: handle.read(1024 * 1024), b''):
+                    digest.update(chunk)
+            if digest.hexdigest() != expected:
+                out['error'] = 'A jóváhagyott tervirat kiadása megváltozott; új forrásellenőrzés szükséges.'
+                return out
+        with fitz.open(paths[0]) as records, fitz.open(paths[1]) as approved:
+            chief = clean_text(records[10].get_text())
+            cover = clean_text(approved[0].get_text())
+            annex = clean_text(approved[61].get_text())
+            if (len(records) != 194 or len(approved) != 123
+                    or '314/2012.' not in chief or '2021. JÚLIUS' not in chief
+                    or '12/2024.' not in cover or '12/2024.' not in annex):
+                out['error'] = 'A tervi alap dokumentumszerkezete nem egyezik.'
+                return out
+        # Reviewed link: approved pages 64–118 and current NJT pages 2–56
+        # have identical decoded drawing content streams on all 55 pages.
+        out.update(ok=True, key='otek2021',
+            label='OTÉK 2021. július 15-i II–III. fejezet – TÉKA 136. § (1) b)',
+            proof='A 12/2024. (IX. 27.) rendelettel jóváhagyott, a hatályos NJT-tervvel azonos rajzi anyag; 314/2012. szerinti követelmények és jelmagyarázat, 2021. július 15-ig hatályos OTÉK-alap.',
+            sources=[{'Forrás': 'Jóváhagyott módosítás – címoldal és 1. melléklet', 'URL': TISZA_BASIS_DOCUMENTS[1][0] + '#page=62'},
+                     {'Forrás': 'Főépítészi feljegyzés 1.2–1.3. pont', 'URL': TISZA_BASIS_DOCUMENTS[0][0] + '#page=11'}])
+    except Exception as exc:
+        out['error'] = 'A tervi alap forrásellenőrzése nem sikerült: ' + str(exc)
+    return out
+
+
+@st.cache_data(show_spinner=False, ttl=3600, max_entries=2)
+def download_tisza_basis_paths():
+    # Sequential downloads limit peak memory; the cache stores paths only.
+    return [download_pdf_location(url)[0] for url, digest in TISZA_BASIS_DOCUMENTS]
+
+
+def load_tisza_plan_basis(local_rules, zone, plan_sha):
+    if (plan_sha != TISZA_PLAN_SHA256 or not local_rules.get('ok')
+            or local_rules.get('zone') != zone):
+        return verify_tisza_plan_basis([], plan_sha, local_rules, zone)
+    try:
+        paths = download_tisza_basis_paths()
+        return verify_tisza_plan_basis(paths, plan_sha, local_rules, zone)
+    except Exception as exc:
+        return {'ok': False, 'key': '', 'sources': [],
+                'error': 'A tervi alap hivatalos dokumentumai nem tölthetők le: ' + str(exc)}
+
+
+
+def verify_previous_teka_overlay(page):
+    import hashlib
+    url = 'https://njt.jog.gov.hu/jogszabaly/2024-280-20-22.5'
+    out = {'ok': False, 'error': '', 'row': None}
+    if not page.get('ok') or page.get('url') != url:
+        out['error'] = 'A korábbi TÉKA-kiegészítések hivatalos forrása nem érhető el.'
+        return out
+    reader = TiszaLegalParagraphs('2024-280-20-22')
+    reader.feed(page.get('html', ''))
+    hashes = {136: '9d19035a033dfe6f10ea82b0544a870c20288947b0fba763e1ec403fb4f460bb',
+              138: '276277578723c8fd9867d149d881eadd2868850e67a250833ad085c04532fcd7'}
+    if reader.editions != ['2025.12.24.']:
+        out['error'] = 'A korábbi TÉKA-forrás időállapota nem egyezik.'
+        return out
+    for section, expected in hashes.items():
+        text = '\n'.join(str(b) + ':' + clean_text(' '.join(parts))
+                         for (n, b), parts in reader.blocks.items() if n == section)
+        if section in reader.duplicates or hashlib.sha256(text.encode()).hexdigest() != expected:
+            out['error'] = 'A korábbi TÉKA-forrás szövege vagy szerkezete eltér.'
+            return out
+    out.update(ok=True, row={'Forrás': '136. § (2) – 2026. január 14. előtti szöveg',
+                              'Forrásszöveg': clean_text(' '.join(reader.blocks[(136, 2)])),
+                              'URL': url + '#SZ136@BE2'})
+    return out
+
+
+def load_previous_teka_overlay():
+    try:
+        return verify_previous_teka_overlay(fetch_njt_page('https://njt.jog.gov.hu/jogszabaly/2024-280-20-22.5'))
+    except Exception as exc:
+        return {'ok': False, 'error': 'A korábbi TÉKA-forrás betöltése nem sikerült: ' + str(exc), 'row': None}
+
+
+def select_national_applicability(case, plan_basis, national_rules, today=None, previous_overlay=None):
+    """Select a scoped legal package, not an unconditional building permission."""
+    today = today or datetime.now(ZoneInfo('Europe/Budapest')).date()
+    case = case or {}
+    out = {'ok': False, 'base_key': '', 'overlay': False, 'reasons': [],
+           'sources': [], 'missing': [], 'assumptions': []}
+    profiles = {r.get('key'): r for r in national_rules if r.get('ok')}
+    teka = profiles.get('teka')
+    if not teka:
+        out['missing'].append('Az átmeneti szabályok ellenőrzött TÉKA-forrása.')
+        return out
+    refs = {r['Forrás']: r for r in teka.get('transition', [])}
+    required_refs = ('136. § (1)', '136. § (2)', '136. § (4)', '137/A. §', '138. §', '139. § (2)')
+    if any(ref not in refs for ref in required_refs):
+        out['missing'].append('A kiválasztáshoz szükséges teljes átmeneti forráslánc.')
+        return out
+    prospective = case.get('scenario') == 'prospective'
+    if prospective:
+        started, event, prior = today, 'Hatósági eljárás kezdete', 'Nincs'
+        out['assumptions'].append('Új, a vizsgálat napján induló hatósági eljárás; korábbi engedély vagy bejelentés nélkül. Ez vizsgálati forgatókönyv, nem igazolt ügytörténet.')
+    else:
+        started, event, prior = case.get('started'), case.get('event'), case.get('prior')
+        issues = case_data_review(case, today)['issues']
+        if issues:
+            out['missing'].extend(issues)
+            return out
+        if case.get('current_status') != 'Folyamatban / jelenleg vizsgált cselekmény':
+            out['missing'].append('Az ügy jelenlegi állapota. Lezárt ügy történeti vizsgálatához a korabeli teljes forráskiadás szükséges.')
+        if not isinstance(started, date) or started > today:
+            out['missing'].append('A tényleges kezdő esemény dátuma.')
+        if prior not in ('Van', 'Nincs'):
+            out['missing'].append('Van-e korábbi engedély vagy bejelentés?')
+        if out['missing']:
+            return out
+    authority = 'Hatósági eljárás kezdete'
+    doc = 'Engedélyhez / bejelentéshez nem kötött kivitelezési dokumentáció átadása'
+    activity = 'Kivitelezési dokumentációhoz nem kötött építési tevékenység kezdete'
+    council = 'Építészeti tervtanácsi vagy egyéb eljárás kezdete'
+    use = 'Területhasználat kezdete'
+    if event not in (authority, doc, activity, council, use):
+        out['missing'].append('A kezdő esemény pontos típusa és az engedély-/dokumentációkötöttség.')
+        return out
+    cutoff = date(2025, 7, 1)
+    old_permit = False
+    binding = False
+    if prior == 'Van':
+        previous = case.get('prior_date')
+        if not isinstance(previous, date):
+            out['missing'].append('A korábbi engedély vagy bejelentés dátuma.')
+            return out
+        old_permit = previous < cutoff
+        deviation = case.get('deviation')
+        if old_permit:
+            if deviation not in ('Nincs eltérés', 'Engedély- vagy bejelentésköteles eltérés', 'Engedélyhez / bejelentéshez nem kötött eltérés'):
+                out['missing'].append('A korábbi dokumentációtól való eltérés pontos kötöttsége.')
+                return out
+            binding = deviation == 'Engedély- vagy bejelentésköteles eltérés'
+            if binding and case.get('occupied') not in ('Használatba vett', 'Nem vették használatba'):
+                out['missing'].append('A 2025. július 1-jei használatbavételi állapot.')
+                return out
+    def choose(key, reason, source_ref):
+        if key not in profiles:
+            out['missing'].append('A kiválasztott országos forráskiadás ellenőrzése: ' + key)
+            return False
+        out.update(base_key=key)
+        out['reasons'].append(reason)
+        out['sources'].append(refs[source_ref])
+        return True
+    special_binding = old_permit and binding and case.get('occupied') == 'Nem vették használatba'
+    grandfather = (not special_binding and
+        ((started < cutoff and event in (authority, doc, activity))
+         or (old_permit and case.get('deviation') == 'Engedélyhez / bejelentéshez nem kötött eltérés')))
+    if grandfather:
+        if choose('otek2024', 'Korábbi ügy vagy nem köteles eltérés: OTÉK 2024. december 31-i szöveg, a 137/A. § alapján.', '137/A. §'):
+            out['sources'].append(refs['138. §'])
+            out['ok'] = True
+        return out
+    if started < date(2025, 1, 1):
+        out['missing'].append('A 2025 előtt kezdett, a 137/A. §-ba nem sorolható ügy korabeli szabályozása.')
+        return out
+    if not plan_basis.get('ok') or plan_basis.get('key') not in ('otek2012', 'otek2021', 'otek2024', 'teka'):
+        out['missing'].append(plan_basis.get('error') or 'A terv készítési követelményei és jelmagyarázata.')
+        return out
+    key = plan_basis['key']
+    if not choose(key, 'A terv igazolt készítési alapja alapján: ' + NATIONAL_RULE_PROFILES[key]['label'] + (' teljes rendelet.' if key == 'teka' else ' II–III. fejezet és mellékletek.'), '136. § (1)'):
+        return out
+    if special_binding:
+        out['reasons'].append('A régi engedélytől / bejelentéstől köteles eltérésre TÉKA is alkalmazandó, a 136. § (1)–(3) figyelembevételével; ez nem írja át a teljes eredeti engedély szabályozását.')
+        out['sources'].append(refs['136. § (4)'])
+    if started >= cutoff:
+        out['overlay'] = True
+        if started < date(2026, 1, 14):
+            if event not in (authority, council):
+                out['missing'].append('Eljárás nélküli, 2026. január 14. előtti cselekménynél az átmeneti időbeli hatály külön vizsgálandó.')
+                out['sources'].append(refs['139. § (2)'])
+                return out
+            if not (previous_overlay or {}).get('ok'):
+                out['missing'].append((previous_overlay or {}).get('error') or 'A 2026. január 14. előtti TÉKA 136. § (2) ellenőrzött szövege.')
+                return out
+            out['reasons'].append('A korábban indult eljárásnál a 136. § (2) korábbi szövege szerinti kötelező TÉKA-kiegészítések tartoznak az OTÉK-alaphoz; a módosított felsorolás nem kerül automatikusan erre az ügyre.')
+            out['sources'].extend([previous_overlay['row'], refs['138. §'], refs['139. § (2)']])
+        else:
+            out['reasons'].append('A TÉKA 136. § (2)-ben felsorolt rendelkezéseit a helyi terv korától függetlenül is alkalmazni kell; a csomag OTÉK-alap és kötelező TÉKA-kiegészítések együttese.')
+            out['sources'].extend([refs['136. § (2)'], refs['139. § (2)']])
+    elif special_binding:
+        out['missing'].append('A köteles eltérés kezdete és korabeli TÉKA-szövege külön ellenőrizendő.')
+        return out
+    out['ok'] = True
+    return out
+
+
+def render_applicability(result, plan_basis):
+    st.subheader('Automatikusan kiválasztott országos szabályozás')
+    for assumption in result['assumptions']:
+        st.caption(assumption)
+    if plan_basis.get('ok'):
+        st.write('**Tervi alap forrásból igazolva:** ' + plan_basis['label'])
+        for source in plan_basis['sources']:
+            st.link_button(source['Forrás'], source['URL'])
+    if result['ok']:
+        label = NATIONAL_RULE_PROFILES[result['base_key']]['label']
+        st.success(label + (' + kötelező TÉKA-kiegészítések' if result['overlay'] else ''))
+        st.caption('A kiválasztás a vizsgálati forgatókönyvre vagy a megadott ügyadatokra érvényes. A konkrét építési jogosultságot a helyi, országos és telekspecifikus feltételek együtt határozzák meg.')
+    else:
+        st.warning('Az alkalmazási csomag nem választható ki teljesen: ' + '; '.join(result['missing']))
+    for reason in result['reasons']:
+        st.write(reason)
+    with st.expander('A kiválasztás pontos átmeneti jogszabályhelyei'):
+        for row in result['sources']:
+            st.link_button(row['Forrás'] + ' – kiválasztási alap', row['URL'])
+            st.write(row['Forrásszöveg'])
+
+
+def render_national_rules(results,zone,local_rules=None,applicability=None):
     st.subheader('Országos rendeltetési szabályok – alkalmazási alap ellenőrzése')
-    st.info('Az országos források ellenőrzésének eredménye alább látható. A telekre alkalmazandó OTÉK/TÉKA-időállapot még nincs igazolva. Az alábbi változatok feltételesek; ezekből a program nem állapít meg építési jogosultságot.')
-    st.write('**Még szükséges:** a helyi terv készítési alapja és jelmagyarázata, valamint az ügy kezdete, az engedély/bejelentés és az esetleges eltérés adatai. A helyi rendelet évszáma és a Gip/Gksz kód önmagában nem elegendő.')
+    selected = (applicability or {}).get('ok', False)
+    if not selected:
+        st.info('A telekre és ügyre alkalmazandó teljes országos szabályozási csomag még nem igazolt. A forrásváltozatok feltételesek.')
+    else:
+        st.info('A kiválasztott alkalmazási csomag fent olvasható. Az alábbi forrásjegyzék a kiválasztott alapot és a többi átmeneti út ellenőrzött forrásait tartalmazza.')
+    if not selected:
+        st.write('A kiválasztáshoz szükséges hiányzó adatok a kiválasztási eredménynél szerepelnek. A helyi rendelet évszáma és a Gip/Gksz kód önmagában nem elegendő.')
     category=verified_local_industrial_type(local_rules,zone)
     evidence=(local_rules or {}).get('basis_evidence') if (local_rules or {}).get('ok') else None
     if evidence:
         st.write('**A helyi forrásból már igazolt:** '+evidence['Eredmény'])
         st.link_button(evidence['Forrás']+' – országos hivatkozás',evidence['URL'])
-    if evidence:
-        with st.expander('Tervi alap – a 2023-as módosítás történeti bizonyítéka'):
-            st.write('A jóváhagyott 2023-as terviratok 11. és 18. PDF-oldalán található főépítészi feljegyzések 1.2. pontja a 314/2012. rendelet tartalmi követelményeit és jelmagyarázatát nevezi meg. Az 1.3. pont az OTÉK 2021. július 15-ig hatályos II. fejezetét és mellékleteit, valamint a módosításkor hatályos III. fejezetet jelöli meg.')
-            st.link_button('Jóváhagyott 2023-as terviratok – főépítészi feljegyzés',
-                           'https://tiszaujvaros.hu/images/doks/teszkoz/TISZAUJVAROS_2023_TOBB_RESZTER_TERVIRATOK_JOVAHAGYOTT.pdf#page=11')
-            st.write('Ez a 2023-as módosítás dokumentált alapja. A jelenlegi tervhez és a vizsgált telekhez való kapcsolata még ellenőrizendő; önmagában nem választja ki az alkalmazandó országos szabályt. Az ügy kezdete és a korábbi engedélyek adatai továbbra is szükségesek.')
     if category:
         st.write('**Ipari besorolás igazolva:** '+category['label']+'. Az egyéb ipari típus sajátos megengedései külön összehasonlító forrásként szerepelnek.')
     elif zone.startswith('Gip/'):
@@ -3053,7 +3289,7 @@ def render_national_rules(results,zone,local_rules=None):
     for result in results:
         cfg=NATIONAL_RULE_PROFILES[result['key']]
         status.append({'Forráskiadás':cfg['label'],'Ellenőrzés':'teljes szöveg ellenőrizve' if result['ok'] else result['error'],
-                       'Telekre alkalmazható?':'alkalmazási alap még igazolandó' if result['ok'] else 'nem állapítható meg'})
+                       'Telekre alkalmazható?':('kiválasztott alap' if selected and result['key']==applicability['base_key'] else 'kötelező kiegészítések forrása' if selected and result['key']=='teka' and applicability['overlay'] else 'másik alkalmazási út forrása') if result['ok'] else 'nem állapítható meg'})
     st.dataframe(status,hide_index=True,use_container_width=True)
     for result in results:
         cfg=NATIONAL_RULE_PROFILES[result['key']]
@@ -3062,7 +3298,10 @@ def render_national_rules(results,zone,local_rules=None):
             if not result['ok']:
                 st.warning(result['error']);continue
             for row in result['rows']:
-                st.markdown('**'+row['Területtípus']+' – '+row['Forrás']+'**')
+                scope = row['Területtípus']
+                if selected and result['key']==applicability['base_key']:
+                    scope=scope.replace('az időállapot alkalmazhatósága még igazolandó', 'a kiválasztott alap rendeltetési szabálya')
+                st.markdown('**'+scope+' – '+row['Forrás']+'**')
                 if row.get('Kapcsolat'):st.write(row['Kapcsolat'])
                 st.link_button(row['Forrás']+' – NJT',row['URL']);st.write(row['Forrásszöveg'])
         if result.get('comparison'):
@@ -3125,14 +3364,26 @@ def buildability_summary(local_rules, national_rules, zone):
     return out
 
 
-def render_buildability_summary(local_rules,national_rules,zone):
+def render_buildability_summary(local_rules,national_rules,zone,applicability=None):
     summary=buildability_summary(local_rules,national_rules,zone)
     if not summary['ok']:return
     st.subheader('Építési lehetőségek – közös összefoglaló')
-    st.info('A helyi megengedések, tiltások és feltételek forrásoltak. A teljes országos alkalmazási alap és a telekspecifikus feltételek még nincsenek igazolva; végleges építési igen/nem válasz nem adható.')
+    if (applicability or {}).get('ok'):
+        st.info('A helyi előírások forrásoltak és az országos alkalmazási csomag kiválasztva. A konkrét rendeltetés, beépítés és térbeli korlátozások teljesülése még vizsgálandó.')
+        summary['missing'] = [x for x in summary['missing'] if not x.startswith(('A terv készítési', 'Az ügy típusa'))]
+    else:
+        st.info('A helyi előírások forrásoltak; a teljes országos alkalmazási csomag és a telekspecifikus feltételek még igazolandók.')
     st.dataframe(summary['rows'],hide_index=True,use_container_width=True,
         column_config={'URL':st.column_config.LinkColumn('Jogszabályhely')})
     st.markdown('**Melyik OTÉK/TÉKA alkalmazandó?**')
+    if (applicability or {}).get('ok'):
+        st.write(NATIONAL_RULE_PROFILES[applicability['base_key']]['label'] + (' + kötelező TÉKA-kiegészítések' if applicability['overlay'] else ''))
+        for path in summary['paths']:
+            path['Állapot']='másik átmeneti út – nem a kiválasztott csomag'
+            if path['Vizsgálandó út']==NATIONAL_RULE_PROFILES[applicability['base_key']]['label']:
+                path['Állapot']='kiválasztott alap'
+            elif applicability['overlay'] and path['Vizsgálandó út']=='Tervi alaptól független TÉKA-rendelkezések':
+                path['Állapot']='kiválasztott kötelező kiegészítések'
     if summary['paths']:
         st.dataframe(summary['paths'],hide_index=True,use_container_width=True,
             column_config={'URL':st.column_config.LinkColumn('Átmeneti szabály')})
@@ -3141,6 +3392,166 @@ def render_buildability_summary(local_rules,national_rules,zone):
     st.markdown('**A végleges válaszhoz hiányzó adatok:**')
     for item in summary['missing']:st.write('• '+item)
     st.caption(f"{len(local_rules.get('conditional',[]))} területi feltételt a részletes helyi szabályok külön jelölnek; az érintettség nincs igazolva.")
+
+
+
+def case_data_review(case, today=None):
+    """Review user input completeness only; never select a legal edition."""
+    today = today or datetime.now(ZoneInfo('Europe/Budapest')).date()
+    case = case or {}
+    prospective = case.get('scenario') == 'prospective'
+    if prospective:
+        case = dict(case, event='Hatósági eljárás kezdete', started=today, prior='Nincs')
+    labels = {
+        'purpose': 'Tervezett rendeltetés',
+        'event': 'Ügy / kezdő esemény típusa',
+        'started': 'Kezdő esemény dátuma',
+        'prior': 'Korábbi engedély vagy bejelentés',
+        'prior_date': 'Korábbi engedély / bejelentés dátuma',
+        'occupied': 'Használatbavételi állapot 2025. július 1-jén',
+        'deviation': 'Eltérés a korábbi engedélytől / bejelentéstől',
+    }
+    out = {'rows': [], 'missing': [], 'issues': []}
+    for key, label in labels.items():
+        value = case.get(key)
+        required = key not in ('prior_date', 'occupied', 'deviation') or case.get('prior') == 'Van'
+        missing = value is None or not str(value).strip() or value == 'Nem ismert'
+        if not required:
+            state = 'Korábbi ügy esetén szükséges'
+        elif missing:
+            state = 'Hiányzik / nem ismert'
+            out['missing'].append(label)
+        else:
+            state = ('Vizsgálati forgatókönyv – feltételezés' if prospective and key in ('event','started','prior') else 'Felhasználó által megadott; nincs forrásból igazolva')
+        shown = value.isoformat() if isinstance(value, date) else str(value or 'Nem ismert')
+        out['rows'].append({'Ügyadat': label, 'Megadott adat': shown, 'Állapot': state})
+    for key in ('started', 'prior_date'):
+        value = case.get(key)
+        if value is not None and not isinstance(value, date):
+            out['issues'].append(labels[key] + ': érvénytelen dátum.')
+        elif isinstance(value, date) and value > today:
+            out['issues'].append(labels[key] + ': jövőbeli dátum; megtörtént eseményként nem használható.')
+    if (case.get('prior') == 'Van' and isinstance(case.get('started'), date)
+            and isinstance(case.get('prior_date'), date)
+            and case['prior_date'] > case['started']):
+        out['issues'].append('A korábbi engedély / bejelentés dátuma későbbi az ügy kezdő eseményénél; a két esemény kapcsolatát ellenőrizni kell.')
+    if case.get('prior') == 'Nincs' and (case.get('prior_date') is not None
+            or case.get('occupied', 'Nem ismert') != 'Nem ismert'
+            or case.get('deviation', 'Nem ismert') != 'Nem ismert'):
+        out['issues'].append('Korábbi ügy nélkül korábbi engedélyhez kapcsolódó adat szerepel; ellenőrizd a megadott adatokat.')
+    return out
+
+
+def render_case_review(case):
+    review = case_data_review(case)
+    st.subheader('Tervezett használat és ügyadatok')
+    st.caption('A megadott ügyadatok a vizsgálat előkészítését segítik. Nem igazolják a rendeltetés megengedettségét és nem választják ki automatikusan az OTÉK/TÉKA időállapotát.')
+    st.dataframe(review['rows'], hide_index=True, use_container_width=True)
+    for issue in review['issues']:
+        st.warning(issue)
+    if review['missing']:
+        st.write('Még megadandó ügyadatok: ' + '; '.join(review['missing']) + '.')
+    else:
+        st.info('A szükséges ügyadatmezők kitöltve. A dokumentumok és a tervi alap forrásellenőrzése még szükséges.')
+
+
+def investigation_report(town, hrsz, zone, params, summary, local_rules,
+                         national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None):
+    """Export the actual result with provenance and unresolved scope."""
+    generated_at = generated_at or datetime.now(timezone.utc)
+    lines = ['TelekElőírás AI v15.35 – vizsgálati adatlap',
+             'Készült (UTC): ' + generated_at.isoformat(),
+             'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
+             'Övezet: ' + (zone or 'nincs igazolva'),
+             '', 'A végleges építési lehetőség nem igazolt. A konkrét rendeltetés, beépítés és telekspecifikus feltételek további ellenőrzést igényelnek.',
+             '', 'VIZSGÁLATI EREDMÉNY ÉS BIZONYOSSÁG']
+    def add_row(row):
+        for key, value in row.items():
+            if value is not None and str(value):
+                lines.append(str(key) + ': ' + str(value))
+        lines.append('')
+    for row in summary:
+        add_row(row)
+    if plan_source:
+        lines.extend(['Szabályozási terv forrása: ' + plan_source, ''])
+    lines.extend(['ÖVEZETI PARAMÉTEREK'])
+    if parameter_source:
+        lines.append('Paraméterek forrása: ' + parameter_source)
+    if params:
+        for key, value in params.items():
+            lines.append(str(key) + ': ' + str(value))
+    else:
+        lines.append('Nincs ellenőrzött paraméteradat.')
+    lines.extend(['', 'ÜGYADATOK – FELHASZNÁLÓI KÖZLÉS, NEM IGAZOLT'])
+    review = case_data_review(case, generated_at.astimezone(ZoneInfo('Europe/Budapest')).date())
+    for row in review['rows']:
+        add_row(row)
+    for issue in review['issues']:
+        lines.append('Ellenőrizendő ügyadat: ' + issue)
+    lines.extend(['', 'HELYI ELŐÍRÁSOK'])
+    if local_rules.get('ok'):
+        if local_rules.get('basis_evidence'):
+            add_row(local_rules['basis_evidence'])
+        if local_rules.get('industrial_type'):
+            add_row(local_rules['industrial_type'])
+        for row in local_rules.get('rows', []):
+            add_row(row)
+        lines.append('TERÜLETI ÉRINTETTSÉGHEZ KÖTÖTT HELYI FELTÉTELEK – ÉRINTETTSÉG NINCS IGAZOLVA')
+        for row in local_rules.get('conditional', []):
+            add_row(row)
+    else:
+        lines.append('Nincs ellenőrzött helyi szabálykapcsolat.')
+    lines.extend(['', 'AUTOMATIKUS ORSZÁGOS KIVÁLASZTÁS'])
+    selection=applicability or {}
+    if selection.get('ok'):
+        lines.append(NATIONAL_RULE_PROFILES[selection['base_key']]['label'] + (' + kötelező TÉKA-kiegészítések' if selection['overlay'] else ''))
+    else:
+        lines.append('Teljes alkalmazási csomag nincs kiválasztva.')
+    lines.extend(selection.get('assumptions', []))
+    lines.extend(selection.get('reasons', []))
+    lines.extend('Hiányzó kiválasztási adat: ' + x for x in selection.get('missing', []))
+    if (plan_basis or {}).get('ok'):
+        lines.append(plan_basis['proof'])
+        for source in plan_basis['sources']: add_row(source)
+    for source in selection.get('sources', []): add_row(source)
+    lines.extend(['', 'ORSZÁGOS FORRÁSOK – A KIVÁLASZTOTT CSOMAGGAL EGYÜTT ÉRTÉKELENDŐ'])
+    for result in national_rules:
+        cfg = NATIONAL_RULE_PROFILES[result['key']]
+        lines.extend([cfg['label'], 'Forrás: ' + cfg['url'],
+                      'Ellenőrzés: ' + ('teljes szöveg ellenőrizve' if result.get('ok') else result.get('error', 'nem sikerült')),
+                      'Alkalmazási alap: ' + cfg['basis']])
+        if result.get('ok'):
+            for row in result.get('rows', []):
+                add_row(row)
+            if result.get('comparison'):
+                lines.append('MÁS IPARI TÍPUS – CSAK ÖSSZEHASONLÍTÁS, NEM A HELYI BESOROLÁS MEGENGEDÉSE')
+                for row in result['comparison']:
+                    add_row(row)
+            for row in result.get('transition', []):
+                add_row(row)
+    lines.extend(['', 'A VÉGLEGES VÁLASZHOZ MÉG SZÜKSÉGES'])
+    missing = buildability_summary(local_rules, national_rules, zone).get('missing', [])
+    if (applicability or {}).get('ok'):
+        missing = [x for x in missing if not x.startswith(('A terv készítési', 'Az ügy típusa'))]
+    if not missing:
+        missing = ['A telek övezetének, a helyi és országos forráskapcsolatnak az igazolása.',
+                   'A tervi alap, az ügyadatok és a telekspecifikus korlátozások ellenőrzése.']
+    lines.extend('- ' + item for item in missing)
+    lines.extend(['', 'A megadott ügyadatok nem hatósági igazolások. A dokumentum döntéstámogató vizsgálati adatlap.'])
+    return '\n'.join(lines) + '\n'
+
+
+@st.fragment
+def render_report_download(report, hrsz):
+    safe_hrsz = re.sub(r'[^0-9A-Za-z_-]', '_', normalize_hrsz(hrsz)) or 'telek'
+    # Streamlit 1.44+ can suppress the frontend rerun directly; older
+    # supported versions use the enclosing fragment for download isolation.
+    version = tuple(int(part) for part in st.__version__.split('.')[:2])
+    st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
+                       data=report.encode('utf-8'),
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_35.txt',
+                       mime='text/plain; charset=utf-8',
+                       on_click='ignore' if version >= (1, 44) else None)
 
 
 class InvestigationProgress:
@@ -3187,7 +3598,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.33 • nyilvános HRSZ API + telekgeometria • "
+        "v15.35 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -3226,6 +3637,24 @@ def main():
                 "A helyrajzi számot és a telek helyét hivatalos térképen ellenőriztem",
                 value=False,
             )
+
+        with st.expander("Vizsgált ügy és tervezett használat"):
+            scenario = st.selectbox('Vizsgálati forgatókönyv', ['Új ügy tervezése – mai napon induló hatósági eljárás', 'Folyamatban lévő vagy korábbi ügy'])
+            case = {'scenario': 'prospective' if scenario.startswith('Új ügy') else 'existing',
+                    'purpose': st.text_input('Tervezett rendeltetés', placeholder='pl. raktár, gyártócsarnok, iroda', max_chars=1000)}
+            if case['scenario'] == 'prospective':
+                st.caption('A forgatókönyv a vizsgálat napján induló új hatósági eljárás, korábbi engedély vagy bejelentés nélkül. Ez nem igazolt ügytörténet. Korábbi engedély vagy ismert kezdés esetén válaszd a másik forgatókönyvet.')
+            else:
+                st.caption('Az ismeretlen dátumot hagyd üresen; a program nem helyettesíti a mai nappal.')
+                case.update({
+                    'event': st.selectbox('Ügy / kezdő esemény típusa', ['Nem ismert', 'Hatósági eljárás kezdete', 'Engedélyhez / bejelentéshez nem kötött kivitelezési dokumentáció átadása', 'Kivitelezési dokumentációhoz nem kötött építési tevékenység kezdete', 'Építészeti tervtanácsi vagy egyéb eljárás kezdete', 'Területhasználat kezdete']),
+                    'started': st.date_input('Kezdő esemény dátuma', value=None, min_value=date(1900, 1, 1), format='YYYY-MM-DD'),
+                    'prior': st.selectbox('Korábbi engedély vagy bejelentés', ['Nem ismert', 'Nincs', 'Van']),
+                    'current_status': st.selectbox('Ügy jelenlegi állapota', ['Nem ismert', 'Folyamatban / jelenleg vizsgált cselekmény', 'Lezárt ügy történeti vizsgálata'])})
+                if case['prior'] == 'Van':
+                    case['prior_date'] = st.date_input('Korábbi engedély / bejelentés dátuma', value=None, min_value=date(1900, 1, 1), format='YYYY-MM-DD')
+                    case['occupied'] = st.selectbox('Használatbavételi állapot 2025. július 1-jén', ['Nem ismert', 'Használatba vett', 'Nem vették használatba'])
+                    case['deviation'] = st.selectbox('Eltérés a korábbi engedélytől / bejelentéstől', ['Nem ismert', 'Nincs eltérés', 'Van eltérés; kötöttsége még vizsgálandó', 'Engedély- vagy bejelentésköteles eltérés', 'Engedélyhez / bejelentéshez nem kötött eltérés'])
 
         start = st.button(
             "Telekvizsgálat indítása",
@@ -3690,6 +4119,8 @@ def main():
     combined_params.update(table_params)
     local_rules={'ok':False,'rows':[],'conditional':[]}
     national_rules=[]
+    plan_basis={'ok':False,'error':'A tervi alap nincs igazolva.'}
+    applicability={'ok':False,'base_key':'','overlay':False,'reasons':[],'sources':[],'missing':[],'assumptions':[]}
     if zone and ksh=='28352':
         local_rules=tisza_local_rules(page.get('html',''),page.get('url',''),zone,
             bool(source_valid and (plan_zone.get('zone') or (manual_zone.strip() and map_verified))))
@@ -3701,8 +4132,19 @@ def main():
     if local_rules['ok']:
         with st.spinner("Országos NJT-források ellenőrzése…"):
             national_rules=load_national_rules(zone,True,local_rules)
-        render_national_rules(national_rules,zone,local_rules)
-        render_buildability_summary(local_rules,national_rules,zone)
+        if plan_zone.get('zone') == zone and not manual_zone.strip():
+            with st.spinner('A jóváhagyott terv készítési alapjának ellenőrzése…'):
+                plan_basis=load_tisza_plan_basis(local_rules,zone,TISZA_PLAN_SHA256)
+        previous_overlay=None
+        if (case.get('scenario')=='existing' and isinstance(case.get('started'),date)
+                and date(2025,7,1)<=case['started']<date(2026,1,14)):
+            with st.spinner('A korábbi TÉKA-kiegészítések időállapotának ellenőrzése…'):
+                previous_overlay=load_previous_teka_overlay()
+        applicability=select_national_applicability(case,plan_basis,national_rules,previous_overlay=previous_overlay)
+        render_applicability(applicability,plan_basis)
+        render_national_rules(national_rules,zone,local_rules,applicability)
+        render_buildability_summary(local_rules,national_rules,zone,applicability)
+    render_case_review(case)
 
     # 6. Korlátozások
     st.header("6. Telekspecifikus korlátozások")
@@ -3777,7 +4219,7 @@ def main():
             'Bizonyosság':'ellenőrzött helyi szabálykapcsolat; az építési lehetőség teljeskörűen nem igazolt'})
     if national_rules:
         summary.append({"Adat":"Országos rendeltetési szabályok","Eredmény":f"{sum(r['ok'] for r in national_rules)}/4 ellenőrzött forráskiadás",
-            "Forrás":"OTÉK és TÉKA – pontos § és bekezdés","Bizonyosság":"alkalmazási alap még igazolandó; építési jogosultság nem megállapított"})
+            "Forrás":"OTÉK és TÉKA – pontos § és bekezdés","Bizonyosság":("alkalmazási csomag kiválasztva; a konkrét építési feltételek még vizsgálandók" if applicability.get("ok") else "alkalmazási alap még igazolandó; építési jogosultság nem megállapított")})
     st.dataframe(summary, hide_index=True, use_container_width=True)
 
     st.caption(
@@ -3786,6 +4228,11 @@ def main():
         "biztos telekspecifikus állítást."
     )
 
+    report = investigation_report(town, hrsz, zone, combined_params, summary,
+                                  local_rules, national_rules, case,
+                                  parameter_source=zone_table_source, plan_source=plan_source,
+                                  applicability=applicability, plan_basis=plan_basis)
+    render_report_download(report, hrsz)
     progress.finish()
 
 
