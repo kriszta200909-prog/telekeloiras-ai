@@ -1703,7 +1703,7 @@ def choose_plan_attachment(attachments, legal_text=""):
         if any(x in label for x in ("terkep", "szelveny")):
             score += 3
 
-        if ".pdf" in url:
+        if url_name.endswith(".pdf"):
             score += 1
 
         # A melléklet sorszáma önmagában nem bizonyítja, hogy tervlap.
