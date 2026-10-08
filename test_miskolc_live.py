@@ -64,6 +64,17 @@ def main():
             raise AssertionError("Actual zoning candidate search missed Gipe-60.63.5 near 4755/11")
         if candidates[0]["Övezeti kód"].casefold() != "gipe-60.63.5":
             raise AssertionError("Nearest zoning candidate changed; inspect actual map geometry")
+        # Verify that the application keeps nearby labels unverified.
+        locate_fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "locate_parcel")
+        locate_ns = {"find_hrsz": lambda document, hrsz: [
+                         {**m, "pdf_rect": fitz.Rect(m["pdf_rect"])} for m in matches],
+                     "zone_candidates": zone_candidates, "fitz": fitz}
+        exec(compile(ast.Module(body=[locate_fn], type_ignores=[]), "app.py", "exec"), locate_ns)
+        result = locate_ns["locate_parcel"](doc, "4755/11")
+        assert result["status"] == "candidate_unverified", result
+        assert result["zone"] == "", result
+        assert result["candidates"][0]["Övezeti kód"] == "Gipe-60.63.5", result
+        print("PASS: application reports unverified Gipe candidate, not proven zoning", flush=True)
 
         # Also inspect actual PDF word geometry; this is evidence, not a parcel overlay.
         target = next(m for m in matches if m["page_number"] == 30)
