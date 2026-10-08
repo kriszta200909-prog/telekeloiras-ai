@@ -591,6 +591,8 @@ def discover_njt_source(town, hrsz):
             place = f"Budapest {district}"
 
     queries = [
+        f'site:njt.jog.gov.hu/jogszabaly "{place}" "építési szabályzat"',
+        f'site:or.njt.hu/eli "{place}" "helyi építési szabályzat"',
         f'site:or.njt.hu "{place}" "kerületi építési szabályzat"',
         f'site:or.njt.hu "{place}" "helyi építési szabályzat"',
         f'site:njt.jog.gov.hu "{place}" "kerületi építési szabályzat"',
@@ -605,17 +607,19 @@ def discover_njt_source(town, hrsz):
             if is_official_njt_url(u) and u not in candidates:
                 candidates.append(u)
 
-    # Legfeljebb néhány hivatalos találatot kérünk le, hogy ne legyen lassú.
+    # A kereső rangsora nem jogforrás: minden találatot külön ellenőrzünk.
+    # A település nevét a címben is keressük, ne csak a rendelet szövegében.
     town_terms = [key_text(town)]
     if district:
         town_terms += [key_text(district), key_text(place)]
-    for u in candidates[:8]:
+    for u in candidates[:16]:
         page = fetch_njt_page(u)
         if not page.get("ok"):
             continue
         body = key_text(page.get("text", ""))
         is_building_rule = any(x in body for x in ("epitesi szabalyzat", "helyi epitesi szabalyzat", "keruleti epitesi szabalyzat"))
-        place_ok = any(term and term in body for term in town_terms)
+        title_text = key_text(page.get("text", "")[:650])
+        place_ok = any(term and term in title_text for term in town_terms)
         if is_building_rule and place_ok:
             title = clean_text(page.get("text", "").split("\n")[0])[:180] or "Automatikusan felderített NJT-forrás"
             return {
