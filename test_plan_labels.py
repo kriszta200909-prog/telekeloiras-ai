@@ -6,12 +6,13 @@ from plan_labels import native_hrsz_hits, exact_hrsz_token
 
 
 class PlanLabelTests(unittest.TestCase):
-    def test_exact_native_number_not_prefix_or_parent(self):
+    def test_spaced_suffix_is_not_parent_parcel(self):
         doc=fitz.open();page=doc.new_page()
-        page.insert_text((30,40),'1558 15580 1558/1 11558 (1558) 15 58')
+        page.insert_text((30,40),'1558 /1 1558 - 2 1558 .3 (1558)')
         hits=native_hrsz_hits(doc,'1558')
-        self.assertEqual(len(hits),2)
-        self.assertTrue(all(hit['label_only'] for hit in hits))
+        self.assertEqual(len(hits),1)
+        self.assertTrue(hits[0]['label_only'])
+
 
     def test_four_reference_parcels_native_matching(self):
         cases = [
@@ -32,12 +33,75 @@ class PlanLabelTests(unittest.TestCase):
                 self.assertFalse(exact_hrsz_token(distractor, target))
                 doc.close()
 
-    def test_spaced_suffix_is_not_parent_parcel(self):
+
+    def test_partial_report_is_downloadable_and_next_rerun_retries(self):
+        import app
+        from streamlit.testing.v1 import AppTest
+        original=app.run_investigation
+        script='''import streamlit as st
+import app
+@st.cache_data(show_spinner=False)
+def partial_result(*args,**kwargs):
+    st.session_state['partial_calls']=st.session_state.get('partial_calls',0)+1
+    st.warning('Részleges felismerés – folytatható.')
+    raise app.UncachedInvestigationResult({'report':'részleges adatlap','minerva_geometry':None})
+app.run_investigation=partial_result
+app.main()
+'''
+        try:
+            a=AppTest.from_string(script).run()
+            a.button[0].click().run()
+            self.assertFalse(a.exception)
+            self.assertEqual(len(a.get('download_button')),1)
+            a.run()
+            self.assertFalse(a.exception)
+            self.assertEqual(a.session_state['partial_calls'],2)
+        finally:app.run_investigation=original
+
+    def test_ocr_worker_error_does_not_terminate_parent(self):
+        from PIL import Image
+        from plan_labels import OCRWorker, _ocr_words
+        with OCRWorker() as worker:
+            with self.assertRaises(RuntimeError):
+                _ocr_words(Image.new('RGB',(40,40),'white'),'/nonexistent-ocr-test-data',worker)
+        self.assertFalse(exact_hrsz_token('034/150','034/15'))
+
+    def test_checkpoint_resumes_after_interrupted_progress(self):
+        from PIL import Image
+        import plan_labels
+        doc=fitz.open();doc.new_page(width=300,height=300)
+        groups=[{'rect':(10+i,10,15+i,12),'angle':0,'pieces':4} for i in range(70)]
+        saved=[];rendered=[]
+        def render(display_list,group,scale):
+            rendered.append(group['rect'][0]);return Image.new('RGB',(50,20),'white')
+        def interrupt(*args):raise RuntimeError('simulated connection interruption')
+        with patch.object(plan_labels,'outlined_label_groups',return_value=groups),patch.object(plan_labels,'_label_image',side_effect=render),patch.object(plan_labels,'_ocr_words',return_value=[]):
+            with self.assertRaisesRegex(RuntimeError,'connection'):
+                plan_labels.outlined_label_index(doc,'unused',on_progress=interrupt,on_checkpoint=saved.append)
+            self.assertEqual(saved[-1]['scanned'],64)
+            result=plan_labels.outlined_label_index(doc,'unused',resume=saved[-1])
+        self.assertTrue(result['complete'])
+        self.assertEqual((result['scanned'],result['candidates'],result['pages']),(70,70,1))
+        self.assertEqual(len(rendered),70)
+
+    def test_request_recovery_rejects_changed_inputs_and_expired_token(self):
+        import app
+        app.recoverable_investigation_requests.clear()
+        with patch.object(app.time,'monotonic',return_value=10):
+            token=app.matching_investigation_request('same-request',start=True)
+            self.assertEqual(app.matching_investigation_request('same-request',token),token)
+            self.assertEqual(app.matching_investigation_request('other-request',token),'')
+            self.assertEqual(app.matching_investigation_request('same-request','unknown'),'')
+        with patch.object(app.time,'monotonic',return_value=911):
+            self.assertEqual(app.matching_investigation_request('same-request',token),'')
+        app.recoverable_investigation_requests.clear()
+
+    def test_exact_native_number_not_prefix_or_parent(self):
         doc=fitz.open();page=doc.new_page()
-        page.insert_text((30,40),'1558 /1 1558 - 2 1558 .3 (1558)')
+        page.insert_text((30,40),'1558 15580 1558/1 11558 (1558) 15 58')
         hits=native_hrsz_hits(doc,'1558')
-        self.assertEqual(len(hits),1)
-        self.assertTrue(hits[0]['label_only'])
+        self.assertEqual(len(hits),2)
+        self.assertTrue(all(hit['label_only'] for hit in hits))
 
     def test_zero_and_separator_are_preserved(self):
         doc=fitz.open();page=doc.new_page()
