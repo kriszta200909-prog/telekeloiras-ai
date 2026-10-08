@@ -58,6 +58,15 @@ def main():
         print("Expected Gipe label among nearby candidates:",
               any(c["Övezeti kód"].casefold() == "gipe-60.63.5" for c in candidates), flush=True)
 
+        # Also inspect actual PDF word geometry; this is evidence, not a parcel overlay.
+        target = next(m for m in matches if m["page_number"] == 30)
+        rect = fitz.Rect(target["pdf_rect"])
+        center = fitz.Point((rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2)
+        zone_words = [w for w in page.get_text("words")
+                      if "Gipe" in w[4] or "60.63.5" in w[4]]
+        zone_words.sort(key=lambda w: ((w[0]+w[2])/2-center.x)**2 + ((w[1]+w[3])/2-center.y)**2)
+        print("Closest zone-like PDF words:", [(w[4], round(((w[0]+w[2])/2-center.x)**2 + ((w[1]+w[3])/2-center.y)**2, 1)) for w in zone_words[:8]], flush=True)
+
 
 
 if __name__ == "__main__":
