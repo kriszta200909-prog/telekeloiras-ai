@@ -37,7 +37,7 @@ class RuleInventoryTests(unittest.TestCase):
         def key_text(value):
             value = unicodedata.normalize("NFKD", str(value))
             return "".join(c for c in value if not unicodedata.combining(c)).casefold()
-        scope = {"key_text": key_text, "re": re, "urllib": __import__("urllib.parse", fromlist=["parse"])}
+        scope = {"key_text": key_text, "re": re, "urllib": __import__("urllib")}
         exec(compile(ast.Module(body=[fn], type_ignores=[]), "<app>", "exec"), scope)
         rows = [
             {"Megnevezés": "NJT melléklet", "URL": "https://njt.jog.gov.hu/document/abc-Jelmagyarazat.pdf"},
@@ -56,7 +56,7 @@ class RuleInventoryTests(unittest.TestCase):
         def key_text(value):
             value = unicodedata.normalize("NFKD", str(value))
             return "".join(c for c in value if not unicodedata.combining(c)).casefold()
-        scope = {"key_text": key_text, "re": re, "urllib": __import__("urllib.parse", fromlist=["parse"])}
+        scope = {"key_text": key_text, "re": re, "urllib": __import__("urllib")}
         exec(compile(ast.Module(body=[fn], type_ignores=[]), "<app>", "exec"), scope)
         rows = [{"Megnevezés": "1. melléklet", "URL": "https://njt.jog.gov.hu/document/tabla.pdf"}]
         self.assertIsNone(scope["choose_plan_attachment"](rows))
@@ -72,7 +72,7 @@ class RuleInventoryTests(unittest.TestCase):
         def key_text(value):
             value = unicodedata.normalize("NFKD", str(value))
             return "".join(c for c in value if not unicodedata.combining(c)).casefold()
-        scope = {"key_text": key_text, "re": re, "urllib": __import__("urllib.parse", fromlist=["parse"])}
+        scope = {"key_text": key_text, "re": re, "urllib": __import__("urllib")}
         exec(compile(ast.Module(body=[fn], type_ignores=[]), "<app>", "exec"), scope)
         attachments = [{"Megnevezés": "NJT melléklet",
                         "URL": "https://njt.jog.gov.hu/document/abc-belteruleti_szabalyozasi_tervlap.pdf"}]
