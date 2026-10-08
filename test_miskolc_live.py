@@ -39,7 +39,19 @@ def main():
         # Zoning remains unverified without parcel-to-zone geometry.
         nearby = page.get_text("text")
         print("Gipe code visible in text layer:", bool(re.search(r"Gipe\s*-\s*60\.63\.5", nearby, re.I)), flush=True)
-        from app import zone_candidates
+        import ast
+        # Extract only the pure zone matching helpers without importing Streamlit.
+        from pathlib import Path
+        source = Path(__file__).with_name("app.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        names = {"words_near_hit", "zone_candidates"}
+        nodes = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in names]
+        pattern_node = next(n for n in tree.body if isinstance(n, ast.Assign)
+                            and any(isinstance(t, ast.Name) and t.id == "ZONE_PATTERN" for t in n.targets))
+        namespace = {"re": re, "fitz": fitz, "clean_text": lambda x: str(x).strip()}
+        namespace["ZONE_PATTERN"] = re.compile(ast.literal_eval(pattern_node.value.args[0]), re.I)
+        exec(compile(ast.Module(body=nodes, type_ignores=[]), "app.py", "exec"), namespace)
+        zone_candidates = namespace["zone_candidates"]
         parcel_hit = next(m for m in matches if m["page_number"] == 30)
         candidates = zone_candidates(page, fitz.Rect(parcel_hit["pdf_rect"]))
         print("Nearby zoning candidates:", candidates, flush=True)
