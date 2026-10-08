@@ -156,6 +156,7 @@ class RuleInventoryTests(unittest.TestCase):
         def item(code, a, b, crs="EPSG:23700"):
             return {"code": code, "geometry": rect(a,b), "crs": crs}
         self.assertEqual(classify(parcel,[item("A",0,10)],"EPSG:23700")["status"],"single_zone_spatial")
+        self.assertEqual(classify(parcel,[item("A",0,5),item("A",5,10)],"EPSG:23700")["status"],"single_zone_spatial")
         self.assertEqual(classify(parcel,[item("A",0,5),item("B",5,10)],"EPSG:23700")["status"],"multiple_zones")
         self.assertEqual(classify(parcel,[item("A",0,5)],"EPSG:23700")["status"],"partial_coverage")
         self.assertEqual(classify(parcel,[item("A",0,7),item("B",5,10)],"EPSG:23700")["status"],"overlapping_zones")
