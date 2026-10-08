@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.44
+# TelekElőírás AI v15.45
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -28,7 +28,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.44",
+    page_title="TelekElőírás AI v15.45",
     page_icon="🏗️",
     layout="wide",
 )
@@ -50,6 +50,25 @@ def pdf_processing_lock():
 # Validált hivatalos forrásindex.
 # Új település később egyetlen új rekorddal felvehető.
 HESZ_INDEX = {
+    "komadi": {
+        "municipality": "Komádi",
+        "title": "Komádi város Szabályozási Tervének és Helyi Építési Szabályzatának elfogadásáról",
+        "regulation": "1/2007. (I. 26.) önkormányzati rendelet",
+        "url": "https://njt.jog.gov.hu/jogszabaly/2007-1-SP-5Y1608",
+        "plan_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+        "plan_sha256": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+        "plan_scope": "belterület",
+    },
+    "gersekarat": {
+        "municipality": "Gersekarát",
+        "title": "Gersekarát község helyi építési szabályzatáról és a község szabályozási tervéről",
+        "regulation": "2/2007. (II. 15.) önkormányzati rendelet",
+        "url": "https://njt.jog.gov.hu/jogszabaly/2007-2-SP-5Y3101",
+        "plan_url": "https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf",
+        "plan_sha256": "a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca",
+        "plan_scope": "igazgatási terület",
+        "scope_note": "A 2/2007. rendelet területi hatálya a déli községrészt kizárja; arra külön rendelet vonatkozik. A megfelelő helyi rendelet telekre való alkalmazhatóságához a telek helyét is igazolni kell.",
+    },
     "tiszaujvaros": {
         "municipality": "Tiszaújváros",
         "title": "Tiszaújváros Építési Szabályzatáról",
@@ -304,6 +323,9 @@ def named_annexes(text):
 
 def source_for_town(town, manual_url=""):
     if manual_url.strip():
+        known = HESZ_INDEX.get(key_text(town), {})
+        if manual_url.strip() == known.get("url"):
+            return {**known, "source": "kézi NJT URL – ellenőrzött forrásrekord"}
         return {
             "municipality": town,
             "title": "Kézzel megadott NJT-forrás",
@@ -1618,7 +1640,33 @@ def choose_plan_attachment(attachments, legal_text=""):
     return scored[0][1] if scored and scored[0][0] >= 4 else None
 
 
-def try_auto_plan(attachments, legal_text=""):
+def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
+    # A checked source record may identify a raster plan, but only while that
+    # exact PDF is still linked by the current official regulation page.
+    source_meta = source_meta or {}
+    preferred = source_meta.get("plan_url", "")
+    eligible = not (source_meta.get("plan_scope") == "belterület"
+                    and normalize_hrsz(hrsz).startswith("0"))
+    pinned = next((row for row in attachments
+                   if eligible and preferred and row.get("URL") == preferred), None)
+    if eligible and preferred and not pinned:
+        return None, "", "Az ellenőrzött tervmelléklet már nem szerepel az aktuális NJT-rendelet hivatkozásai között."
+    if pinned:
+        doc = None
+        try:
+            raw, final_url = download_pdf(preferred)
+            if __import__('hashlib').sha256(raw).hexdigest() != source_meta.get("plan_sha256"):
+                return None, final_url, "Az ellenőrzött tervmelléklet tartalma megváltozott; új forrásellenőrzés szükséges."
+            doc = open_pdf_bytes(raw)
+            if not doc or not len(doc):
+                if doc is not None:
+                    doc.close()
+                return None, final_url, "Az ellenőrzött tervmelléklet nem tartalmaz tervlapot."
+            return doc, final_url, ""
+        except Exception as exc:
+            if doc is not None:
+                doc.close()
+            return None, preferred, f"Ellenőrzött NJT-tervmelléklet: {type(exc).__name__}: {exc}"
     candidate = choose_plan_attachment(attachments, legal_text)
     if not candidate:
         return None, "", ""
@@ -2609,7 +2657,7 @@ def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
     geometry_json = json.dumps(stable_geometry, sort_keys=True, separators=(',', ':'), allow_nan=False)
     try:
         return cached_tisza_plan_zone(pdf_sha, geometry_json, normalized_hrsz,
-                                      'tisza-plan-zone-v15.44', _pdf_bytes=pdf_bytes)
+                                      'tisza-plan-zone-v15.45', _pdf_bytes=pdf_bytes)
     except UnverifiedTiszaPlanZone as exc:
         return exc.result
 
@@ -3966,7 +4014,7 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                          national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.44 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.45 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -4086,7 +4134,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_44.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_45.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -4135,7 +4183,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.44 • nyilvános HRSZ API + telekgeometria • "
+        "v15.45 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -4409,6 +4457,8 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
             )
 
         st.write(f"**{meta.get('title', '')}**")
+        if meta.get("scope_note"):
+            st.warning(meta["scope_note"])
         if meta.get("regulation"):
             st.write(f"**Alaprendelet:** {meta['regulation']}")
         st.link_button("NJT – hivatalos jogszabályoldal", meta["url"])
@@ -4462,7 +4512,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
 
     if plan_doc is None and attachments:
         with st.spinner("Szabályozási terv automatikus letöltésének kísérlete…"):
-            plan_doc, plan_source, auto_plan_error = try_auto_plan(attachments, page.get("text", ""))
+            plan_doc, plan_source, auto_plan_error = try_auto_plan(attachments, page.get("text", ""), meta if source_valid else None, hrsz)
 
         if plan_doc:
             st.success("A szabályozási terv PDF automatikusan betöltődött.")
@@ -4792,6 +4842,11 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
             "Bizonyosság": "felhasználó által ellenőrzött" if map_verified else "nincs automatizálva",
         },
     ]
+    if meta and meta.get('scope_note'):
+        summary.append({'Adat': 'Helyi rendelet területi hatálya',
+                        'Eredmény': meta['scope_note'],
+                        'Forrás': meta['url'] + '#SZ1',
+                        'Bizonyosság': 'a telekre vonatkozó területi hatály külön igazolandó'})
     if local_rules['ok']:
         summary.append({'Adat':'Helyi szöveges szabályok',
             'Eredmény':f"{len(local_rules['rows'])} forrásolt helyi szabály; {len(local_rules['conditional'])} területi feltétel külön ellenőrizendő",
