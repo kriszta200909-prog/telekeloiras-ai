@@ -1708,7 +1708,7 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
         doc = None
         try:
             raw, final_url = download_pdf(preferred)
-            if __import__('hashlib').sha256(raw).hexdigest() != source_meta.get("plan_sha256"):
+            if source_meta.get('plan_sha256') and __import__('hashlib').sha256(raw).hexdigest() != source_meta.get('plan_sha256'):
                 return None, final_url, "Az ellenőrzött tervmelléklet tartalma megváltozott; új forrásellenőrzés szükséges."
             doc = open_pdf_bytes(raw)
             if not doc or not len(doc):
