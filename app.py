@@ -4865,6 +4865,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
         st.warning("A konkrét telek övezeti kódja nem állapítható meg biztonságosan.")
 
     if spatial.get("candidates"):
+        st.caption("Az alábbi feliratok csak térképi jelöltek; a telek övezeti besorolását önmagukban nem igazolják.")
         st.dataframe(
             spatial["candidates"],
             hide_index=True,
