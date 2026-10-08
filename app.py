@@ -1534,10 +1534,20 @@ def locate_parcel(doc, hrsz, outlined=False, on_progress=None):
     hit = hits[0]
     page = doc[hit["page_number"]]
     candidates = zone_candidates(page, hit["pdf_rect"]) if not scan else []
+    # A PDF-beli HRSZ-felirat nem telekhatár. A közeli övezeti felirat
+    # akkor sem bizonyít térbeli fedést, ha csak egy jelölt található.
+    # Külön megőrizzük, melyik bizonyítási lépés hiányzik.
+    spatial_evidence = {
+        "parcel_boundary_verified": False,
+        "zone_boundary_verified": False,
+        "intersection_verified": False,
+        "reason": "A tervlapi feliratokhoz nincs hitelesen összerendelt telek- és övezetpoligon.",
+    }
     # A felirat közelsége nem bizonyítja, hogy a kód ugyanazon telek
     # övezetéhez tartozik. Csak ellenőrizendő jelöltet közlünk.
     return {
         "status": "candidate_unverified" if candidates else "zone_not_found",
+        "spatial_evidence": spatial_evidence,
         "hit": hit,
         "candidates": candidates,
         "zone": "",
