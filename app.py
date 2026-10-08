@@ -594,7 +594,7 @@ def discover_budapest_district(hrsz):
     return "", ""
 
 
-def discover_njt_source(town, hrsz):
+def discover_njt_source(town, hrsz, selected_district=""):
     """Településhez automatikusan keres HÉSZ/KÉSZ NJT-jelöltet.
     A kereső csak felderít; a találatot fetch + tartalmi validáció követi.
     """
@@ -602,7 +602,11 @@ def discover_njt_source(town, hrsz):
     district = ""
     district_evidence = ""
     if key_text(place) == "budapest":
-        district, district_evidence = discover_budapest_district(hrsz)
+        if selected_district:
+            district = clean_text(selected_district)
+            district_evidence = "A felhasználó által kiválasztott kerület; a telekazonosítással ellenőrizendő."
+        else:
+            district, district_evidence = discover_budapest_district(hrsz)
         if district:
             place = f"Budapest {district}"
 
@@ -4764,7 +4768,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
                         page = p
                         break
             else:
-                meta, page = discover_njt_source(town, hrsz)
+                meta, page = discover_njt_source(town, hrsz, budapest_district)
 
     if meta:
         with st.spinner("NJT-forrás ellenőrzése…"):
