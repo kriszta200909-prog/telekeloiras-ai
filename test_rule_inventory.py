@@ -161,6 +161,9 @@ class RuleInventoryTests(unittest.TestCase):
         self.assertEqual(classify(parcel,[item("A",0,5)],"EPSG:23700")["status"],"partial_coverage")
         self.assertEqual(classify(parcel,[item("A",0,7),item("B",5,10)],"EPSG:23700")["status"],"overlapping_zones")
         self.assertEqual(classify(parcel,[item("A",0,10,"EPSG:4326")],"EPSG:23700")["status"],"unverified")
+        self.assertEqual(classify(parcel,[{"code":"A","crs":"EPSG:23700","geometry":{"type":"Point","coordinates":[1,1]}}],"EPSG:23700")["status"],"unverified")
+        self.assertEqual(classify(parcel,[{"code":"A","crs":"EPSG:23700"}],"EPSG:23700")["status"],"unverified")
+        self.assertEqual(classify(parcel,[{"code":"","crs":"EPSG:23700","geometry":rect(0,10)}],"EPSG:23700")["status"],"unverified")
 
     def test_polygon_intersection_requires_matching_crs(self):
         import app
