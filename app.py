@@ -810,7 +810,9 @@ def parcel_zone_coverage(parcel_geojson, zone_features, crs):
     from shapely.geometry import shape
     from shapely.ops import unary_union
     out = {"status": "unverified", "zones": [], "coverage": 0.0}
-    if not crs or not zone_features or not isinstance(parcel_geojson, dict):
+    if not crs or not isinstance(zone_features, list) or not zone_features or not isinstance(parcel_geojson, dict):
+        return out
+    if parcel_geojson.get("type") not in ("Polygon", "MultiPolygon"):
         return out
     try:
         parcel = shape(parcel_geojson)
@@ -819,8 +821,11 @@ def parcel_zone_coverage(parcel_geojson, zone_features, crs):
         pieces = []
         grouped = {}
         for item in zone_features:
-            if item.get("crs") != crs or not item.get("code"):
-                return out
+            if (not isinstance(item, dict) or item.get("crs") != crs
+                    or not isinstance(item.get("code"), str) or not item["code"].strip()
+                    or not isinstance(item.get("geometry"), dict)
+                    or item["geometry"].get("type") not in ("Polygon", "MultiPolygon")):
+                return {"status": "unverified", "zones": [], "coverage": 0.0}
             zone = shape(item["geometry"])
             if zone.geom_type not in ("Polygon", "MultiPolygon") or not zone.is_valid or zone.area <= 0:
                 return out
