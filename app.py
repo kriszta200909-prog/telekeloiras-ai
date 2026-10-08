@@ -1899,7 +1899,9 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
     remaining = list(attachments)
     problems = []
     checked = 0
-    while remaining and checked < 5:
+    fallback_doc = None
+    fallback_url = ''
+    while remaining and checked < 20:
         candidate = choose_plan_attachment(remaining, legal_text)
         if not candidate:
             break
@@ -1934,13 +1936,25 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
                     opening = recognized[0]
                 fitz.TOOLS.store_shrink(100)
             if any(term in opening for term in ("szabalyozasi terv", "szabalyozasi tervlap")):
-                return doc, final_url, ""
+                # Prefer the official plan containing the exact requested parcel label.
+                if hrsz and find_hrsz(doc, hrsz):
+                    if fallback_doc is not None:
+                        fallback_doc.close()
+                    return doc, final_url, ""
+                if fallback_doc is None:
+                    fallback_doc, fallback_url = doc, final_url
+                else:
+                    doc.close()
+                continue
             doc.close()
             problems.append(f"{candidate['URL']}: nem igazolt szabályozási terv")
         except Exception as exc:
             if doc is not None:
                 doc.close()
             problems.append(f"{candidate.get('URL', '')}: {phase}: {type(exc).__name__}: {exc}")
+    if fallback_doc is not None:
+        # An outlined parcel label may not appear in the PDF text layer.
+        return fallback_doc, fallback_url, ""
     return None, "", " | ".join(problems[:5])
 
 
