@@ -140,6 +140,21 @@ class RuleInventoryTests(unittest.TestCase):
         self.assertIn('"status": "ambiguous_parcel_labels"', body)
         self.assertIn('"hits": hits', body)
 
+    def test_all_budapest_districts_are_selectable(self):
+        from pathlib import Path
+        import ast
+        source = Path(__file__).with_name("app.py").read_text(encoding="utf-8")
+        fn = next(n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name == "main")
+        options = []
+        for node in ast.walk(fn):
+            if isinstance(node, ast.Tuple) and len(node.elts) == 23:
+                if all(isinstance(x, ast.Constant) and isinstance(x.value, str) for x in node.elts):
+                    options = [x.value for x in node.elts]
+        self.assertEqual(len(options), 23)
+        self.assertEqual(len(set(options)), 23)
+        self.assertIn("XII", options)
+        self.assertIn("XXIII", options)
+
     def test_multiple_zone_coverage(self):
         import ast
         from pathlib import Path
