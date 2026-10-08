@@ -454,8 +454,9 @@ def discover_budapest_district(hrsz):
         re.compile(rf"\bBudapest\s+({roman})\.?\s*ker(?:ület|\.)?\b", re.I),
         re.compile(rf"\bBudapest\s+0?(\d{{1,2}})\.?\s*ker(?:ület|\.)?\b", re.I),
     ]
+    escaped_hrsz = re.escape(h).replace('/', r'\s*/\s*')
     hrsz_rx = re.compile(
-        rf"(?<![\d/]){re.escape(h).replace('/', r'\s*/\s*')}(?!\s*/\s*[A-Za-z0-9])",
+        rf"(?<![\d/]){escaped_hrsz}(?!\s*/\s*[A-Za-z0-9])",
         re.I
     )
 
