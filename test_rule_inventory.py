@@ -140,6 +140,21 @@ class RuleInventoryTests(unittest.TestCase):
         self.assertIn('"status": "ambiguous_parcel_labels"', body)
         self.assertIn('"hits": hits', body)
 
+    def test_parcel_lookup_does_not_confuse_id_with_hrsz(self):
+        import ast
+        from pathlib import Path
+        source = Path(__file__).with_name("app.py").read_text(encoding="utf-8")
+        fn = next(n for n in ast.parse(source).body
+                  if isinstance(n, ast.FunctionDef) and n.name == "_find_parcel_record")
+        scope = {"normalize_hrsz": lambda value: str(value).strip()}
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), "<app>", "exec"), scope)
+        lookup = scope["_find_parcel_record"]
+        self.assertIsNone(lookup({"id": "2200/8", "lotNumber": "2200/9"}, "2200/8"))
+        self.assertIsNone(lookup({"displayName": "2200/8", "lotNumber": "2200/9"}, "2200/8"))
+        self.assertEqual(lookup({"id": "17", "lotNumber": "2200/8"}, "2200/8")["id"], "17")
+        self.assertEqual(lookup([{"id": "1", "hrsz": "2200/9"},
+                                 {"id": "2", "hrsz": "2200/8"}], "2200/8")["id"], "2")
+
     def test_all_budapest_districts_are_selectable(self):
         from pathlib import Path
         import ast
