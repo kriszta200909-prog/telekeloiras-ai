@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.45
+# TelekElőírás AI v15.46
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -25,10 +25,11 @@ from urllib.parse import urljoin
 import fitz
 import streamlit as st
 from PIL import Image, ImageDraw
+from rule_inventory import Clause, build_inventory, source_digest
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.45",
+    page_title="TelekElőírás AI v15.46",
     page_icon="🏗️",
     layout="wide",
 )
@@ -249,7 +250,7 @@ def fetch_njt_page(url):
 
         ok = (
             status == 200
-            and "njt.jog.gov.hu" in final_url
+            and urllib.parse.urlsplit(final_url).hostname in {'njt.jog.gov.hu', 'njt.hu', 'or.njt.hu'}
             and len(text) > 300
         )
         return {
@@ -2883,6 +2884,59 @@ class TiszaLegalParagraphs(HTMLParser):
             self.paragraph.append(data)
 
 
+@st.cache_data(show_spinner=False, ttl=3600)
+def local_pdf_inventory_clauses(url, edition):
+    """Keep full native PDF sections across page boundaries, with page provenance."""
+    raw,final_url,status,*_=http_get(url)
+    if status!=200 or not is_official_njt_url(final_url):
+        raise ValueError('A jogszabályi PDF hivatalos forrása nem igazolható.')
+    doc=fitz.open(stream=raw,filetype='pdf')
+    try:
+        texts=[p.get_text('text') for p in doc]
+    finally: doc.close()
+    sections=[];current=[];start_page=None
+    for page_number,text in enumerate(texts,1):
+        for line in text.splitlines():
+            if re.fullmatch(r'\s*\d+(?:/[A-Z])?\.?\s*§\s*\d*\s*',line):
+                if current: sections.append((start_page,'\n'.join(current)))
+                current=[];start_page=page_number
+            if start_page is not None: current.append(line)
+    if current: sections.append((start_page,'\n'.join(current)))
+    digest=source_digest(raw)
+    return [Clause(text,final_url,'page='+str(number),edition,digest)
+            for number,text in sections]
+
+
+def local_source_inventory(page, source_verified, zone='', zone_verified=False, attachments=None):
+    """Extract full NJT HTML clauses for any municipality; no applicability claim."""
+    document_id=urllib.parse.urlsplit(page.get('url','')).path.rstrip('/').split('/')[-1]
+    reader=TiszaLegalParagraphs(document_id=document_id)
+    reader.feed(page.get('html',''))
+    edition=reader.editions[0] if len(reader.editions)==1 else ''
+    digest=source_digest(page.get('html',''))
+    clauses=[Clause(clean_text(' '.join(parts)),page.get('url',''),
+                    reader.anchors.get(position,''),edition,digest)
+             for position,parts in reader.blocks.items()
+             if position[0] not in reader.duplicates]
+    issues=[]
+    if source_verified and edition:
+        for attachment in attachments or []:
+            url=attachment.get('URL','')
+            name=key_text(urllib.parse.unquote(attachment.get('Megnevezés','')+' '+url))
+            # Plan maps are a separate spatial stage, not textual rule sources.
+            if (is_official_njt_url(url) and '.pdf' in name
+                    and re.search(r'helyi[ _]+[e_]?p[i_]?t[e_]?si[ _]+szab[a_]?lyzat',name)):
+                try: clauses.extend(local_pdf_inventory_clauses(url,edition))
+                except Exception as exc: issues.append('Jogszabályi PDF feldolgozása nem sikerült: '+str(exc))
+    result=build_inventory(clauses,zone,zone_verified,source_verified)
+    result['errors'].extend(issues)
+    if not clauses:
+        result['errors'].append('Nem sikerült teljes, hivatkozható HTML-rendelkezéseket kinyerni. A jogszabályi PDF-mellékletek külön feldolgozást igényelnek.')
+    if not edition:
+        result['errors'].append('A forrás egyértelmű időállapota nem olvasható ki.')
+    return result
+
+
 def tisza_local_rules(html,source_url,zone,zone_verified=False):
     """Edition-checked local clauses. Spatial conditions are never inferred from zoning."""
     import hashlib
@@ -4011,10 +4065,10 @@ def render_case_review(case):
 
 
 def investigation_report(town, hrsz, zone, params, summary, local_rules,
-                         national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None):
+                         national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None, source_inventory=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.45 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.46 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -4056,6 +4110,11 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
             add_row(row)
     else:
         lines.append('Nincs ellenőrzött helyi szabálykapcsolat.')
+    if source_inventory is not None:
+        lines.extend(['', 'HELYI FORRÁSOK TÉMAKÖRI FELDOLGOZÁSA – ALKALMAZHATÓSÁG MÉG ELLENŐRIZENDŐ'])
+        for row in source_inventory.get('coverage', []): add_row(row)
+        for issue in source_inventory.get('errors', []): lines.append(issue)
+        for row in source_inventory.get('rows', []): add_row(row)
     lines.extend(['', 'AUTOMATIKUS ORSZÁGOS KIVÁLASZTÁS'])
     selection=applicability or {}
     if selection.get('ok'):
@@ -4134,7 +4193,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_45.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_46.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -4183,7 +4242,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.45 • nyilvános HRSZ API + telekgeometria • "
+        "v15.46 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -4688,7 +4747,9 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     st.header("5. Mit mond a hatályos szabályzat?")
 
     njt_text = page.get("text", "")
-    rows, params, contexts = extract_rules(njt_text, zone)
+    # Nearby prose can contain neighbouring zones and closing exceptions.
+    # Only an exact structured table row supplies numeric parcel parameters.
+    rows, params, contexts = [], {}, []
     if inline_tables:
         # Flattened HTML includes adjacent zone rows; it cannot establish numeric values.
         params = {}
@@ -4741,6 +4802,16 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
 
     combined_params = dict(params)
     combined_params.update(table_params)
+    source_inventory=local_source_inventory(page,source_valid,zone,
+        bool(plan_zone.get('zone') or (manual_zone.strip() and map_verified)),attachments)
+    st.subheader('Helyi előírások – témaköri forrásellenőrzés')
+    st.caption('A találatok teljes jogszabályi rendelkezések. A témaköri keresés önmagában nem igazolja a telekre alkalmazhatóságot; a hiányzó találat nem jelent előírásmentességet. Külön településképi rendelet és jogszabályi PDF-melléklet további forrásfeldolgozást igényelhet.')
+    if source_inventory['coverage']:
+        st.dataframe(source_inventory['coverage'],hide_index=True,use_container_width=True)
+    for issue in source_inventory['errors']: st.info(issue)
+    if source_inventory['rows']:
+        with st.expander('Teljes helyi rendelkezések, pontos forrásokkal'):
+            st.dataframe(source_inventory['rows'],hide_index=True,use_container_width=True)
     local_rules={'ok':False,'rows':[],'conditional':[]}
     national_rules=[]
     plan_basis={'ok':False,'error':'A tervi alap nincs igazolva.'}
@@ -4866,7 +4937,8 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     report = investigation_report(town, hrsz, zone, combined_params, summary,
                                   local_rules, national_rules, case,
                                   parameter_source=zone_table_source, plan_source=plan_source,
-                                  applicability=applicability, plan_basis=plan_basis, proposal_result=proposal_result)
+                                  applicability=applicability, plan_basis=plan_basis, proposal_result=proposal_result,
+                                  source_inventory=source_inventory)
     render_report_download(report, hrsz)
     progress.finish()
 
