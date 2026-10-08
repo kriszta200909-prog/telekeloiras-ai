@@ -26,7 +26,7 @@ def native_hrsz_hits(doc, target):
     target=re.sub(r'\s+','',str(target or ''))
     if not target:return []
     expression=''.join(r'\s*'+re.escape(c)+r'\s*' if c in '/-' else re.escape(c) for c in target)
-    pattern=re.compile(r'(?<![\w/.-])'+expression+r'(?![\w/.-])')
+    pattern=re.compile(r'(?<![\w/.-])'+expression+r'(?!\s*[/.-]|\w)')
     hits=[]
     for number,page in enumerate(doc):
         raw=page.get_text('rawdict',flags=fitz.TEXTFLAGS_RAWDICT & ~fitz.TEXT_PRESERVE_IMAGES)
