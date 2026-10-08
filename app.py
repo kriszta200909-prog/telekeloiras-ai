@@ -301,6 +301,13 @@ def discover_attachments(page):
             continue
 
         full = urljoin(page.get("url", ""), href)
+        # Mellékletként kizárólag az NJT hivatalos oldalára mutató
+        # HTTPS-hivatkozás fogadható el. A külső találat nem jogforrás.
+        parsed = urllib.parse.urlsplit(full)
+        if parsed.scheme != "https" or parsed.hostname not in {
+            "njt.jog.gov.hu", "or.njt.hu", "njt.hu"
+        } or parsed.username or parsed.password:
+            continue
         hay = key_text(f"{label} {full}")
 
         if not any(x in hay for x in (
