@@ -750,7 +750,27 @@ def public_parcel_geometry(ksh_code, hrsz):
     settlement=geom.get('settlement') or {}
     if settlement.get('kshCode') is not None and str(settlement['kshCode'])!=str(ksh_code):
         raise RuntimeError('A visszakapott geometria másik településhez tartozik.')
-    return {"id": parcel_id, "search_url": search_url, "geometry_url": bbox_url, "search": data, "geometry": geom}
+    # A bounding-box végpont nem bizonyítja, hogy teljes telekpoligont ad.
+    # A koordinátákat csak explicit GeoJSON Polygon/MultiPolygon alakban,
+    # és csak ellenőrzött, nem üres geometriaként tekintjük határjelöltnek.
+    outline = geom.get("outline")
+    polygon_candidate = False
+    if isinstance(outline, dict) and outline.get("type") in ("Polygon", "MultiPolygon"):
+        try:
+            from shapely.geometry import shape
+            polygon = shape(outline)
+            polygon_candidate = bool(polygon.is_valid and not polygon.is_empty and polygon.area > 0)
+        except (ValueError, TypeError, KeyError, AttributeError):
+            polygon_candidate = False
+    return {"id": parcel_id, "search_url": search_url, "geometry_url": bbox_url,
+            "search": data, "geometry": geom,
+            "parcel_polygon_candidate": polygon_candidate,
+            "parcel_boundary_verified": False,
+            "geometry_evidence_note": (
+                "A poligon geometriailag érvényes jelölt, de a hiteles telekhatár még nem igazolt."
+                if polygon_candidate else
+                "A bounding-box válasz nem igazol tényleges telekhatár-poligont."
+            )}
 
 def geometry_summary(geom):
     if not isinstance(geom, dict):
