@@ -1498,9 +1498,20 @@ def locate_parcel(doc, hrsz, outlined=False, on_progress=None):
             "scan":scan,
         }
 
+    # Több találat esetén nem választunk önkényesen első tervlapot.
+    # A találatok listája megmarad kézi/térképi ellenőrzéshez.
+    if len(hits) > 1:
+        return {
+            "status": "ambiguous_parcel_labels",
+            "hit": None,
+            "candidates": [],
+            "zone": "",
+            "hits": hits,
+            "scan": scan,
+        }
     hit = hits[0]
     page = doc[hit["page_number"]]
-    candidates = zone_candidates(page, hit["pdf_rect"]) if len(hits)==1 and not scan else []
+    candidates = zone_candidates(page, hit["pdf_rect"]) if not scan else []
     # A felirat közelsége nem bizonyítja, hogy a kód ugyanazon telek
     # övezetéhez tartozik. Csak ellenőrizendő jelöltet közlünk.
     return {
