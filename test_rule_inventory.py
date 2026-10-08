@@ -10,6 +10,24 @@ class RuleInventoryTests(unittest.TestCase):
         values.update(changes)
         return Clause(**values)
 
+    def test_nationwide_plan_choice_excludes_legend(self):
+        import ast
+        import re
+        import unicodedata
+        from pathlib import Path
+        source = Path(__file__).with_name("app.py").read_text(encoding="utf-8")
+        fn = next(n for n in ast.parse(source).body if isinstance(n, ast.FunctionDef) and n.name == "choose_plan_attachment")
+        def key_text(value):
+            value = unicodedata.normalize("NFKD", str(value))
+            return "".join(c for c in value if not unicodedata.combining(c)).casefold()
+        scope = {"key_text": key_text, "re": re}
+        exec(compile(ast.Module(body=[fn], type_ignores=[]), "<app>", "exec"), scope)
+        rows = [
+            {"Megnevezés": "NJT melléklet", "URL": "https://njt.jog.gov.hu/document/abc-Jelmagyarazat.pdf"},
+            {"Megnevezés": "NJT melléklet", "URL": "https://njt.jog.gov.hu/document/abc-Belteruleti_szabalyozasi_tervlap.pdf"},
+        ]
+        self.assertEqual(scope["choose_plan_attachment"](rows), rows[1])
+
     def test_first_annex_is_not_automatically_zoning_plan(self):
         import ast
         import re
