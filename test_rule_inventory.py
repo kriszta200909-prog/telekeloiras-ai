@@ -10,6 +10,17 @@ class RuleInventoryTests(unittest.TestCase):
         values.update(changes)
         return Clause(**values)
 
+    def test_multiple_parcel_labels_are_not_arbitrarily_resolved(self):
+        import ast
+        from pathlib import Path
+        source = Path(__file__).with_name('app.py').read_text(encoding='utf-8')
+        tree = ast.parse(source)
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'locate_parcel')
+        body = ast.get_source_segment(source, fn)
+        self.assertIn('if len(hits) > 1:', body)
+        self.assertIn('"status": "ambiguous_parcel_labels"', body)
+        self.assertIn('"hits": hits', body)
+
     def test_nearby_zone_is_not_automatically_confirmed(self):
         import ast
         from pathlib import Path
