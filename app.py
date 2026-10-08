@@ -1467,8 +1467,9 @@ def zone_candidates(page, pdf_rect):
 
     candidates.sort(key=lambda x: x[0])
     return [
-        {"Övezeti kód": code, "Távolsági sorrend": i + 1}
-        for i, (_, code) in enumerate(candidates[:12])
+        {"Övezeti kód": code, "Távolsági sorrend": i + 1,
+         "Felirat távolsága (PDF-egység)": round(distance, 1)}
+        for i, (distance, code) in enumerate(candidates[:12])
     ]
 
 
