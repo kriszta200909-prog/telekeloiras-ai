@@ -74,6 +74,7 @@ def main():
         assert result["status"] == "candidate_unverified", result
         assert result["zone"] == "", result
         assert result["candidates"][0]["Övezeti kód"] == "Gipe-60.63.5", result
+        assert 0 < result["candidates"][0]["Felirat távolsága (PDF-egység)"] < 40, result
         print("PASS: application reports unverified Gipe candidate, not proven zoning", flush=True)
 
         # Also inspect actual PDF word geometry; this is evidence, not a parcel overlay.
