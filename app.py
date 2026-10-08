@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.40
+# TelekElőírás AI v15.41
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -28,7 +28,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.40",
+    page_title="TelekElőírás AI v15.41",
     page_icon="🏗️",
     layout="wide",
 )
@@ -2751,11 +2751,12 @@ class TiszaLegalParagraphs(HTMLParser):
         attrs=dict(attrs)
         if tag=='span' and 'jhId' in attrs.get('class','').split():
             marker=attrs.get('id','')
-            m=(re.fullmatch(r'SZ(\d+(?:/[A-Z])?)\.@BE(?:\((\d+)\)|0)(?:@.*)?',marker)
-               or re.fullmatch(r'SZ(\d+[A-Z]?)@BE(\d+)(?:@.*)?',marker))
+            m=(re.fullmatch(r'SZ(\d+(?:/[A-Z])?)\.@BE(?:\((\d+[a-zA-Z]?)\)|0)(?:@.*)?',marker)
+               or re.fullmatch(r'SZ(\d+[A-Z]?)@BE(\d+[a-zA-Z]?)(?:@.*)?',marker))
             if m:
                 section=int(m[1]) if m[1].isdigit() else re.sub(r'^(\d+)([A-Z])$',r'\1/\2',m[1])
-                self.active=(section,int(m[2]) if m[2] and int(m[2]) else None)
+                clause = m[2].lower() if m[2] else None
+                self.active=(section, int(clause) if clause and clause.isdigit() and int(clause) else (clause if clause and not clause.isdigit() else None))
                 if marker in self.seen:self.duplicates.add(section)
                 self.seen.add(marker)
                 self.anchors.setdefault(self.active,marker)
@@ -2963,7 +2964,7 @@ NATIONAL_RULE_PROFILES = {'otek2012': {'document': '1997-253-20-22',
                      50: 'da4904d6e8f4c89372a020c7bdc6d895aa2beb6dd3193ff2203893d91286a825',
                      51: 'b6feee39733bd89e31d0bb3da9f08a863cab5dfce730702d705dce6c25bcd4a0',
                      52: '72cb341ecea0bd85818c8b6cd4d729ed80d3c261cfb5ea99f2b9bef46302e904',
-                     59: 'fd94fd02b255b6f9d2f78aa0e44ba8a67e915b7ef2da4c90e032d690032615a7',
+                     59: 'b2f2c191c0deb0d300df132b084af15ccf66ce8d51e98b491af20abda350491a',
                      60: 'a58807b28012bc94176fff816fcd7ec7815e5d11796e3b685bd53ced97302b51',
                      136: '279f0b4598a01e654070022052be22417f346701f7900ae2481b967338863622',
                      '137/A': '5115e6a1dbe1838d55def08a7788f1c0cb472977036abc4476c2d386ddff231b',
@@ -3594,7 +3595,7 @@ def national_parking_review(case, national_rules, applicability):
         return out
     profile = next((r for r in national_rules if r.get('key') == 'teka' and r.get('ok')), {})
     sources = {r['Forrás']: r for r in profile.get('parking', [])}
-    needed = tuple(f'{section}. § ({clause})' for section, count in ((59, 11), (60, 13)) for clause in range(1, count + 1))
+    needed = tuple(f'{section}. § ({clause})' for section, count in ((59, 11), (60, 13)) for clause in range(1, count + 1)) + ('59. § (4a)',)
     if any(ref not in sources for ref in needed):
         out['notes'].append('A TÉKA 59–60. § teljes ellenőrzött forráslánca hiányos; részszámítás nem készül.')
         return out
@@ -3602,7 +3603,8 @@ def national_parking_review(case, national_rules, applicability):
     for ref, topic, condition in (
         ('59. § (1)', 'Szükséges parkolóhelyszám', 'A 4. melléklet rendeltetésfüggő alapértéke és az igazolt helyi vagy egyedi eltérések együtt vizsgálandók; a megadott parkolóhelyszám nem igazolja a szükséges szám teljesítését.'),
         ('59. § (2)', 'Meglévő építmény módosítása', 'Bővítésnél és rendeltetésváltozásnál a többletigény és a meglévő helyek megtartása vizsgálandó, a forrás kivételeivel.'),
-        ('59. § (4)', 'Elhelyezés', 'Elsődlegesen telken belüli elhelyezés. Más telken, legfeljebb 500 m-en belüli elhelyezés csak a forrás feltételeivel és helyi megengedéssel lehetséges.'),
+        ('59. § (4)', 'Elhelyezés', 'Elsődlegesen telken belüli elhelyezés. Az (4a) bekezdés felszíni elhelyezési elsőbbsége is vizsgálandó. Más telken, legfeljebb 500 m-en belüli elhelyezés csak a forrás feltételeivel és helyi megengedéssel lehetséges.'),
+        ('59. § (4a)', 'Felszíni elhelyezési elsőbbség', 'A TÉKA 6. § (3) bekezdés 7–10. pontja szerinti építési övezetekben elsődlegesen felszíni várakozóhelyek alakítandók ki. A hivatkozott területtípus kapcsolatát külön kell ellenőrizni.'),
         ('59. § (5)', 'Helyi eltérés', 'A helyi parkolóhelyszám-eltérés jogalapját, megalapozását és a főépítészi véleményt külön kell igazolni.'),
         ('59. § (6)', 'Egyedi eltérés', 'Zöldfelület, műemlék, domborzat vagy közösségi közlekedés alapján eltérés csak a 4. § szerinti eljárással adható; nem automatikus kedvezmény.'),
         ('59. § (8)', 'Akadálymentes helyek', 'Közhasználatú építményhez kapcsolódó parkolóban a kapacitásfüggő akadálymentes arány és a kialakítás ellenőrizendő.'),
@@ -3765,7 +3767,7 @@ def investigation_report(town, hrsz, zone, params, summary, local_rules,
                          national_rules, case, generated_at=None, parameter_source="", plan_source="", applicability=None, plan_basis=None, proposal_result=None):
     """Export the actual result with provenance and unresolved scope."""
     generated_at = generated_at or datetime.now(timezone.utc)
-    lines = ['TelekElőírás AI v15.40 – vizsgálati adatlap',
+    lines = ['TelekElőírás AI v15.41 – vizsgálati adatlap',
              'Készült (UTC): ' + generated_at.isoformat(),
              'Telek: ' + str(town) + ' ' + normalize_hrsz(hrsz),
              'Övezet: ' + (zone or 'nincs igazolva'),
@@ -3879,7 +3881,7 @@ def render_report_download(report, hrsz):
     version = tuple(int(part) for part in st.__version__.split('.')[:2])
     st.download_button('Teljes vizsgálati adatlap letöltése (.txt)',
                        data=report.encode('utf-8'),
-                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_40.txt',
+                       file_name='telekvizsgalat_' + safe_hrsz + '_v15_41.txt',
                        mime='text/plain; charset=utf-8',
                        on_click='ignore' if version >= (1, 44) else None)
 
@@ -3928,7 +3930,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.40 • nyilvános HRSZ API + telekgeometria • "
+        "v15.41 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
