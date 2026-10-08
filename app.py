@@ -4498,10 +4498,13 @@ def main():
         town = st.text_input("Település", value="Tiszaújváros")
         hrsz = st.text_input("Helyrajzi szám", value="2200/8")
         budapest_district = ""
-        if key_text(town) in {"budapest xii. kerulet", "budapest 12. kerulet"}:
-            town = "Budapest"
         if key_text(town) == "budapest":
-            budapest_district = st.selectbox("Budapest kerület", ["XII. kerület"], help="A nyilvános HRSZ-kereső Budapesten kerületet kér. A v15 első tesztje a XII. kerületet támogatja.")
+            budapest_district = st.selectbox("Budapest kerület",
+                [f"{roman}. kerület" for roman in ("I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII","XIII","XIV","XV","XVI","XVII","XVIII","XIX","XX","XXI","XXII","XXIII")],
+                index=11, help="Mind a 23 kerület kiválasztható; a településazonosítót a nyilvános HRSZ-keresőből kérjük le.")
+        elif key_text(town).startswith("budapest "):
+            budapest_district = town.strip()[len("Budapest "):]
+            town = "Budapest"
 
         st.header("Források")
         uploaded_plan = st.file_uploader(
