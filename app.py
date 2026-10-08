@@ -1,4 +1,4 @@
-# TelekElőírás AI v15.31
+# TelekElőírás AI v15.33
 # Tiszta, újraírt Streamlit alkalmazás.
 # Cél: telek -> hivatalos NJT-forrás -> szabályozási terv -> övezeti jelölt
 #      -> forrásolt övezeti előírások.
@@ -26,7 +26,7 @@ from PIL import Image, ImageDraw
 
 
 st.set_page_config(
-    page_title="TelekElőírás AI v15.31",
+    page_title="TelekElőírás AI v15.33",
     page_icon="🏗️",
     layout="wide",
 )
@@ -131,7 +131,7 @@ def parallel_njt_pdf(url, headers, timeout=90):
 
 
 def http_get(url, timeout=25, accept="text/html,*/*;q=0.8"):
-    headers={"User-Agent":"Mozilla/5.0 TelekEloirasAI/15.31",
+    headers={"User-Agent":"Mozilla/5.0 TelekEloirasAI/15.32",
              "Accept-Language":"hu-HU,hu;q=0.9,en;q=0.5","Accept":accept}
     # Only the known large official attachment uses parallel ranges. Other
     # sources retain their ordinary request and redirect behaviour.
@@ -2829,6 +2829,13 @@ def tisza_local_rules(html,source_url,zone,zone_verified=False):
     add(8,2,'Telekalakítás','Közterületi kiszabályozás miatti telekcsökkenés esetén',
         'Az eredeti telekméret szerinti beépítés feltételesen lehetséges, ha a visszamaradó telek eléri az övezeti minimum 75%-át, és az elhelyezési szabályok teljesülnek.')
     if zone.startswith('Gip/'):
+        # This category follows the edition-checked 29. § (1), not the
+        # abbreviation alone. It does not select an OTÉK/TÉKA time state.
+        out['industrial_type']={
+            'kind':'significant','zone':zone,
+            'label':'Környezetére jelentős hatást gyakorló ipar',
+            'Forrás':'TÉSZ 29. § (1)',
+            'URL':TISZA_RULES_URL+'#'+urllib.parse.quote(reader.anchors[(29,1)],safe='.@()')}
         add(29,1,'Megengedett rendeltetések','Gip övezetek',
             'Az OTÉK-ban felsoroltakon túl igazgatási épület, irodaépület, parkolóház és üzemanyagtöltő helyezhető el. Ez a helyi kiegészítés, nem a teljes országos rendeltetési lista.')
         add(29,2,'Tiltott melléképítmények','Gip övezetek',
@@ -2856,6 +2863,16 @@ def tisza_local_rules(html,source_url,zone,zone_verified=False):
     for clause in (11,12):
         add(7,clause,'Hidrogeológiai védelem','Védőidom / védőövezet érintettsége külön ellenőrizendő',
             'A hidrogeológiai védelem külön feltételeket írhat elő. A telek érintettségét az övezeti kód nem bizonyítja; a teljes feltételrendszer a forrásszövegben olvasható.',True)
+    first_section='\n'.join(str(b)+':'+clean_text(' '.join(parts))
+        for (n,b),parts in reader.blocks.items() if n==1)
+    if (1 not in reader.duplicates and hashlib.sha256(first_section.encode()).hexdigest()
+            =='290ad09885c35d9942e6e058fa13f36729d626ed90d0ef727d07d3d91bd70e40'):
+        out['basis_evidence']={
+            'Forrás':'TÉSZ 1. § (2)',
+            'URL':TISZA_RULES_URL+'#'+urllib.parse.quote(reader.anchors[(1,2)],safe='.@()'),
+            'Forrásszöveg':clean_text(' '.join(reader.blocks[(1,2)])),
+            'Eredmény':'Az OTÉK-ra hivatkozás igazolt. Az alkalmazandó OTÉK-időállapotot ez a bekezdés nem határozza meg.'}
+    out['zone']=zone
     out['checks']=['Országos rendeltetési és építési szabályok, valamint átmeneti rendelkezések külön ellenőrzendők.',
         'A szabályozási/építési vonal, az építési hely, a beültetési sáv helye és a védőterületi érintettség nincs teljeskörűen automatikusan feldolgozva.',
         'A meglévő beépítés, a közműellátottság és a telekalakítási feltételek teljesülése külön ellenőrizendő.']
@@ -2866,6 +2883,10 @@ def tisza_local_rules(html,source_url,zone,zone_verified=False):
 def render_tisza_local_rules(result,zone,params):
     st.subheader('Mit lehet építeni? – helyi szabályok')
     st.write(f'**Az ellenőrzött övezet: {zone}.** Az alábbiak a TÉSZ helyi szabályai; az építési lehetőséget az országos és a tervi feltételekkel együtt kell megállapítani.')
+    category=verified_local_industrial_type(result,zone)
+    if category:
+        st.write('**Helyi ipari típus:** '+category['label']+'.')
+        st.link_button(category['Forrás']+' – ipari besorolás',category['URL'])
     if params:
         st.write('**Fő mutatók:** '+ '; '.join(f'{key}: {value}' for key,value in params.items())+'.')
     groups=(('Megengedett építmények és rendeltetések',lambda r:r['Téma'].startswith('Megengedett')),
@@ -2933,10 +2954,23 @@ NATIONAL_RULE_PROFILES = {'otek2012': {'document': '1997-253-20-22',
                    'mellett is alkalmazandók a 136. § (2) és 139. § (2) feltételeivel.'}}
 
 
-def national_rule_profile(key, page, zone, local_verified=False):
+def verified_local_industrial_type(local_rules,zone):
+    """Carry category evidence only with the exact verified local zone."""
+    if not isinstance(local_rules,dict) or not local_rules.get('ok') or local_rules.get('zone')!=zone:
+        return None
+    category=local_rules.get('industrial_type')
+    if (not isinstance(category,dict) or category.get('kind')!='significant'
+            or category.get('zone')!=zone or not re.fullmatch(r'Gip/[1-3]',zone)
+            or category.get('Forrás')!='TÉSZ 29. § (1)'
+            or not category.get('URL','').startswith(TISZA_RULES_URL+'#')):
+        return None
+    return category
+
+
+def national_rule_profile(key, page, zone, local_verified=False, local_rules=None):
     """Verify a complete official edition; return conditional source rows, never building permission."""
     import hashlib
-    result={'ok':False,'rows':[],'transition':[],'error':'','key':key}
+    result={'ok':False,'rows':[],'transition':[],'comparison':[],'error':'','key':key}
     cfg=NATIONAL_RULE_PROFILES.get(key)
     if not cfg or not local_verified or not isinstance(zone,str) or not re.fullmatch(r'Gip/[1-3]|Gksz/(?:[1-9]|1[0-5]|g)',zone):
         result['error']='Nincs ellenőrzött helyi övezeti kapcsolat az országos szabályokhoz.';return result
@@ -2950,6 +2984,7 @@ def national_rule_profile(key, page, zone, local_verified=False):
         if section in reader.duplicates or hashlib.sha256(text.encode()).hexdigest()!=expected:
             result['error']='Az országos szabály szövege vagy szerkezete eltér az ellenőrzött kiadástól; új ellenőrzés szükséges.';return result
     sections=([21] if zone.startswith('Gksz/') else [23,24]) if key=='teka' else ([19] if zone.startswith('Gksz/') else ([20] if key in ('otek2012','otek2021') else ['19/A',20]))
+    category=verified_local_industrial_type(local_rules,zone)
     for (section,clause),parts in reader.blocks.items():
         transition=key=='teka' and section in (136,'137/A',139)
         if section not in sections and not transition:continue
@@ -2962,29 +2997,57 @@ def national_rule_profile(key, page, zone, local_verified=False):
             scope=({'19/A':'Ipari gazdasági terület – jelentős környezeti hatás',20:'Egyéb ipari gazdasági terület'} if key=='otek2024' else {23:'Ipari gazdasági terület',24:'Egyéb ipari gazdasági terület'} if key=='teka' else {20:'Ipari gazdasági terület – altípus is igazolandó'}).get(section,scope)+'; a pontos besorolás külön igazolandó'
         row={'Területtípus':scope,'Forrás':ref,'Forrásszöveg':text,
              'URL':cfg['url']+'#'+urllib.parse.quote(reader.anchors[(section,clause)],safe='.@()')}
-        result['transition' if transition else 'rows'].append(row)
+        other_type=(category and not transition and
+            ((key=='teka' and section==24) or (key=='otek2024' and section==20)
+             or (key in ('otek2012','otek2021') and section==20 and clause==4)))
+        if other_type:
+            row['Kapcsolat']='Más ipari típus: a helyi Gip-besoroláshoz nem kapcsolt összehasonlító forrás.'
+        elif category and not transition:
+            row['Területtípus']=category['label']+' – az időállapot alkalmazhatósága még igazolandó'
+            if key in ('otek2012','otek2021') and section==20 and clause==2:
+                row['Kapcsolat']='Általános típusfelsorolás; a helyi besorolás a jelentős hatású típus.'
+            elif key in ('otek2012','otek2021') and section==20 and clause==5:
+                row['Kapcsolat']=('A jelentős zavaró hatású területet a felsorolt kivételes megengedésekből kizárja.'
+                    if key=='otek2012' else 'Jelentős hatású területen lakás nem helyezhető el; az egyéb ipari típusra írt lakásmegengedés nem kapcsolható ide.')
+            else:
+                row['Kapcsolat']='A helyi ipari típushoz kapcsolt, feltételes országos szabály.'
+        result['transition' if transition else 'comparison' if other_type else 'rows'].append(row)
+    result['industrial_type']=category
     result.update(ok=True,label=cfg['label'],basis=cfg['basis'])
     return result
 
 
-def load_national_rules(zone,local_verified):
+def load_national_rules(zone,local_verified,local_rules=None):
     # Independent source requests share existing NJT caching and bounded timeouts.
     from concurrent.futures import ThreadPoolExecutor
     keys=list(NATIONAL_RULE_PROFILES)
     def load(key):
         try:page=fetch_njt_page(NATIONAL_RULE_PROFILES[key]['url'])
         except Exception:page={}
-        return national_rule_profile(key,page,zone,local_verified)
+        return national_rule_profile(key,page,zone,local_verified,local_rules)
     if not local_verified:return []
     with ThreadPoolExecutor(max_workers=4) as pool:
         return list(pool.map(load,keys))
 
 
-def render_national_rules(results,zone):
+def render_national_rules(results,zone,local_rules=None):
     st.subheader('Országos rendeltetési szabályok – alkalmazási alap ellenőrzése')
     st.info('Az országos források ellenőrzésének eredménye alább látható. A telekre alkalmazandó OTÉK/TÉKA-időállapot még nincs igazolva. Az alábbi változatok feltételesek; ezekből a program nem állapít meg építési jogosultságot.')
     st.write('**Még szükséges:** a helyi terv készítési alapja és jelmagyarázata, valamint az ügy kezdete, az engedély/bejelentés és az esetleges eltérés adatai. A helyi rendelet évszáma és a Gip/Gksz kód önmagában nem elegendő.')
-    if zone.startswith('Gip/'):
+    category=verified_local_industrial_type(local_rules,zone)
+    evidence=(local_rules or {}).get('basis_evidence') if (local_rules or {}).get('ok') else None
+    if evidence:
+        st.write('**A helyi forrásból már igazolt:** '+evidence['Eredmény'])
+        st.link_button(evidence['Forrás']+' – országos hivatkozás',evidence['URL'])
+    if evidence:
+        with st.expander('Tervi alap – a 2023-as módosítás történeti bizonyítéka'):
+            st.write('A jóváhagyott 2023-as terviratok 11. és 18. PDF-oldalán található főépítészi feljegyzések 1.2. pontja a 314/2012. rendelet tartalmi követelményeit és jelmagyarázatát nevezi meg. Az 1.3. pont az OTÉK 2021. július 15-ig hatályos II. fejezetét és mellékleteit, valamint a módosításkor hatályos III. fejezetet jelöli meg.')
+            st.link_button('Jóváhagyott 2023-as terviratok – főépítészi feljegyzés',
+                           'https://tiszaujvaros.hu/images/doks/teszkoz/TISZAUJVAROS_2023_TOBB_RESZTER_TERVIRATOK_JOVAHAGYOTT.pdf#page=11')
+            st.write('Ez a 2023-as módosítás dokumentált alapja. A jelenlegi tervhez és a vizsgált telekhez való kapcsolata még ellenőrizendő; önmagában nem választja ki az alkalmazandó országos szabályt. Az ügy kezdete és a korábbi engedélyek adatai továbbra is szükségesek.')
+    if category:
+        st.write('**Ipari besorolás igazolva:** '+category['label']+'. Az egyéb ipari típus sajátos megengedései külön összehasonlító forrásként szerepelnek.')
+    elif zone.startswith('Gip/'):
         st.write('**Ipari besorolás:** a jelentős környezeti hatású és az egyéb ipari terület eltérő szabályokat kap. A két típus rendeltetési listája nem vonható össze.')
     status=[]
     for result in results:
@@ -3000,7 +3063,13 @@ def render_national_rules(results,zone):
                 st.warning(result['error']);continue
             for row in result['rows']:
                 st.markdown('**'+row['Területtípus']+' – '+row['Forrás']+'**')
+                if row.get('Kapcsolat'):st.write(row['Kapcsolat'])
                 st.link_button(row['Forrás']+' – NJT',row['URL']);st.write(row['Forrásszöveg'])
+        if result.get('comparison'):
+            with st.expander(cfg['label']+' – más ipari típus, összehasonlítás'):
+                st.write('Ezek az előírások az egyéb ipari típushoz tartoznak. A helyi, jelentős hatású Gip-besorolás megengedett rendeltetéseit a program nem egészíti ki velük.')
+                for row in result['comparison']:
+                    st.link_button(row['Forrás']+' – NJT',row['URL']);st.write(row['Forrásszöveg'])
     teka=next((r for r in results if r['key']=='teka' and r['ok']),None)
     if teka:
         with st.expander('OTÉK/TÉKA átmenet – teljes alkalmazási szabályok'):
@@ -3050,7 +3119,7 @@ def buildability_summary(local_rules, national_rules, zone):
         'Az ügy típusa és kezdete; korábbi engedély/bejelentés, használatbavétel és eltérés adatai.',
         'A konkrét tervezett rendeltetés, meglévő beépítés és közműellátottság.',
         'Az építési hely, szabályozási vonal és védőterületi érintettség.']
-    if zone.startswith('Gip/'):
+    if zone.startswith('Gip/') and not verified_local_industrial_type(local_rules,zone):
         out['missing'].append('A jelentős környezeti hatású vagy egyéb ipari besorolás igazolása.')
     out['ok']=True
     return out
@@ -3118,7 +3187,7 @@ class InvestigationProgress:
 def main():
     st.title("TelekElőírás AI")
     st.caption(
-        "v15.31 • nyilvános HRSZ API + telekgeometria • "
+        "v15.33 • nyilvános HRSZ API + telekgeometria • "
         "NJT szabályozási terv + övezeti paramétertábla • geometriai ellenőrzés + szükség esetén célzott HRSZ-felismerés"
     )
 
@@ -3631,8 +3700,8 @@ def main():
     progress.stage(progress.steps[5])
     if local_rules['ok']:
         with st.spinner("Országos NJT-források ellenőrzése…"):
-            national_rules=load_national_rules(zone,True)
-        render_national_rules(national_rules,zone)
+            national_rules=load_national_rules(zone,True,local_rules)
+        render_national_rules(national_rules,zone,local_rules)
         render_buildability_summary(local_rules,national_rules,zone)
 
     # 6. Korlátozások
