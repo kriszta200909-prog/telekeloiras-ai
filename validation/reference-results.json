@@ -1,11 +1,11 @@
 {
-  "checked_at_utc": "2026-10-09T20:01:28.930636+00:00",
+  "checked_at_utc": "2026-10-09T20:11:15.203822+00:00",
   "outlined_label_search": false,
   "code_sha256": {
     "app.py": "67bc83860c6a07687f8965f7ef3fec71d51945b7cba1cc29b21944985f35d146",
     "geopdf.py": "fb1be96afdd386834bc0ad1e476c7f7be5c72269c114cedb122998b6e6a2b8f8",
     "plan_legend.py": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6",
-    "plan_connections.py": "ad83610708a18d18b2f623b21c1bf94bdecb0fb004c6d4459a2c24d6a5a95481",
+    "plan_connections.py": "944e6dfac09ba97c748cecefc52c0c9ff1b1a9931d11139852bb63941a890487",
     "plan_geometry_audit.py": "c8ba17190a62963fb1d44c0c7a8ae69503c82c66235e5178d6665c3a6a46e2b5",
     "zone_parameters.py": "38cc96cdffa44d089870e9306185b7f8b46fc2152db3dbe13e6b24e16fddfb69",
     "reference_checks.py": "a843effa8319e9bdae58f8849cfa44d6e573f589d61668cdaefbf39b22e0bc12"

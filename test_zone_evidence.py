@@ -161,6 +161,19 @@ class ZoneEvidenceTests(unittest.TestCase):
         self.assertEqual([code for code,_ in result['faces']],['A'])
         self.assertTrue(result['audit']['complete_parcel_coverage'])
 
+    def test_unread_marker_boundary_cannot_be_ignored_for_a_closed_native_face(self):
+        with marker_pdf(square=True) as doc:
+            trace=doc[0].get_texttrace()[0]
+            fonts=font_registry(doc[0]);font=next(iter(fonts.values()))[0]
+            style={'kind':'marker','glyph_hash':glyph_description(font,trace['chars'][0][1])['glyph_hash'],
+                   'colour':_colour(trace['color']),'size':trace['size']}
+            markers=native_dotted_boundaries(doc[0],[style])
+        self.assertTrue(markers['unread_boundary'])
+        result=closed_zone_faces(box(20,20,40,40),box(0,0,100,100),markers,[],
+            [('A',Point(30,30),(29,29,31,31))],native_paths=[box(10,10,50,50).boundary])
+        self.assertEqual(result['faces'],[])
+        self.assertFalse(result['audit']['complete_parcel_coverage'])
+
     def test_endpoint_audit_measures_gap_without_connecting_it(self):
         from plan_connections import boundary_topology_audit
         lines=[LineString([(10,10),(50,10),(50,50),(10,50),(10,10.001)])]

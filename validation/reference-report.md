@@ -2,7 +2,7 @@
 
 **A fő cél még nem teljesült: 0/5 teleknek van teljesen bizonyított, hatályos építési előíráslistája.**
 
-95/95 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
+96/96 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
 Streamlit vizsgálati útvonalát. Az öt mintatelek élő forrásvizsgálata után
 62/62 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
 időállapotok, jelmagyarázat–tervlap kötés, feldolgozólenyomatok,
@@ -116,7 +116,9 @@ a natív pontsorokat és az igazolt út-/területkitöltések határait. Korább
 a külön feldolgozás miatt a vegyes határtípusok nem tudtak közös poligont
 alkotni; ez javítva. Külön ellenőrzött teszt igazolja a PDF kifejezett
 `h` záróparancsának natív szakaszként való kiolvasását. Hiányzó
-zárószakaszt nem pótol a program.
+zárószakaszt nem pótol a program. Ha egy ténylegesen felismert natív
+határjel alakja vagy pontsora nem támogatott, a zárt natív vonalas terület
+sem adhat igazolt besorolást: a fel nem dolgozható határ nem hagyható figyelmen kívül.
 A lap széle és a feliratmaszk nem zárhat le övezetet.
 
 ### Konkrét tervlapi csatlakozásvizsgálat

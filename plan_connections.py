@@ -40,14 +40,14 @@ def native_dotted_boundaries(page, expected_styles=()):
     source_steps=[math.dist(a[2],b[2]) for t in traces
                   for a,b in zip(t['chars'],t['chars'][1:])]
     if not source_steps:
-        return {'supported':False,'reason':'Nem olvasható a pontsor ismétlési távolsága.','lines':[]}
+        return {'supported':False,'unread_boundary':True,'reason':'Nem olvasható a pontsor ismétlési távolsága.','lines':[]}
     typical=float(np.median(source_steps))
     lines=[];centres=[];spacings=[];gaps=[]
     for trace in traces:
         candidates=fonts.get(__import__('zone_parameters').compact(trace['font']),[])
         font=candidates[0] if len(candidates)==1 else None
         if (font is None or trace['type']!=0 or trace['opacity']!=1 or not trace['chars']):
-            return {'supported':False,'reason':'Nem támogatott övezethatár-jel.','lines':[]}
+            return {'supported':False,'unread_boundary':True,'reason':'Nem támogatott övezethatár-jel.','lines':[]}
         points=[]
         for char in trace['chars']:
             try:
@@ -69,7 +69,7 @@ def native_dotted_boundaries(page, expected_styles=()):
                 points.append((char[2][0]+size*(cx*dx+cy*dy)/units,
                                char[2][1]+size*(cx*dy-cy*dx)/units))
             except (ValueError,KeyError,IndexError,TypeError):
-                return {'supported':False,'reason':'A beágyazott határjel alakja nem igazolt.','lines':[]}
+                return {'supported':False,'unread_boundary':True,'reason':'A beágyazott határjel alakja nem igazolt.','lines':[]}
         centres.extend(points)
         if len(points)>1:
             step=[math.dist(a,b) for a,b in zip(points,points[1:])]
@@ -77,7 +77,7 @@ def native_dotted_boundaries(page, expected_styles=()):
             if (min(step)<=0
                     or any(np.linalg.norm((np.array(b)-a)-s*direction)>.02
                            for a,b,s in zip(points,points[1:],step))):
-                return {'supported':False,'reason':'Az övezethatár pontsora nem egyenes.','lines':[]}
+                return {'supported':False,'unread_boundary':True,'reason':'Az övezethatár pontsora nem egyenes.','lines':[]}
             for a,b,s in zip(points,points[1:],step):
                 if abs(s-typical)<.02:
                     spacings.append(s);lines.append(LineString([a,b]))
@@ -88,7 +88,7 @@ def native_dotted_boundaries(page, expected_styles=()):
         else:
             lines.append(Point(points[0]))
     if not spacings or max(spacings)-min(spacings)>.05:
-        return {'supported':False,'reason':'Az övezethatár pontsűrűsége nem egyértelmű.','lines':[]}
+        return {'supported':False,'unread_boundary':True,'reason':'Az övezethatár pontsűrűsége nem egyértelmű.','lines':[]}
     return {'supported':True,'lines':lines,'centres':centres,
             'spacing_points':float(np.median(spacings)), 'trace_count':len(traces),
             'marker_count':len(centres),'gap_envelopes':gaps}
@@ -183,6 +183,10 @@ def closed_zone_faces(parcel, frame, markers, filled_areas, labels, masks=(), *,
     """
     out={'faces':[], 'audit':{'closed_labelled_faces':[], 'endpoint_repairs':0,
                             'complete_parcel_coverage':False}}
+    if markers.get('unread_boundary'):
+        out['audit'].update(reason=markers['reason'],topology={'open_endpoints':[],
+            'endpoint_repairs':0,'incomplete_boundary_reading':True})
+        return out
     lines=[line for line in markers.get('lines',[]) if line.geom_type=='LineString'] if markers.get('supported') else []
     # The caller has matched each complete native stroke (including its dash
     # pattern) to this plan's own legend. Combine actual source intersections
