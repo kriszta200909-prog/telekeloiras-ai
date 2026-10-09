@@ -51,9 +51,37 @@ def check_report(report, cache, history=None):
               bool(inventory['rows']) and inventory['source_verified'] is True
               and all(row['Teljes rendelkezés'] and app.is_official_njt_url(row['Forrás'])
                       and row['Forrás időállapota']==inputs['edition'] for row in inventory['rows']))
+        gis=case.get('gis_sources')
+        if gis:
+            check(name+': GIS-elérhetőségből nincs állított övezeti bizonyítás',
+                  gis['zoning_verified'] is False)
+            receipts=gis['catalog_receipts']+gis['entries']+gis['services']
+            if gis.get('heritage_snapshot'):
+                receipts.append(gis['heritage_snapshot'])
+                receipts.append(gis['heritage_snapshot']['reuse_evidence']['receipt'])
+            for receipt in receipts:
+                if receipt.get('sha256'):
+                    original=Path('work/gis-cache')/(receipt['sha256']+'.bin')
+                    check(name+': eredeti GIS-forrásbájtok '+receipt['sha256'][:12],
+                          original.is_file() and app.source_digest(original.read_bytes())==receipt['sha256'])
+                else:
+                    check(name+': GIS-forráshiba kifejezetten megőrizve',bool(receipt.get('error')))
+            heritage=gis.get('heritage_snapshot',{})
+            check(name+': GIS-pillanatkép nem teljes jogi korlátozáslista',
+                  heritage.get('complete_restrictions_verified') is not True
+                  and heritage.get('current_legal_protection_verified') is not True)
     miskolc=report['cases'][-1]
     check('Miskolc: önállóan azonosított 4755/11 telekhatár',
           miskolc['identification']['parcel_boundary_verified'] is True)
+    if miskolc.get('gis_sources',{}).get('heritage_snapshot',{}).get('spatial_snapshot_checked'):
+        from gis_sources import shapefile_intersections
+        from shapely import wkt
+        from shapely.geometry import mapping
+        heritage=miskolc['gis_sources']['heritage_snapshot']
+        body=(Path('work/gis-cache')/(heritage['sha256']+'.bin')).read_bytes()
+        reconstructed=shapefile_intersections(body,mapping(wkt.loads(miskolc['plan_result']['parcel_wkt'])),'EPSG:23700')
+        check('Miskolc: eredeti országos SHP területi metszése újraszámítva',
+              reconstructed['layers']==heritage['layers'] and reconstructed['intersections']==heritage['intersections'])
     check('Miskolc: Gipe-60.63.5 kizárólag jelölt',
           miskolc['identification']['candidate_zone']=='Gipe-60.63.5'
           and not miskolc['identification']['intersection_verified'])

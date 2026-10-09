@@ -1,10 +1,10 @@
 {
-  "checked_at_utc": "2026-10-09T20:16:43.727391+00:00",
-  "command": "python -m unittest discover",
+  "checked_at_utc": "2026-10-09T21:06:22.611206+00:00",
+  "command": "python -m unittest discover -q",
   "python": "3.12.14",
-  "tests_run": 96,
+  "tests_run": 109,
   "failures": 0,
   "errors": 0,
   "result": "OK",
-  "note": "A 36 eredeti teszt és a Streamlit-integráció is része."
+  "note": "A 96 korábbi teszt és 13 új GIS-forrás-/geometriaellenőrzés; valódi forráspróbák külön jelentésben."
 }

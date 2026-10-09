@@ -2,9 +2,9 @@
 
 **A fő cél még nem teljesült: 0/5 teleknek van teljesen bizonyított, hatályos építési előíráslistája.**
 
-96/96 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
+109/109 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
 Streamlit vizsgálati útvonalát. Az öt mintatelek élő forrásvizsgálata után
-62/62 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
+132/132 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
 időállapotok, jelmagyarázat–tervlap kötés, feldolgozólenyomatok,
 bizonyítottsági állapotok és a miskolci paraméterkód feloldása.
 Ez a forráskezelés helyességét ellenőrzi; nem állít sikeres telekbesorolást.
@@ -16,6 +16,61 @@ Ez a forráskezelés helyességét ellenőrzi; nem állít sikeres telekbesorol�
 | Komádi 1558 | igen | nem | nem | nem |
 | Gersekarát 034/15 | nincs pontos találat | nem | nem | nem |
 | Miskolc 4755/11 | igen | igen, rajzi bizonytalanság: 1,07014 m | nem | nem |
+
+## Hivatalos GIS-források – élő vizsgálat
+
+A program a nyilvános [Lechner INSPIRE-katalógust](https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/catalog.search)
+szabványos CSW GetRecords lapozással dolgozza fel. A három lap összesen
+286 külön azonosítójú rekordot tartalmaz; ismétlődő vagy hiányos lapozás nem
+minősül teljes keresésnek. A közzétett szolgáltatáscímeket követi, rejtett
+végpontok találgatása és hitelesített munkamenetek megkerülése nélkül.
+
+- A kataszteri `CP:CP.CadastralParcels` WFS GetCapabilities működik, de saját
+  rétegleírása **Mesterszállás mintaterületét** nevezi meg. Ez nem igazolja az öt
+  mintatelek országos kataszteri ellátottságát. A CSW absztrakt országos adatról
+  szóló általános mondata nem írhatja felül a tényleges szolgáltatás területét.
+- A `LU.NGMHU` LandUse2023 WMS működik; ez meglévő területhasználati térképkép,
+  nem hatályos helyi építési övezetek igazolt vektoros szolgáltatása.
+- A vízügyi katalógusban közzétett WFS-cím HTTP 400-at ad. Ez elérési hiba,
+  nem annak bizonyítéka, hogy a telek nem érintett vízügyi korlátozásban.
+- Az országos [örökségvédelmi ZIP](https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip)
+  ténylegesen letölthető: hat SHP-réteg, összesen 7452 rekord. A hivatalos,
+  azonosítóhoz kötött ISO-metaadat igazolja a nyilvános CC BY 4.0
+  újrafelhasználást. Forrás: Lechner Tudásközpont; a TelekElőírás AI a
+  térbeli metszést számítja újra. [Licenc](https://creativecommons.org/licenses/by/4.0/).
+  Az eredeti ZIP-ben **6 NULL geometria és 2 érvénytelen poligon** található.
+  Ezeket a program megszámolja, nem javítja és nem használja bizonyítékként.
+  A pillanatkép nem teljes védettségi/korlátozási nyilvántartás.
+- Tiszaújváros hivatalos térképnézője elérhető, de a betöltő oldal nem közöl
+  igazolt hatályos övezeti vektorletöltést. A felület belső eseménykezelőjét
+  a program nem kezeli dokumentált nyilvános GIS API-ként.
+- A XII. kerületi MINERVA hivatalos belépőoldala HTTP 503 hibát ad.
+- Miskolc, Komádi és Gersekarát hivatalos oldalainak vizsgálata nem adott
+  a kért telkekhez hatályos HÉSZ-hez kötött, igazolt övezeti vektorforrást.
+  Ez a vizsgált források eredménye, nem országos szolgáltatások nemlétezési állítása.
+
+Az [E-TÉR hivatalos leírása](https://data.lechnerkozpont.hu/szolgaltatas/elektronikus-tersegi-tervezest-tamogato-rendszer-e-ter)
+részben nyilvános rendszert ír le. A belépőoldal betöltődik; a nyilvános
+JavaScript projektazonosítóhoz kötött WFS-útvonalat is tartalmaz, de ez nem
+igazol szabadon használható, hatályos miskolci övezeti végpontot. A belső API-ra
+és kitalált projektazonosítókra nem épül integráció.
+
+Az [e-közmű hivatalos GYIK](https://www.e-epites.hu/gyik?temakor=177)
+KAÜ-azonosítást, a vektoros közműadatokhoz kamarai jogosultságot és
+tervezéstámogatási kérelmet ír le. A nyilvános belépőoldal elérhető, de
+ellenőrzött, díjmentes és hitelesítés nélküli vektoros API-t nem találtam.
+A közműkorlátozások teljes vizsgálata ezért továbbra sem automatizált.
+
+A GIS-feldolgozás a meglévő fej nélküli vizsgálatba és a Streamlit felületbe
+került. A WMS, a WFS és a jogilag igazolt övezet külön állapot; a letöltési
+SHA-256, HTTP-státusz, forráscím és licencbizonyíték megmarad. A már meglévő
+hivatalos PDF és annak saját jelmagyarázata továbbra is vizsgált forrás.
+Az új téradatok egyike sem ad igazolt övezeti poligont az öt mintatelekhez.
+Miskolc igazolt telekpoligonja az országos örökségvédelmi pillanatkép érvényes
+geometriáival nem metsződik. Ez nem igazolja a védelem hiányát a hiányos
+geometriák és a nem teljes jogi adatkapcsolat miatt. A másik három elérhető
+OÉNY-körvonal vizsgálata csak jelöltgeometriás előszűrés. Gersekarát esetén
+telekgeometria hiányában a metszés nem végezhető el.
 
 ## Saját hivatalos jelmagyarázat
 
@@ -217,9 +272,23 @@ python reference_checks.py --outlined --output work/reference-outlined-results.j
 ```
 
 reference-results.json: aktuális öttelekes vizsgálat és forrásreceiptek.
-source-check-results.json: 62 sikeres ellenőrzés, a jelentés lenyomatával.
+source-check-results.json: 132 sikeres ellenőrzés, a jelentés lenyomatával.
 reference-outlined-results.json: külön HRSZ-feliratpróba, saját forrás- és
 feliratfeldolgozó-lenyomatokkal; nem övezeti bizonyíték.
 conditional-zone-parameters.json: a Gip/3 forrássor feltételes ellenőrzése.
 test-results.json: helyi tesztfutás. A GitHub Actions külön futtatja a teljes
 offline csomagot a meglévő PR #1-en.
+
+## Fennmaradó külső adatfüggőség és folytatási állapot
+
+Miskolc esetén a hatályos szabályozási tervhez hivatalosan kötött, zárt
+övezeti vektorpoligon hiányzik az ellenőrzött hozzáférhető forrásokból.
+Alternatíva a terv nyitott csatlakozásait és eltérő útterületi jelváltozatát
+hitelesen feloldó hivatalos geometriai adat. A feltárt katalógus/WFS/WMS ezt
+nem helyettesíti. Az országos GIS-övezeti azonosító és a teljes telekspecifikus
+előíráslista ezért még nem kész: jelenleg forrásfelderítés és egy ellenőrzött
+licencű SHP-pillanatkép metszésvizsgálata működik. A vektoros övezetadat
+bekötéséhez az aktuális rendelet/tervkiadás, területi lefedettség, kódmező,
+CRS, letöltési teljesség és jogi felhasználhatóság együttes bizonyítéka kell.
+Nem kértem új hozzáférést, nem nyújtottam be kérelmet és nem olvasztottam
+be a PR-t a főágba.

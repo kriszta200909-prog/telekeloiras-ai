@@ -1416,6 +1416,14 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
     plan_result.pop('preview',None)
     result['plan_result']=plan_result
     result['identification']=connect_automatic_zone(result['parcel_api'],plan_result,inputs,result['ksh'],hrsz)
+    from gis_sources import automatic_gis_evidence
+    from shapely.geometry import mapping
+    from shapely import wkt
+    gis_geometry=(result['parcel_api'] or {}).get('geometry',{}).get('outline')
+    if plan_result.get('parcel_boundary_verified') and plan_result.get('parcel_wkt'):
+        gis_geometry=mapping(wkt.loads(plan_result['parcel_wkt']))
+    result['gis_sources']=automatic_gis_evidence(place,gis_geometry,
+        parcel_verified=result['identification'].get('parcel_boundary_verified',False))
     inventory=local_source_inventory(page,inputs.get('source_valid',False),
         result['identification'].get('zone',''),result['identification'].get('intersection_verified',False),
         inputs.get('attachments',[]))
@@ -5801,6 +5809,19 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
                                              rules_available=bool(source_inventory['rows']))
     st.subheader('Automatikus azonosítás – négy külön bizonyítottsági állapot')
     st.dataframe(automatic_rows,hide_index=True,use_container_width=True)
+    from gis_sources import automatic_gis_evidence
+    from shapely.geometry import mapping
+    from shapely import wkt
+    gis_geometry=(parcel_api or {}).get('geometry',{}).get('outline')
+    if plan_zone.get('parcel_boundary_verified') and plan_zone.get('parcel_wkt'):
+        gis_geometry=mapping(wkt.loads(plan_zone['parcel_wkt']))
+    with st.expander('Hivatalos GIS-források és örökségvédelmi téradatok'):
+        with st.spinner('Nyilvános hivatalos téradatforrások ellenőrzése…'):
+            gis_evidence=automatic_gis_evidence(parcel_place,gis_geometry,
+                parcel_verified=geometric_identification.get('parcel_boundary_verified',False))
+        st.caption(gis_evidence['selection_reason'])
+        st.caption('A téradat-pillanatkép és a jogi védettség külön bizonyíték. A találat hiánya nem igazolja a korlátozások hiányát.')
+        st.json(gis_evidence)
     zone_rule_evidence=automatic_zone_rule_evidence(meta or {},page,plan_inputs,geometric_identification)
     connection=geometric_identification.get('boundary_connection',{})
     if connection.get('verified'):

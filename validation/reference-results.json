@@ -1,14 +1,15 @@
 {
-  "checked_at_utc": "2026-10-09T20:11:15.203822+00:00",
+  "checked_at_utc": "2026-10-09T21:02:18.441688+00:00",
   "outlined_label_search": false,
   "code_sha256": {
-    "app.py": "67bc83860c6a07687f8965f7ef3fec71d51945b7cba1cc29b21944985f35d146",
+    "app.py": "ad15fea55b14c9f4621c5b6d454d56914e35ca1f1114be1cb67137e35fa98953",
     "geopdf.py": "fb1be96afdd386834bc0ad1e476c7f7be5c72269c114cedb122998b6e6a2b8f8",
     "plan_legend.py": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6",
     "plan_connections.py": "944e6dfac09ba97c748cecefc52c0c9ff1b1a9931d11139852bb63941a890487",
     "plan_geometry_audit.py": "c8ba17190a62963fb1d44c0c7a8ae69503c82c66235e5178d6665c3a6a46e2b5",
     "zone_parameters.py": "38cc96cdffa44d089870e9306185b7f8b46fc2152db3dbe13e6b24e16fddfb69",
-    "reference_checks.py": "a843effa8319e9bdae58f8849cfa44d6e573f589d61668cdaefbf39b22e0bc12"
+    "gis_sources.py": "8244b7e5ba281d9aaedf6b7e3f9c92caf72d9859d3796062dabfbe793bf3103f",
+    "reference_checks.py": "e5777fa67efd465cdc2c16df95a0a93d640b92b4f3457a9666fd2ead32324a7b"
   },
   "cases": [
     {
@@ -3021,6 +3022,669 @@
         "scan": {}
       },
       "label_hits": [],
+      "gis_sources": {
+        "place": "Tiszaújváros",
+        "catalog_complete": true,
+        "catalog_receipts": [
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
+            "checked_at_utc": "2026-10-09T21:03:19.292241+00:00",
+            "status": 200,
+            "sha256": "39d7a7f59ed216015b539f5d08d2732f163d0e81c088107d3298be0ac3c16046",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 312225
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
+            "checked_at_utc": "2026-10-09T21:03:31.002367+00:00",
+            "status": 200,
+            "sha256": "79612431a82e1d27d0cf1376c698b10fc5a4f9ae5b6c61e670ce547a6fe21089",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 262481
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
+            "checked_at_utc": "2026-10-09T21:03:40.991083+00:00",
+            "status": 200,
+            "sha256": "a637b9ed45864cf2ec7fc218937ce85ceadbf21936492a8332fa3d448e047308",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 270429
+          }
+        ],
+        "catalog_error": "",
+        "entries": [
+          {
+            "url": "https://map.tiszaujvaros.hu/",
+            "checked_at_utc": "2026-10-09T21:03:47.312091+00:00",
+            "status": 200,
+            "sha256": "dff2e347a5538d4e636bea5f8579360559a49b30bdd496e5cf621244ecd813ac",
+            "error": "",
+            "final_url": "https://map.tiszaujvaros.hu/",
+            "content_type": "text/html; charset=utf-8",
+            "bytes": 15002,
+            "published_gis_links": []
+          }
+        ],
+        "datasets": [
+          {
+            "identifier": [
+              "adc31900-5237-4ee3-ba73-f40b169266fa"
+            ],
+            "title": [
+              "INSPIRE Annex I Theme - ATOM Download Service (predefined datasets) - Hungarian Cadastral Parcels"
+            ],
+            "abstract": [
+              "This service contains atom feeds for downloading Cadastral Parcels data of Mesterszállás sampling area. Spatial resolution for mapping: 1:500, for measurements: 1cm"
+            ],
+            "subject": [
+              "infoFeatureAccessService",
+              "Cadastral Parcel",
+              "Cadastral Boundary",
+              "Cadastral Zoning"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:01.853Z"
+            ],
+            "links": [
+              {
+                "protocol": "INSPIRE-ATOM",
+                "name": "Cadastral Parcels Atom",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_CadastralParcels.xml"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "2d1c17e0-4e0a-4884-9e1f-f31ee44913f0"
+            ],
+            "title": [
+              "INSPIRE Annex I Theme - View Services - Hungarian Cadastral Parcels of Mesterszállás sampling area"
+            ],
+            "abstract": [
+              "INSPIRE Data Specifications for the spatial data theme Cadastral Parcels. It contents a sample data (Mesterszállás-Hungarian settlement). Conformant with Technical Guidance for INSPIRE View Services 3.0"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "Cadastral Parcel",
+              "Cadastral Boundary",
+              "Cadastral Zoning"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:12.322Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "CP:CP.CadastralParcels",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c"
+            ],
+            "title": [
+              "Országos jelentőségű, egyedi jogszabállyal védett természeti területek"
+            ],
+            "abstract": [
+              "HU: Védett területek térbeli törzskönyvi nyilvántartása. Az adatréteg nyilvántartja az országos jelentőségű, egyedi jogszabállyal védett természeti területek adatbázisát és törzskönyvét. A rétegek 4 jól elkülönülő területtípust tartalmaznak: nemzeti park, tájvédelmi körzet, természetvédelmi terület, természeti emlék.\n\nEN: Protected areas spatial data register. The register stores the database and the spatial attributes (e.g. boundaries) of the protected natural areas and assets of national intrest. The natural areas protected by a specific law.  The spatial layers contain four distinct types of areas: national park, landscape protection area, nature conservation area, natural monument."
+            ],
+            "subject": [
+              "Protected sites",
+              "environment"
+            ],
+            "rights": [],
+            "date": [
+              "2018-10-16T10:07:48"
+            ],
+            "links": [
+              {
+                "url": "http://www.termeszetvedelem.hu/"
+              },
+              {
+                "protocol": "image/gif",
+                "url": "http://webgis.okir.hu/geonetwork/srv/api/records/MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c/attachments/nptkttte.gif"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "ProtectedAreaLine_HU_20160322"
+            ],
+            "title": [
+              "Protected Area Line"
+            ],
+            "abstract": [
+              "Designated waters for other protection."
+            ],
+            "subject": [
+              "Protected sites",
+              "protected area",
+              "freshwater",
+              "fish",
+              "Protected areas (Water Framework Directive)",
+              "inlandWaters"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-05T08:04:38.143Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WFS",
+                "name": "ProtectedAreaL",
+                "description": "ProtectedAreaL",
+                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "solar_md-fa643d38-4775-418e-83ee-071e5f1c8828"
+            ],
+            "title": [
+              "INSPIRE Annex III – Solar panels and solar farms in Hungary (Production and Industrial Facilities / Energy Resources)"
+            ],
+            "abstract": [
+              "This national dataset contains the location and geometry of solar panels and solar farms/sites used for cartographic representation in the National Geospatial Base Map of Hungary (NGMHu). The data are derived from real-estate/cadastral source data used for NGMHu mapping and from orthophoto remote-sensing interpretation and digitisation. The dataset primarily contains large, industrial-scale solar installations; smaller residential installations are generally outside its scope. It contains no installed-capacity, energy-production, or other technical plant data; its purpose is localisation and cartographic representation."
+            ],
+            "subject": [
+              "Production and industrial facilities",
+              "Energy resources",
+              "High-value dataset",
+              "Earth observation and environment",
+              "National",
+              "solar panel",
+              "solar farm",
+              "photovoltaic",
+              "renewable energy",
+              "NTA",
+              "structure",
+              "utilitiesCommunication"
+            ],
+            "rights": [
+              "license",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:27.876Z"
+            ],
+            "links": [
+              {
+                "protocol": "INSPIRE Atom",
+                "name": "INSPIRE ATOM Download Service – Solar panels and solar farms",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_SOLAR.xml"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar farms – GeoJSON",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_farm.geojson"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar panels – GeoJSON",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_panel.geojson"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar farms – ZIP",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_farm.zip"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar panels – ZIP",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_panel.zip"
+              },
+              {
+                "protocol": "image/jpeg",
+                "name": "Preview of solar panels and solar farms dataset",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar.jpg"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615"
+            ],
+            "title": [
+              "INSPIRE Annex I Protected Sites - Cultural heritage of Hungary"
+            ],
+            "abstract": [
+              "National cultural heritage spatial dataset containing castle walls, castle buildings, cemeteries, ruins, palace buildings and hillforts in Hungary. For INSPIRE discovery and download purposes the dataset is primarily associated with the Annex I Protected Sites theme where the represented objects are protected for cultural-heritage conservation. Building-related objects are also semantically related to the Annex III Buildings theme. The dataset is published as an INSPIRE/HVD bulk-download package."
+            ],
+            "subject": [
+              "Protected sites",
+              "High-value dataset",
+              "Earth observation and environment",
+              "High-value dataset",
+              "Earth observation and environment",
+              "High-value dataset",
+              "Earth observation and environment",
+              "society"
+            ],
+            "rights": [
+              "license",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:54.6Z"
+            ],
+            "links": [
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Cultural heritage bulk download",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip"
+              },
+              {
+                "protocol": "INSPIRE Atom",
+                "name": "INSPIRE Cultural heritage Download Service",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/DS_cultural_heritage.xml"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "name": "Related INSPIRE Download Service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/catalog.search#/metadata/cultural_heritage_ds-f223f6bf-4972-42fd-9781-29189c111dca"
+              },
+              {
+                "protocol": "image/jpeg",
+                "name": "Preview of the Cultural heritage dataset",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.jpg"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "278bb777-aaac-4678-bd91-d4032c7e8a8c"
+            ],
+            "title": [
+              "INSPIRE dataset Theme Annex I - Cadastral parcels - Mesterszállás sampling area"
+            ],
+            "abstract": [
+              "Avaible in vector format on the whole country. Contains: land parcels and boundary of the building. Avaible formats: shp, dxf."
+            ],
+            "subject": [
+              "parcel number",
+              "building",
+              "cadastre",
+              "land parcel",
+              "cadastral map",
+              "Nemzeti",
+              "Cadastral parcels",
+              "location",
+              "structure"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:05.334Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS",
+                "name": "CP:CP.CadastralParcels",
+                "description": "CP:CP.CadastralParcels",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0"
+              },
+              {
+                "protocol": "OGC:WFS",
+                "name": "CP:CP.CadastralParcels",
+                "description": "CP:CP.CadastralParcels",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Dataset Atom Feed",
+                "description": "Cadastral parcels of Mesreszállás sampling area for Hungary",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/data/FCOLL_CadastralParcels.xml"
+              },
+              {
+                "protocol": "INSPIRE-ATOM",
+                "name": "Dataset Atom Feed",
+                "description": "Cadastral parcels of Mesreszállás sampling area for Hungary",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_CadastralParcels.xml"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cadastralparcels/HU.CP.2019NFO.pdf"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "NTA_m344-ec2b-4449-bfe6-087cd3d22ac8"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) dataset - NGMHu 2023"
+            ],
+            "abstract": [
+              "The National Geospatial Map of Hungary (NGMHu) is the country's first complex online geospatial base map service with unified and homogeneous data derived from national remote sensing data and central the databases, for example the land administration, transportation networks or LPIS systems. The most important map information is being incorporated forming a comprehensive map service in order to help user’s orientation in different web mapping systems and provide quick glimpse of national geospatial databases."
+            ],
+            "subject": [
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks",
+              "INSPIRE",
+              "Common Agricultural Policy",
+              "NGMHu",
+              "LPIS",
+              "Land use",
+              "National",
+              "location",
+              "imageryBaseMapsEarthCover"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:46.978Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-map",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "ngmhu2023_crs23700",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "url": "https://nta.lechnerkozpont.hu/"
+              },
+              {
+                "protocol": "image/png",
+                "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
+            ],
+            "abstract": [
+              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "INSPIRE",
+              "infoMapAccessService",
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:47.228Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          }
+        ],
+        "services": [
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:03:48.799828+00:00",
+            "status": 200,
+            "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 8540,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          ",
+                "Style": "\n          ",
+                "MinScaleDenominator": "1.0",
+                "MaxScaleDenominator": "20000.0"
+              }
+            ]
+          },
+          {
+            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
+            "checked_at_utc": "2026-10-09T21:03:49.032370+00:00",
+            "status": 400,
+            "sha256": "",
+            "error": "HTTP Error 400: Bad Request",
+            "zoning_verified": false
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
+            "checked_at_utc": "2026-10-09T21:03:50.747664+00:00",
+            "status": 200,
+            "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 8540,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          ",
+                "Style": "\n          ",
+                "MinScaleDenominator": "1.0",
+                "MaxScaleDenominator": "20000.0"
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:03:51.432549+00:00",
+            "status": 200,
+            "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 90332,
+            "zoning_verified": false,
+            "kind": "WFS",
+            "version": "2.0.0",
+            "layers": [
+              {
+                "Name": "CP:CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "Keywords": "",
+                "DefaultCRS": "urn:ogc:def:crs:EPSG::23700",
+                "OtherCRS": "urn:ogc:def:crs:EPSG::3857",
+                "WGS84BoundingBox": "",
+                "MetadataURL": ""
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:03:52.178245+00:00",
+            "status": 200,
+            "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 7960,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "LandUse2023",
+                "Title": "LandUse2023",
+                "Abstract": "NGMHU 2023 version",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          "
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:03:52.749662+00:00",
+            "status": 200,
+            "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 7960,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "LandUse2023",
+                "Title": "LandUse2023",
+                "Abstract": "NGMHU 2023 version",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          "
+              }
+            ]
+          }
+        ],
+        "zoning_verified": false,
+        "missing": [
+          "Hatályos HÉSZ-hez kötött övezeti vektorforrás.",
+          "Teljes területi korlátozáskészlet és alkalmazhatóság."
+        ],
+        "heritage_snapshot": {
+          "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
+          "checked_at_utc": "2026-10-09T21:03:53.598712+00:00",
+          "status": 200,
+          "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
+          "error": "",
+          "final_url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
+          "content_type": "application/zip",
+          "bytes": 1394295,
+          "parcel_boundary_verified": false,
+          "reuse_evidence": {
+            "receipt": {
+              "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
+              "checked_at_utc": "2026-10-09T21:03:53.085771+00:00",
+              "status": 200,
+              "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
+              "error": "",
+              "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
+              "content_type": "application/xml;charset=UTF-8",
+              "bytes": 19146
+            },
+            "public_reuse_verified": true,
+            "license": "CC BY 4.0",
+            "license_url": "https://creativecommons.org/licenses/by/4.0/",
+            "attribution": "Lechner Tudásközpont; TelekElőírás AI térbeli metszésvizsgálata."
+          },
+          "current_legal_protection_verified": false,
+          "complete_restrictions_verified": false,
+          "layers": [
+            {
+              "layer": "castle_building",
+              "features": 33,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "castle_wall",
+              "features": 135,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "cemetery",
+              "features": 6026,
+              "missing_geometry": 5,
+              "invalid_geometry": 2,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "hillfort",
+              "features": 5,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "palace_building",
+              "features": 977,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "ruins",
+              "features": 276,
+              "missing_geometry": 1,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            }
+          ],
+          "intersections": [],
+          "spatial_snapshot_checked": true,
+          "spatial_snapshot_complete": false,
+          "missing_geometry": 6,
+          "invalid_geometry": 2
+        },
+        "selected_method": "official_pdf_legend",
+        "selection_reason": "A feltárt GIS-adatok hatályos övezeti tervkapcsolata nincs igazolva; a saját jelmagyarázatú hivatalos terv vizsgálata folytatódik."
+      },
       "legal_source_url": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228",
       "legal_source_verified": true,
       "rules_count": 172,
@@ -6444,6 +7108,666 @@
         "scan": {}
       },
       "label_hits": [],
+      "gis_sources": {
+        "place": "Budapest XII. kerület",
+        "catalog_complete": true,
+        "catalog_receipts": [
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
+            "checked_at_utc": "2026-10-09T21:03:19.292241+00:00",
+            "status": 200,
+            "sha256": "39d7a7f59ed216015b539f5d08d2732f163d0e81c088107d3298be0ac3c16046",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 312225
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
+            "checked_at_utc": "2026-10-09T21:03:31.002367+00:00",
+            "status": 200,
+            "sha256": "79612431a82e1d27d0cf1376c698b10fc5a4f9ae5b6c61e670ce547a6fe21089",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 262481
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
+            "checked_at_utc": "2026-10-09T21:03:40.991083+00:00",
+            "status": 200,
+            "sha256": "a637b9ed45864cf2ec7fc218937ce85ceadbf21936492a8332fa3d448e047308",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 270429
+          }
+        ],
+        "catalog_error": "",
+        "entries": [
+          {
+            "url": "https://minerva.bp12ker.hu/minerva/bp12ker/internet.php",
+            "checked_at_utc": "2026-10-09T21:04:25.290104+00:00",
+            "status": 503,
+            "sha256": "",
+            "error": "HTTP Error 503: Service Unavailable",
+            "published_gis_links": []
+          }
+        ],
+        "datasets": [
+          {
+            "identifier": [
+              "adc31900-5237-4ee3-ba73-f40b169266fa"
+            ],
+            "title": [
+              "INSPIRE Annex I Theme - ATOM Download Service (predefined datasets) - Hungarian Cadastral Parcels"
+            ],
+            "abstract": [
+              "This service contains atom feeds for downloading Cadastral Parcels data of Mesterszállás sampling area. Spatial resolution for mapping: 1:500, for measurements: 1cm"
+            ],
+            "subject": [
+              "infoFeatureAccessService",
+              "Cadastral Parcel",
+              "Cadastral Boundary",
+              "Cadastral Zoning"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:01.853Z"
+            ],
+            "links": [
+              {
+                "protocol": "INSPIRE-ATOM",
+                "name": "Cadastral Parcels Atom",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_CadastralParcels.xml"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "2d1c17e0-4e0a-4884-9e1f-f31ee44913f0"
+            ],
+            "title": [
+              "INSPIRE Annex I Theme - View Services - Hungarian Cadastral Parcels of Mesterszállás sampling area"
+            ],
+            "abstract": [
+              "INSPIRE Data Specifications for the spatial data theme Cadastral Parcels. It contents a sample data (Mesterszállás-Hungarian settlement). Conformant with Technical Guidance for INSPIRE View Services 3.0"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "Cadastral Parcel",
+              "Cadastral Boundary",
+              "Cadastral Zoning"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:12.322Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "CP:CP.CadastralParcels",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c"
+            ],
+            "title": [
+              "Országos jelentőségű, egyedi jogszabállyal védett természeti területek"
+            ],
+            "abstract": [
+              "HU: Védett területek térbeli törzskönyvi nyilvántartása. Az adatréteg nyilvántartja az országos jelentőségű, egyedi jogszabállyal védett természeti területek adatbázisát és törzskönyvét. A rétegek 4 jól elkülönülő területtípust tartalmaznak: nemzeti park, tájvédelmi körzet, természetvédelmi terület, természeti emlék.\n\nEN: Protected areas spatial data register. The register stores the database and the spatial attributes (e.g. boundaries) of the protected natural areas and assets of national intrest. The natural areas protected by a specific law.  The spatial layers contain four distinct types of areas: national park, landscape protection area, nature conservation area, natural monument."
+            ],
+            "subject": [
+              "Protected sites",
+              "environment"
+            ],
+            "rights": [],
+            "date": [
+              "2018-10-16T10:07:48"
+            ],
+            "links": [
+              {
+                "url": "http://www.termeszetvedelem.hu/"
+              },
+              {
+                "protocol": "image/gif",
+                "url": "http://webgis.okir.hu/geonetwork/srv/api/records/MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c/attachments/nptkttte.gif"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "ProtectedAreaLine_HU_20160322"
+            ],
+            "title": [
+              "Protected Area Line"
+            ],
+            "abstract": [
+              "Designated waters for other protection."
+            ],
+            "subject": [
+              "Protected sites",
+              "protected area",
+              "freshwater",
+              "fish",
+              "Protected areas (Water Framework Directive)",
+              "inlandWaters"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-05T08:04:38.143Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WFS",
+                "name": "ProtectedAreaL",
+                "description": "ProtectedAreaL",
+                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "solar_md-fa643d38-4775-418e-83ee-071e5f1c8828"
+            ],
+            "title": [
+              "INSPIRE Annex III – Solar panels and solar farms in Hungary (Production and Industrial Facilities / Energy Resources)"
+            ],
+            "abstract": [
+              "This national dataset contains the location and geometry of solar panels and solar farms/sites used for cartographic representation in the National Geospatial Base Map of Hungary (NGMHu). The data are derived from real-estate/cadastral source data used for NGMHu mapping and from orthophoto remote-sensing interpretation and digitisation. The dataset primarily contains large, industrial-scale solar installations; smaller residential installations are generally outside its scope. It contains no installed-capacity, energy-production, or other technical plant data; its purpose is localisation and cartographic representation."
+            ],
+            "subject": [
+              "Production and industrial facilities",
+              "Energy resources",
+              "High-value dataset",
+              "Earth observation and environment",
+              "National",
+              "solar panel",
+              "solar farm",
+              "photovoltaic",
+              "renewable energy",
+              "NTA",
+              "structure",
+              "utilitiesCommunication"
+            ],
+            "rights": [
+              "license",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:27.876Z"
+            ],
+            "links": [
+              {
+                "protocol": "INSPIRE Atom",
+                "name": "INSPIRE ATOM Download Service – Solar panels and solar farms",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_SOLAR.xml"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar farms – GeoJSON",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_farm.geojson"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar panels – GeoJSON",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_panel.geojson"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar farms – ZIP",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_farm.zip"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar panels – ZIP",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_panel.zip"
+              },
+              {
+                "protocol": "image/jpeg",
+                "name": "Preview of solar panels and solar farms dataset",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar.jpg"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615"
+            ],
+            "title": [
+              "INSPIRE Annex I Protected Sites - Cultural heritage of Hungary"
+            ],
+            "abstract": [
+              "National cultural heritage spatial dataset containing castle walls, castle buildings, cemeteries, ruins, palace buildings and hillforts in Hungary. For INSPIRE discovery and download purposes the dataset is primarily associated with the Annex I Protected Sites theme where the represented objects are protected for cultural-heritage conservation. Building-related objects are also semantically related to the Annex III Buildings theme. The dataset is published as an INSPIRE/HVD bulk-download package."
+            ],
+            "subject": [
+              "Protected sites",
+              "High-value dataset",
+              "Earth observation and environment",
+              "High-value dataset",
+              "Earth observation and environment",
+              "High-value dataset",
+              "Earth observation and environment",
+              "society"
+            ],
+            "rights": [
+              "license",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:54.6Z"
+            ],
+            "links": [
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Cultural heritage bulk download",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip"
+              },
+              {
+                "protocol": "INSPIRE Atom",
+                "name": "INSPIRE Cultural heritage Download Service",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/DS_cultural_heritage.xml"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "name": "Related INSPIRE Download Service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/catalog.search#/metadata/cultural_heritage_ds-f223f6bf-4972-42fd-9781-29189c111dca"
+              },
+              {
+                "protocol": "image/jpeg",
+                "name": "Preview of the Cultural heritage dataset",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.jpg"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "278bb777-aaac-4678-bd91-d4032c7e8a8c"
+            ],
+            "title": [
+              "INSPIRE dataset Theme Annex I - Cadastral parcels - Mesterszállás sampling area"
+            ],
+            "abstract": [
+              "Avaible in vector format on the whole country. Contains: land parcels and boundary of the building. Avaible formats: shp, dxf."
+            ],
+            "subject": [
+              "parcel number",
+              "building",
+              "cadastre",
+              "land parcel",
+              "cadastral map",
+              "Nemzeti",
+              "Cadastral parcels",
+              "location",
+              "structure"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:05.334Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS",
+                "name": "CP:CP.CadastralParcels",
+                "description": "CP:CP.CadastralParcels",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0"
+              },
+              {
+                "protocol": "OGC:WFS",
+                "name": "CP:CP.CadastralParcels",
+                "description": "CP:CP.CadastralParcels",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Dataset Atom Feed",
+                "description": "Cadastral parcels of Mesreszállás sampling area for Hungary",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/data/FCOLL_CadastralParcels.xml"
+              },
+              {
+                "protocol": "INSPIRE-ATOM",
+                "name": "Dataset Atom Feed",
+                "description": "Cadastral parcels of Mesreszállás sampling area for Hungary",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_CadastralParcels.xml"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cadastralparcels/HU.CP.2019NFO.pdf"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "NTA_m344-ec2b-4449-bfe6-087cd3d22ac8"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) dataset - NGMHu 2023"
+            ],
+            "abstract": [
+              "The National Geospatial Map of Hungary (NGMHu) is the country's first complex online geospatial base map service with unified and homogeneous data derived from national remote sensing data and central the databases, for example the land administration, transportation networks or LPIS systems. The most important map information is being incorporated forming a comprehensive map service in order to help user’s orientation in different web mapping systems and provide quick glimpse of national geospatial databases."
+            ],
+            "subject": [
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks",
+              "INSPIRE",
+              "Common Agricultural Policy",
+              "NGMHu",
+              "LPIS",
+              "Land use",
+              "National",
+              "location",
+              "imageryBaseMapsEarthCover"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:46.978Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-map",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "ngmhu2023_crs23700",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "url": "https://nta.lechnerkozpont.hu/"
+              },
+              {
+                "protocol": "image/png",
+                "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
+            ],
+            "abstract": [
+              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "INSPIRE",
+              "infoMapAccessService",
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:47.228Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          }
+        ],
+        "services": [
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:04:29.907992+00:00",
+            "status": 200,
+            "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 8540,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          ",
+                "Style": "\n          ",
+                "MinScaleDenominator": "1.0",
+                "MaxScaleDenominator": "20000.0"
+              }
+            ]
+          },
+          {
+            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
+            "checked_at_utc": "2026-10-09T21:04:30.605350+00:00",
+            "status": 400,
+            "sha256": "",
+            "error": "HTTP Error 400: Bad Request",
+            "zoning_verified": false
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
+            "checked_at_utc": "2026-10-09T21:04:31.959062+00:00",
+            "status": 200,
+            "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 8540,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          ",
+                "Style": "\n          ",
+                "MinScaleDenominator": "1.0",
+                "MaxScaleDenominator": "20000.0"
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:04:32.537600+00:00",
+            "status": 200,
+            "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 90332,
+            "zoning_verified": false,
+            "kind": "WFS",
+            "version": "2.0.0",
+            "layers": [
+              {
+                "Name": "CP:CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "Keywords": "",
+                "DefaultCRS": "urn:ogc:def:crs:EPSG::23700",
+                "OtherCRS": "urn:ogc:def:crs:EPSG::3857",
+                "WGS84BoundingBox": "",
+                "MetadataURL": ""
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:04:33.182731+00:00",
+            "status": 200,
+            "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 7960,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "LandUse2023",
+                "Title": "LandUse2023",
+                "Abstract": "NGMHU 2023 version",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          "
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:04:33.406376+00:00",
+            "status": 200,
+            "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 7960,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "LandUse2023",
+                "Title": "LandUse2023",
+                "Abstract": "NGMHU 2023 version",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          "
+              }
+            ]
+          }
+        ],
+        "zoning_verified": false,
+        "missing": [
+          "Hatályos HÉSZ-hez kötött övezeti vektorforrás.",
+          "Teljes területi korlátozáskészlet és alkalmazhatóság."
+        ],
+        "heritage_snapshot": {
+          "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
+          "checked_at_utc": "2026-10-09T21:03:53.598712+00:00",
+          "status": 200,
+          "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
+          "error": "",
+          "final_url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
+          "content_type": "application/zip",
+          "bytes": 1394295,
+          "parcel_boundary_verified": false,
+          "reuse_evidence": {
+            "receipt": {
+              "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
+              "checked_at_utc": "2026-10-09T21:03:53.085771+00:00",
+              "status": 200,
+              "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
+              "error": "",
+              "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
+              "content_type": "application/xml;charset=UTF-8",
+              "bytes": 19146
+            },
+            "public_reuse_verified": true,
+            "license": "CC BY 4.0",
+            "license_url": "https://creativecommons.org/licenses/by/4.0/",
+            "attribution": "Lechner Tudásközpont; TelekElőírás AI térbeli metszésvizsgálata."
+          },
+          "current_legal_protection_verified": false,
+          "complete_restrictions_verified": false,
+          "layers": [
+            {
+              "layer": "castle_building",
+              "features": 33,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "castle_wall",
+              "features": 135,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "cemetery",
+              "features": 6026,
+              "missing_geometry": 5,
+              "invalid_geometry": 2,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "hillfort",
+              "features": 5,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "palace_building",
+              "features": 977,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "ruins",
+              "features": 276,
+              "missing_geometry": 1,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            }
+          ],
+          "intersections": [],
+          "spatial_snapshot_checked": true,
+          "spatial_snapshot_complete": false,
+          "missing_geometry": 6,
+          "invalid_geometry": 2
+        },
+        "selected_method": "official_pdf_legend",
+        "selection_reason": "A feltárt GIS-adatok hatályos övezeti tervkapcsolata nincs igazolva; a saját jelmagyarázatú hivatalos terv vizsgálata folytatódik."
+      },
       "legal_source_url": "https://njt.jog.gov.hu/jogszabaly/2021-36-SP-5Y261",
       "legal_source_verified": true,
       "rules_count": 266,
@@ -10248,6 +11572,669 @@
         "scan": {}
       },
       "label_hits": [],
+      "gis_sources": {
+        "place": "Komádi",
+        "catalog_complete": true,
+        "catalog_receipts": [
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
+            "checked_at_utc": "2026-10-09T21:03:19.292241+00:00",
+            "status": 200,
+            "sha256": "39d7a7f59ed216015b539f5d08d2732f163d0e81c088107d3298be0ac3c16046",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 312225
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
+            "checked_at_utc": "2026-10-09T21:03:31.002367+00:00",
+            "status": 200,
+            "sha256": "79612431a82e1d27d0cf1376c698b10fc5a4f9ae5b6c61e670ce547a6fe21089",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 262481
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
+            "checked_at_utc": "2026-10-09T21:03:40.991083+00:00",
+            "status": 200,
+            "sha256": "a637b9ed45864cf2ec7fc218937ce85ceadbf21936492a8332fa3d448e047308",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 270429
+          }
+        ],
+        "catalog_error": "",
+        "entries": [
+          {
+            "url": "https://www.komadi.hu/",
+            "checked_at_utc": "2026-10-09T21:05:01.813814+00:00",
+            "status": 200,
+            "sha256": "6ea2e0b0f5b24a7fecbe552da36f84237636313d30ade53fa49aa1e355958bfd",
+            "error": "",
+            "final_url": "https://www.komadi.hu/",
+            "content_type": "text/html; charset=utf-8",
+            "bytes": 18384,
+            "published_gis_links": []
+          }
+        ],
+        "datasets": [
+          {
+            "identifier": [
+              "adc31900-5237-4ee3-ba73-f40b169266fa"
+            ],
+            "title": [
+              "INSPIRE Annex I Theme - ATOM Download Service (predefined datasets) - Hungarian Cadastral Parcels"
+            ],
+            "abstract": [
+              "This service contains atom feeds for downloading Cadastral Parcels data of Mesterszállás sampling area. Spatial resolution for mapping: 1:500, for measurements: 1cm"
+            ],
+            "subject": [
+              "infoFeatureAccessService",
+              "Cadastral Parcel",
+              "Cadastral Boundary",
+              "Cadastral Zoning"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:01.853Z"
+            ],
+            "links": [
+              {
+                "protocol": "INSPIRE-ATOM",
+                "name": "Cadastral Parcels Atom",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_CadastralParcels.xml"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "2d1c17e0-4e0a-4884-9e1f-f31ee44913f0"
+            ],
+            "title": [
+              "INSPIRE Annex I Theme - View Services - Hungarian Cadastral Parcels of Mesterszállás sampling area"
+            ],
+            "abstract": [
+              "INSPIRE Data Specifications for the spatial data theme Cadastral Parcels. It contents a sample data (Mesterszállás-Hungarian settlement). Conformant with Technical Guidance for INSPIRE View Services 3.0"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "Cadastral Parcel",
+              "Cadastral Boundary",
+              "Cadastral Zoning"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:12.322Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "CP:CP.CadastralParcels",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c"
+            ],
+            "title": [
+              "Országos jelentőségű, egyedi jogszabállyal védett természeti területek"
+            ],
+            "abstract": [
+              "HU: Védett területek térbeli törzskönyvi nyilvántartása. Az adatréteg nyilvántartja az országos jelentőségű, egyedi jogszabállyal védett természeti területek adatbázisát és törzskönyvét. A rétegek 4 jól elkülönülő területtípust tartalmaznak: nemzeti park, tájvédelmi körzet, természetvédelmi terület, természeti emlék.\n\nEN: Protected areas spatial data register. The register stores the database and the spatial attributes (e.g. boundaries) of the protected natural areas and assets of national intrest. The natural areas protected by a specific law.  The spatial layers contain four distinct types of areas: national park, landscape protection area, nature conservation area, natural monument."
+            ],
+            "subject": [
+              "Protected sites",
+              "environment"
+            ],
+            "rights": [],
+            "date": [
+              "2018-10-16T10:07:48"
+            ],
+            "links": [
+              {
+                "url": "http://www.termeszetvedelem.hu/"
+              },
+              {
+                "protocol": "image/gif",
+                "url": "http://webgis.okir.hu/geonetwork/srv/api/records/MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c/attachments/nptkttte.gif"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "ProtectedAreaLine_HU_20160322"
+            ],
+            "title": [
+              "Protected Area Line"
+            ],
+            "abstract": [
+              "Designated waters for other protection."
+            ],
+            "subject": [
+              "Protected sites",
+              "protected area",
+              "freshwater",
+              "fish",
+              "Protected areas (Water Framework Directive)",
+              "inlandWaters"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-05T08:04:38.143Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WFS",
+                "name": "ProtectedAreaL",
+                "description": "ProtectedAreaL",
+                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "solar_md-fa643d38-4775-418e-83ee-071e5f1c8828"
+            ],
+            "title": [
+              "INSPIRE Annex III – Solar panels and solar farms in Hungary (Production and Industrial Facilities / Energy Resources)"
+            ],
+            "abstract": [
+              "This national dataset contains the location and geometry of solar panels and solar farms/sites used for cartographic representation in the National Geospatial Base Map of Hungary (NGMHu). The data are derived from real-estate/cadastral source data used for NGMHu mapping and from orthophoto remote-sensing interpretation and digitisation. The dataset primarily contains large, industrial-scale solar installations; smaller residential installations are generally outside its scope. It contains no installed-capacity, energy-production, or other technical plant data; its purpose is localisation and cartographic representation."
+            ],
+            "subject": [
+              "Production and industrial facilities",
+              "Energy resources",
+              "High-value dataset",
+              "Earth observation and environment",
+              "National",
+              "solar panel",
+              "solar farm",
+              "photovoltaic",
+              "renewable energy",
+              "NTA",
+              "structure",
+              "utilitiesCommunication"
+            ],
+            "rights": [
+              "license",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:27.876Z"
+            ],
+            "links": [
+              {
+                "protocol": "INSPIRE Atom",
+                "name": "INSPIRE ATOM Download Service – Solar panels and solar farms",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_SOLAR.xml"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar farms – GeoJSON",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_farm.geojson"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar panels – GeoJSON",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_panel.geojson"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar farms – ZIP",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_farm.zip"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar panels – ZIP",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_panel.zip"
+              },
+              {
+                "protocol": "image/jpeg",
+                "name": "Preview of solar panels and solar farms dataset",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar.jpg"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615"
+            ],
+            "title": [
+              "INSPIRE Annex I Protected Sites - Cultural heritage of Hungary"
+            ],
+            "abstract": [
+              "National cultural heritage spatial dataset containing castle walls, castle buildings, cemeteries, ruins, palace buildings and hillforts in Hungary. For INSPIRE discovery and download purposes the dataset is primarily associated with the Annex I Protected Sites theme where the represented objects are protected for cultural-heritage conservation. Building-related objects are also semantically related to the Annex III Buildings theme. The dataset is published as an INSPIRE/HVD bulk-download package."
+            ],
+            "subject": [
+              "Protected sites",
+              "High-value dataset",
+              "Earth observation and environment",
+              "High-value dataset",
+              "Earth observation and environment",
+              "High-value dataset",
+              "Earth observation and environment",
+              "society"
+            ],
+            "rights": [
+              "license",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:54.6Z"
+            ],
+            "links": [
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Cultural heritage bulk download",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip"
+              },
+              {
+                "protocol": "INSPIRE Atom",
+                "name": "INSPIRE Cultural heritage Download Service",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/DS_cultural_heritage.xml"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "name": "Related INSPIRE Download Service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/catalog.search#/metadata/cultural_heritage_ds-f223f6bf-4972-42fd-9781-29189c111dca"
+              },
+              {
+                "protocol": "image/jpeg",
+                "name": "Preview of the Cultural heritage dataset",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.jpg"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "278bb777-aaac-4678-bd91-d4032c7e8a8c"
+            ],
+            "title": [
+              "INSPIRE dataset Theme Annex I - Cadastral parcels - Mesterszállás sampling area"
+            ],
+            "abstract": [
+              "Avaible in vector format on the whole country. Contains: land parcels and boundary of the building. Avaible formats: shp, dxf."
+            ],
+            "subject": [
+              "parcel number",
+              "building",
+              "cadastre",
+              "land parcel",
+              "cadastral map",
+              "Nemzeti",
+              "Cadastral parcels",
+              "location",
+              "structure"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:05.334Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS",
+                "name": "CP:CP.CadastralParcels",
+                "description": "CP:CP.CadastralParcels",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0"
+              },
+              {
+                "protocol": "OGC:WFS",
+                "name": "CP:CP.CadastralParcels",
+                "description": "CP:CP.CadastralParcels",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Dataset Atom Feed",
+                "description": "Cadastral parcels of Mesreszállás sampling area for Hungary",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/data/FCOLL_CadastralParcels.xml"
+              },
+              {
+                "protocol": "INSPIRE-ATOM",
+                "name": "Dataset Atom Feed",
+                "description": "Cadastral parcels of Mesreszállás sampling area for Hungary",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_CadastralParcels.xml"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cadastralparcels/HU.CP.2019NFO.pdf"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "NTA_m344-ec2b-4449-bfe6-087cd3d22ac8"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) dataset - NGMHu 2023"
+            ],
+            "abstract": [
+              "The National Geospatial Map of Hungary (NGMHu) is the country's first complex online geospatial base map service with unified and homogeneous data derived from national remote sensing data and central the databases, for example the land administration, transportation networks or LPIS systems. The most important map information is being incorporated forming a comprehensive map service in order to help user’s orientation in different web mapping systems and provide quick glimpse of national geospatial databases."
+            ],
+            "subject": [
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks",
+              "INSPIRE",
+              "Common Agricultural Policy",
+              "NGMHu",
+              "LPIS",
+              "Land use",
+              "National",
+              "location",
+              "imageryBaseMapsEarthCover"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:46.978Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-map",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "ngmhu2023_crs23700",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "url": "https://nta.lechnerkozpont.hu/"
+              },
+              {
+                "protocol": "image/png",
+                "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
+            ],
+            "abstract": [
+              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "INSPIRE",
+              "infoMapAccessService",
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:47.228Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          }
+        ],
+        "services": [
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:05:03.538883+00:00",
+            "status": 200,
+            "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 8540,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          ",
+                "Style": "\n          ",
+                "MinScaleDenominator": "1.0",
+                "MaxScaleDenominator": "20000.0"
+              }
+            ]
+          },
+          {
+            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
+            "checked_at_utc": "2026-10-09T21:05:04.120105+00:00",
+            "status": 400,
+            "sha256": "",
+            "error": "HTTP Error 400: Bad Request",
+            "zoning_verified": false
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
+            "checked_at_utc": "2026-10-09T21:05:05.394974+00:00",
+            "status": 200,
+            "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 8540,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          ",
+                "Style": "\n          ",
+                "MinScaleDenominator": "1.0",
+                "MaxScaleDenominator": "20000.0"
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:05:06.054586+00:00",
+            "status": 200,
+            "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 90332,
+            "zoning_verified": false,
+            "kind": "WFS",
+            "version": "2.0.0",
+            "layers": [
+              {
+                "Name": "CP:CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "Keywords": "",
+                "DefaultCRS": "urn:ogc:def:crs:EPSG::23700",
+                "OtherCRS": "urn:ogc:def:crs:EPSG::3857",
+                "WGS84BoundingBox": "",
+                "MetadataURL": ""
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:05:06.582875+00:00",
+            "status": 200,
+            "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 7960,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "LandUse2023",
+                "Title": "LandUse2023",
+                "Abstract": "NGMHU 2023 version",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          "
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:05:06.816761+00:00",
+            "status": 200,
+            "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 7960,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "LandUse2023",
+                "Title": "LandUse2023",
+                "Abstract": "NGMHU 2023 version",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          "
+              }
+            ]
+          }
+        ],
+        "zoning_verified": false,
+        "missing": [
+          "Hatályos HÉSZ-hez kötött övezeti vektorforrás.",
+          "Teljes területi korlátozáskészlet és alkalmazhatóság."
+        ],
+        "heritage_snapshot": {
+          "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
+          "checked_at_utc": "2026-10-09T21:03:53.598712+00:00",
+          "status": 200,
+          "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
+          "error": "",
+          "final_url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
+          "content_type": "application/zip",
+          "bytes": 1394295,
+          "parcel_boundary_verified": false,
+          "reuse_evidence": {
+            "receipt": {
+              "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
+              "checked_at_utc": "2026-10-09T21:03:53.085771+00:00",
+              "status": 200,
+              "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
+              "error": "",
+              "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
+              "content_type": "application/xml;charset=UTF-8",
+              "bytes": 19146
+            },
+            "public_reuse_verified": true,
+            "license": "CC BY 4.0",
+            "license_url": "https://creativecommons.org/licenses/by/4.0/",
+            "attribution": "Lechner Tudásközpont; TelekElőírás AI térbeli metszésvizsgálata."
+          },
+          "current_legal_protection_verified": false,
+          "complete_restrictions_verified": false,
+          "layers": [
+            {
+              "layer": "castle_building",
+              "features": 33,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "castle_wall",
+              "features": 135,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "cemetery",
+              "features": 6026,
+              "missing_geometry": 5,
+              "invalid_geometry": 2,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "hillfort",
+              "features": 5,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "palace_building",
+              "features": 977,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "ruins",
+              "features": 276,
+              "missing_geometry": 1,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            }
+          ],
+          "intersections": [],
+          "spatial_snapshot_checked": true,
+          "spatial_snapshot_complete": false,
+          "missing_geometry": 6,
+          "invalid_geometry": 2
+        },
+        "selected_method": "official_pdf_legend",
+        "selection_reason": "A feltárt GIS-adatok hatályos övezeti tervkapcsolata nincs igazolva; a saját jelmagyarázatú hivatalos terv vizsgálata folytatódik."
+      },
       "legal_source_url": "https://njt.jog.gov.hu/jogszabaly/2007-1-SP-5Y1608",
       "legal_source_verified": true,
       "rules_count": 58,
@@ -11591,6 +13578,591 @@
         "scan": {}
       },
       "label_hits": [],
+      "gis_sources": {
+        "place": "Gersekarát",
+        "catalog_complete": true,
+        "catalog_receipts": [
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
+            "checked_at_utc": "2026-10-09T21:03:19.292241+00:00",
+            "status": 200,
+            "sha256": "39d7a7f59ed216015b539f5d08d2732f163d0e81c088107d3298be0ac3c16046",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 312225
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
+            "checked_at_utc": "2026-10-09T21:03:31.002367+00:00",
+            "status": 200,
+            "sha256": "79612431a82e1d27d0cf1376c698b10fc5a4f9ae5b6c61e670ce547a6fe21089",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 262481
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
+            "checked_at_utc": "2026-10-09T21:03:40.991083+00:00",
+            "status": 200,
+            "sha256": "a637b9ed45864cf2ec7fc218937ce85ceadbf21936492a8332fa3d448e047308",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 270429
+          }
+        ],
+        "catalog_error": "",
+        "entries": [
+          {
+            "url": "https://www.gersekarat.hu/hu/onkormanyzat/letoltheto-dokumentumok",
+            "checked_at_utc": "2026-10-09T21:06:28.275922+00:00",
+            "status": 200,
+            "sha256": "1fe6621e696fe880dffcae6d650dd6f4bd129f6f182ddaccce2d46ed4a7f72f1",
+            "error": "",
+            "final_url": "https://www.gersekarat.hu/hu/onkormanyzat/letoltheto-dokumentumok",
+            "content_type": "text/html; charset=iso-8859-2",
+            "bytes": 41102,
+            "published_gis_links": []
+          }
+        ],
+        "datasets": [
+          {
+            "identifier": [
+              "adc31900-5237-4ee3-ba73-f40b169266fa"
+            ],
+            "title": [
+              "INSPIRE Annex I Theme - ATOM Download Service (predefined datasets) - Hungarian Cadastral Parcels"
+            ],
+            "abstract": [
+              "This service contains atom feeds for downloading Cadastral Parcels data of Mesterszállás sampling area. Spatial resolution for mapping: 1:500, for measurements: 1cm"
+            ],
+            "subject": [
+              "infoFeatureAccessService",
+              "Cadastral Parcel",
+              "Cadastral Boundary",
+              "Cadastral Zoning"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:01.853Z"
+            ],
+            "links": [
+              {
+                "protocol": "INSPIRE-ATOM",
+                "name": "Cadastral Parcels Atom",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_CadastralParcels.xml"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "2d1c17e0-4e0a-4884-9e1f-f31ee44913f0"
+            ],
+            "title": [
+              "INSPIRE Annex I Theme - View Services - Hungarian Cadastral Parcels of Mesterszállás sampling area"
+            ],
+            "abstract": [
+              "INSPIRE Data Specifications for the spatial data theme Cadastral Parcels. It contents a sample data (Mesterszállás-Hungarian settlement). Conformant with Technical Guidance for INSPIRE View Services 3.0"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "Cadastral Parcel",
+              "Cadastral Boundary",
+              "Cadastral Zoning"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:12.322Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "CP:CP.CadastralParcels",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c"
+            ],
+            "title": [
+              "Országos jelentőségű, egyedi jogszabállyal védett természeti területek"
+            ],
+            "abstract": [
+              "HU: Védett területek térbeli törzskönyvi nyilvántartása. Az adatréteg nyilvántartja az országos jelentőségű, egyedi jogszabállyal védett természeti területek adatbázisát és törzskönyvét. A rétegek 4 jól elkülönülő területtípust tartalmaznak: nemzeti park, tájvédelmi körzet, természetvédelmi terület, természeti emlék.\n\nEN: Protected areas spatial data register. The register stores the database and the spatial attributes (e.g. boundaries) of the protected natural areas and assets of national intrest. The natural areas protected by a specific law.  The spatial layers contain four distinct types of areas: national park, landscape protection area, nature conservation area, natural monument."
+            ],
+            "subject": [
+              "Protected sites",
+              "environment"
+            ],
+            "rights": [],
+            "date": [
+              "2018-10-16T10:07:48"
+            ],
+            "links": [
+              {
+                "url": "http://www.termeszetvedelem.hu/"
+              },
+              {
+                "protocol": "image/gif",
+                "url": "http://webgis.okir.hu/geonetwork/srv/api/records/MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c/attachments/nptkttte.gif"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "ProtectedAreaLine_HU_20160322"
+            ],
+            "title": [
+              "Protected Area Line"
+            ],
+            "abstract": [
+              "Designated waters for other protection."
+            ],
+            "subject": [
+              "Protected sites",
+              "protected area",
+              "freshwater",
+              "fish",
+              "Protected areas (Water Framework Directive)",
+              "inlandWaters"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-05T08:04:38.143Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WFS",
+                "name": "ProtectedAreaL",
+                "description": "ProtectedAreaL",
+                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "solar_md-fa643d38-4775-418e-83ee-071e5f1c8828"
+            ],
+            "title": [
+              "INSPIRE Annex III – Solar panels and solar farms in Hungary (Production and Industrial Facilities / Energy Resources)"
+            ],
+            "abstract": [
+              "This national dataset contains the location and geometry of solar panels and solar farms/sites used for cartographic representation in the National Geospatial Base Map of Hungary (NGMHu). The data are derived from real-estate/cadastral source data used for NGMHu mapping and from orthophoto remote-sensing interpretation and digitisation. The dataset primarily contains large, industrial-scale solar installations; smaller residential installations are generally outside its scope. It contains no installed-capacity, energy-production, or other technical plant data; its purpose is localisation and cartographic representation."
+            ],
+            "subject": [
+              "Production and industrial facilities",
+              "Energy resources",
+              "High-value dataset",
+              "Earth observation and environment",
+              "National",
+              "solar panel",
+              "solar farm",
+              "photovoltaic",
+              "renewable energy",
+              "NTA",
+              "structure",
+              "utilitiesCommunication"
+            ],
+            "rights": [
+              "license",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:27.876Z"
+            ],
+            "links": [
+              {
+                "protocol": "INSPIRE Atom",
+                "name": "INSPIRE ATOM Download Service – Solar panels and solar farms",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_SOLAR.xml"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar farms – GeoJSON",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_farm.geojson"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar panels – GeoJSON",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_panel.geojson"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar farms – ZIP",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_farm.zip"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar panels – ZIP",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_panel.zip"
+              },
+              {
+                "protocol": "image/jpeg",
+                "name": "Preview of solar panels and solar farms dataset",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar.jpg"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615"
+            ],
+            "title": [
+              "INSPIRE Annex I Protected Sites - Cultural heritage of Hungary"
+            ],
+            "abstract": [
+              "National cultural heritage spatial dataset containing castle walls, castle buildings, cemeteries, ruins, palace buildings and hillforts in Hungary. For INSPIRE discovery and download purposes the dataset is primarily associated with the Annex I Protected Sites theme where the represented objects are protected for cultural-heritage conservation. Building-related objects are also semantically related to the Annex III Buildings theme. The dataset is published as an INSPIRE/HVD bulk-download package."
+            ],
+            "subject": [
+              "Protected sites",
+              "High-value dataset",
+              "Earth observation and environment",
+              "High-value dataset",
+              "Earth observation and environment",
+              "High-value dataset",
+              "Earth observation and environment",
+              "society"
+            ],
+            "rights": [
+              "license",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:54.6Z"
+            ],
+            "links": [
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Cultural heritage bulk download",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip"
+              },
+              {
+                "protocol": "INSPIRE Atom",
+                "name": "INSPIRE Cultural heritage Download Service",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/DS_cultural_heritage.xml"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "name": "Related INSPIRE Download Service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/catalog.search#/metadata/cultural_heritage_ds-f223f6bf-4972-42fd-9781-29189c111dca"
+              },
+              {
+                "protocol": "image/jpeg",
+                "name": "Preview of the Cultural heritage dataset",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.jpg"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "278bb777-aaac-4678-bd91-d4032c7e8a8c"
+            ],
+            "title": [
+              "INSPIRE dataset Theme Annex I - Cadastral parcels - Mesterszállás sampling area"
+            ],
+            "abstract": [
+              "Avaible in vector format on the whole country. Contains: land parcels and boundary of the building. Avaible formats: shp, dxf."
+            ],
+            "subject": [
+              "parcel number",
+              "building",
+              "cadastre",
+              "land parcel",
+              "cadastral map",
+              "Nemzeti",
+              "Cadastral parcels",
+              "location",
+              "structure"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:05.334Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS",
+                "name": "CP:CP.CadastralParcels",
+                "description": "CP:CP.CadastralParcels",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0"
+              },
+              {
+                "protocol": "OGC:WFS",
+                "name": "CP:CP.CadastralParcels",
+                "description": "CP:CP.CadastralParcels",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Dataset Atom Feed",
+                "description": "Cadastral parcels of Mesreszállás sampling area for Hungary",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/data/FCOLL_CadastralParcels.xml"
+              },
+              {
+                "protocol": "INSPIRE-ATOM",
+                "name": "Dataset Atom Feed",
+                "description": "Cadastral parcels of Mesreszállás sampling area for Hungary",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_CadastralParcels.xml"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cadastralparcels/HU.CP.2019NFO.pdf"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "NTA_m344-ec2b-4449-bfe6-087cd3d22ac8"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) dataset - NGMHu 2023"
+            ],
+            "abstract": [
+              "The National Geospatial Map of Hungary (NGMHu) is the country's first complex online geospatial base map service with unified and homogeneous data derived from national remote sensing data and central the databases, for example the land administration, transportation networks or LPIS systems. The most important map information is being incorporated forming a comprehensive map service in order to help user’s orientation in different web mapping systems and provide quick glimpse of national geospatial databases."
+            ],
+            "subject": [
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks",
+              "INSPIRE",
+              "Common Agricultural Policy",
+              "NGMHu",
+              "LPIS",
+              "Land use",
+              "National",
+              "location",
+              "imageryBaseMapsEarthCover"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:46.978Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-map",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "ngmhu2023_crs23700",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "url": "https://nta.lechnerkozpont.hu/"
+              },
+              {
+                "protocol": "image/png",
+                "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
+            ],
+            "abstract": [
+              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "INSPIRE",
+              "infoMapAccessService",
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:47.228Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          }
+        ],
+        "services": [
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:06:35.113782+00:00",
+            "status": 200,
+            "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 8540,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          ",
+                "Style": "\n          ",
+                "MinScaleDenominator": "1.0",
+                "MaxScaleDenominator": "20000.0"
+              }
+            ]
+          },
+          {
+            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
+            "checked_at_utc": "2026-10-09T21:06:36.421882+00:00",
+            "status": 400,
+            "sha256": "",
+            "error": "HTTP Error 400: Bad Request",
+            "zoning_verified": false
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
+            "checked_at_utc": "2026-10-09T21:06:38.205652+00:00",
+            "status": 200,
+            "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 8540,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          ",
+                "Style": "\n          ",
+                "MinScaleDenominator": "1.0",
+                "MaxScaleDenominator": "20000.0"
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:06:39.562531+00:00",
+            "status": 200,
+            "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 90332,
+            "zoning_verified": false,
+            "kind": "WFS",
+            "version": "2.0.0",
+            "layers": [
+              {
+                "Name": "CP:CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "Keywords": "",
+                "DefaultCRS": "urn:ogc:def:crs:EPSG::23700",
+                "OtherCRS": "urn:ogc:def:crs:EPSG::3857",
+                "WGS84BoundingBox": "",
+                "MetadataURL": ""
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:06:40.313907+00:00",
+            "status": 200,
+            "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 7960,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "LandUse2023",
+                "Title": "LandUse2023",
+                "Abstract": "NGMHU 2023 version",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          "
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:06:40.922227+00:00",
+            "status": 200,
+            "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 7960,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "LandUse2023",
+                "Title": "LandUse2023",
+                "Abstract": "NGMHU 2023 version",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          "
+              }
+            ]
+          }
+        ],
+        "zoning_verified": false,
+        "missing": [
+          "Hatályos HÉSZ-hez kötött övezeti vektorforrás.",
+          "Teljes területi korlátozáskészlet és alkalmazhatóság."
+        ],
+        "selected_method": "official_pdf_legend",
+        "selection_reason": "A feltárt GIS-adatok hatályos övezeti tervkapcsolata nincs igazolva; a saját jelmagyarázatú hivatalos terv vizsgálata folytatódik."
+      },
       "legal_source_url": "https://njt.jog.gov.hu/jogszabaly/2007-2-SP-5Y3101",
       "legal_source_verified": true,
       "rules_count": 14,
@@ -17727,6 +20299,669 @@
         "pages_scanned": 1,
         "scan_complete": true,
         "zone_style_verified": true
+      },
+      "gis_sources": {
+        "place": "Miskolc",
+        "catalog_complete": true,
+        "catalog_receipts": [
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
+            "checked_at_utc": "2026-10-09T21:03:19.292241+00:00",
+            "status": 200,
+            "sha256": "39d7a7f59ed216015b539f5d08d2732f163d0e81c088107d3298be0ac3c16046",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 312225
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
+            "checked_at_utc": "2026-10-09T21:03:31.002367+00:00",
+            "status": 200,
+            "sha256": "79612431a82e1d27d0cf1376c698b10fc5a4f9ae5b6c61e670ce547a6fe21089",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 262481
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
+            "checked_at_utc": "2026-10-09T21:03:40.991083+00:00",
+            "status": 200,
+            "sha256": "a637b9ed45864cf2ec7fc218937ce85ceadbf21936492a8332fa3d448e047308",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
+            "content_type": "application/xml;charset=UTF-8",
+            "bytes": 270429
+          }
+        ],
+        "catalog_error": "",
+        "entries": [
+          {
+            "url": "https://www.miskolc.hu/varoshaza/onkormanyzat/strategiak-koncepciok/miskolc-megyei-jogu-varos-epitesi-szabalyzata",
+            "checked_at_utc": "2026-10-09T21:08:44.754535+00:00",
+            "status": 200,
+            "sha256": "e50b85f94b1fac159cde5cd96805f2a67e1c8295550b8c79e08c7cada7179beb",
+            "error": "",
+            "final_url": "https://www.miskolc.hu/varoshaza/onkormanyzat/strategiak-koncepciok/miskolc-megyei-jogu-varos-epitesi-szabalyzata",
+            "content_type": "text/html; charset=UTF-8",
+            "bytes": 379629,
+            "published_gis_links": []
+          }
+        ],
+        "datasets": [
+          {
+            "identifier": [
+              "adc31900-5237-4ee3-ba73-f40b169266fa"
+            ],
+            "title": [
+              "INSPIRE Annex I Theme - ATOM Download Service (predefined datasets) - Hungarian Cadastral Parcels"
+            ],
+            "abstract": [
+              "This service contains atom feeds for downloading Cadastral Parcels data of Mesterszállás sampling area. Spatial resolution for mapping: 1:500, for measurements: 1cm"
+            ],
+            "subject": [
+              "infoFeatureAccessService",
+              "Cadastral Parcel",
+              "Cadastral Boundary",
+              "Cadastral Zoning"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:01.853Z"
+            ],
+            "links": [
+              {
+                "protocol": "INSPIRE-ATOM",
+                "name": "Cadastral Parcels Atom",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_CadastralParcels.xml"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "2d1c17e0-4e0a-4884-9e1f-f31ee44913f0"
+            ],
+            "title": [
+              "INSPIRE Annex I Theme - View Services - Hungarian Cadastral Parcels of Mesterszállás sampling area"
+            ],
+            "abstract": [
+              "INSPIRE Data Specifications for the spatial data theme Cadastral Parcels. It contents a sample data (Mesterszállás-Hungarian settlement). Conformant with Technical Guidance for INSPIRE View Services 3.0"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "Cadastral Parcel",
+              "Cadastral Boundary",
+              "Cadastral Zoning"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:12.322Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "CP:CP.CadastralParcels",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c"
+            ],
+            "title": [
+              "Országos jelentőségű, egyedi jogszabállyal védett természeti területek"
+            ],
+            "abstract": [
+              "HU: Védett területek térbeli törzskönyvi nyilvántartása. Az adatréteg nyilvántartja az országos jelentőségű, egyedi jogszabállyal védett természeti területek adatbázisát és törzskönyvét. A rétegek 4 jól elkülönülő területtípust tartalmaznak: nemzeti park, tájvédelmi körzet, természetvédelmi terület, természeti emlék.\n\nEN: Protected areas spatial data register. The register stores the database and the spatial attributes (e.g. boundaries) of the protected natural areas and assets of national intrest. The natural areas protected by a specific law.  The spatial layers contain four distinct types of areas: national park, landscape protection area, nature conservation area, natural monument."
+            ],
+            "subject": [
+              "Protected sites",
+              "environment"
+            ],
+            "rights": [],
+            "date": [
+              "2018-10-16T10:07:48"
+            ],
+            "links": [
+              {
+                "url": "http://www.termeszetvedelem.hu/"
+              },
+              {
+                "protocol": "image/gif",
+                "url": "http://webgis.okir.hu/geonetwork/srv/api/records/MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c/attachments/nptkttte.gif"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "ProtectedAreaLine_HU_20160322"
+            ],
+            "title": [
+              "Protected Area Line"
+            ],
+            "abstract": [
+              "Designated waters for other protection."
+            ],
+            "subject": [
+              "Protected sites",
+              "protected area",
+              "freshwater",
+              "fish",
+              "Protected areas (Water Framework Directive)",
+              "inlandWaters"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-05T08:04:38.143Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WFS",
+                "name": "ProtectedAreaL",
+                "description": "ProtectedAreaL",
+                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "solar_md-fa643d38-4775-418e-83ee-071e5f1c8828"
+            ],
+            "title": [
+              "INSPIRE Annex III – Solar panels and solar farms in Hungary (Production and Industrial Facilities / Energy Resources)"
+            ],
+            "abstract": [
+              "This national dataset contains the location and geometry of solar panels and solar farms/sites used for cartographic representation in the National Geospatial Base Map of Hungary (NGMHu). The data are derived from real-estate/cadastral source data used for NGMHu mapping and from orthophoto remote-sensing interpretation and digitisation. The dataset primarily contains large, industrial-scale solar installations; smaller residential installations are generally outside its scope. It contains no installed-capacity, energy-production, or other technical plant data; its purpose is localisation and cartographic representation."
+            ],
+            "subject": [
+              "Production and industrial facilities",
+              "Energy resources",
+              "High-value dataset",
+              "Earth observation and environment",
+              "National",
+              "solar panel",
+              "solar farm",
+              "photovoltaic",
+              "renewable energy",
+              "NTA",
+              "structure",
+              "utilitiesCommunication"
+            ],
+            "rights": [
+              "license",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:27.876Z"
+            ],
+            "links": [
+              {
+                "protocol": "INSPIRE Atom",
+                "name": "INSPIRE ATOM Download Service – Solar panels and solar farms",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_SOLAR.xml"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar farms – GeoJSON",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_farm.geojson"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar panels – GeoJSON",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_panel.geojson"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar farms – ZIP",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_farm.zip"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Solar panels – ZIP",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar_panel.zip"
+              },
+              {
+                "protocol": "image/jpeg",
+                "name": "Preview of solar panels and solar farms dataset",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/solar/solar.jpg"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615"
+            ],
+            "title": [
+              "INSPIRE Annex I Protected Sites - Cultural heritage of Hungary"
+            ],
+            "abstract": [
+              "National cultural heritage spatial dataset containing castle walls, castle buildings, cemeteries, ruins, palace buildings and hillforts in Hungary. For INSPIRE discovery and download purposes the dataset is primarily associated with the Annex I Protected Sites theme where the represented objects are protected for cultural-heritage conservation. Building-related objects are also semantically related to the Annex III Buildings theme. The dataset is published as an INSPIRE/HVD bulk-download package."
+            ],
+            "subject": [
+              "Protected sites",
+              "High-value dataset",
+              "Earth observation and environment",
+              "High-value dataset",
+              "Earth observation and environment",
+              "High-value dataset",
+              "Earth observation and environment",
+              "society"
+            ],
+            "rights": [
+              "license",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:54.6Z"
+            ],
+            "links": [
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Cultural heritage bulk download",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip"
+              },
+              {
+                "protocol": "INSPIRE Atom",
+                "name": "INSPIRE Cultural heritage Download Service",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/DS_cultural_heritage.xml"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "name": "Related INSPIRE Download Service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/catalog.search#/metadata/cultural_heritage_ds-f223f6bf-4972-42fd-9781-29189c111dca"
+              },
+              {
+                "protocol": "image/jpeg",
+                "name": "Preview of the Cultural heritage dataset",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.jpg"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "278bb777-aaac-4678-bd91-d4032c7e8a8c"
+            ],
+            "title": [
+              "INSPIRE dataset Theme Annex I - Cadastral parcels - Mesterszállás sampling area"
+            ],
+            "abstract": [
+              "Avaible in vector format on the whole country. Contains: land parcels and boundary of the building. Avaible formats: shp, dxf."
+            ],
+            "subject": [
+              "parcel number",
+              "building",
+              "cadastre",
+              "land parcel",
+              "cadastral map",
+              "Nemzeti",
+              "Cadastral parcels",
+              "location",
+              "structure"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:43:05.334Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS",
+                "name": "CP:CP.CadastralParcels",
+                "description": "CP:CP.CadastralParcels",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0"
+              },
+              {
+                "protocol": "OGC:WFS",
+                "name": "CP:CP.CadastralParcels",
+                "description": "CP:CP.CadastralParcels",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities"
+              },
+              {
+                "protocol": "WWW:DOWNLOAD-1.0-http--download",
+                "name": "Dataset Atom Feed",
+                "description": "Cadastral parcels of Mesreszállás sampling area for Hungary",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/data/FCOLL_CadastralParcels.xml"
+              },
+              {
+                "protocol": "INSPIRE-ATOM",
+                "name": "Dataset Atom Feed",
+                "description": "Cadastral parcels of Mesreszállás sampling area for Hungary",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/atom/DLS_CadastralParcels.xml"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "url": "https://inspire.lechnerkozpont.hu/inspire/cadastralparcels/HU.CP.2019NFO.pdf"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "NTA_m344-ec2b-4449-bfe6-087cd3d22ac8"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) dataset - NGMHu 2023"
+            ],
+            "abstract": [
+              "The National Geospatial Map of Hungary (NGMHu) is the country's first complex online geospatial base map service with unified and homogeneous data derived from national remote sensing data and central the databases, for example the land administration, transportation networks or LPIS systems. The most important map information is being incorporated forming a comprehensive map service in order to help user’s orientation in different web mapping systems and provide quick glimpse of national geospatial databases."
+            ],
+            "subject": [
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks",
+              "INSPIRE",
+              "Common Agricultural Policy",
+              "NGMHu",
+              "LPIS",
+              "Land use",
+              "National",
+              "location",
+              "imageryBaseMapsEarthCover"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:46.978Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-map",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "ngmhu2023_crs23700",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities"
+              },
+              {
+                "protocol": "WWW:LINK-1.0-http--link",
+                "url": "https://nta.lechnerkozpont.hu/"
+              },
+              {
+                "protocol": "image/png",
+                "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
+              }
+            ]
+          },
+          {
+            "identifier": [
+              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
+            ],
+            "abstract": [
+              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "INSPIRE",
+              "infoMapAccessService",
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:47.228Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          }
+        ],
+        "services": [
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:08:46.986598+00:00",
+            "status": 200,
+            "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 8540,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          ",
+                "Style": "\n          ",
+                "MinScaleDenominator": "1.0",
+                "MaxScaleDenominator": "20000.0"
+              }
+            ]
+          },
+          {
+            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
+            "checked_at_utc": "2026-10-09T21:08:47.712266+00:00",
+            "status": 400,
+            "sha256": "",
+            "error": "HTTP Error 400: Bad Request",
+            "zoning_verified": false
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
+            "checked_at_utc": "2026-10-09T21:08:49.072064+00:00",
+            "status": 200,
+            "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 8540,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          ",
+                "Style": "\n          ",
+                "MinScaleDenominator": "1.0",
+                "MaxScaleDenominator": "20000.0"
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:08:49.401332+00:00",
+            "status": 200,
+            "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 90332,
+            "zoning_verified": false,
+            "kind": "WFS",
+            "version": "2.0.0",
+            "layers": [
+              {
+                "Name": "CP:CP.CadastralParcels",
+                "Title": "CP.CadastralParcels",
+                "Abstract": "Cadastral Parcels for Mesterszállás",
+                "Keywords": "",
+                "DefaultCRS": "urn:ogc:def:crs:EPSG::23700",
+                "OtherCRS": "urn:ogc:def:crs:EPSG::3857",
+                "WGS84BoundingBox": "",
+                "MetadataURL": ""
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:08:50.167908+00:00",
+            "status": 200,
+            "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 7960,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "LandUse2023",
+                "Title": "LandUse2023",
+                "Abstract": "NGMHU 2023 version",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          "
+              }
+            ]
+          },
+          {
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-09T21:08:50.730293+00:00",
+            "status": 200,
+            "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
+            "error": "",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "content_type": "text/xml;charset=UTF-8",
+            "bytes": 7960,
+            "zoning_verified": false,
+            "kind": "raster",
+            "version": "1.3.0",
+            "layers": [
+              {
+                "Name": "LandUse2023",
+                "Title": "LandUse2023",
+                "Abstract": "NGMHU 2023 version",
+                "KeywordList": "\n          ",
+                "CRS": "CRS:84",
+                "EX_GeographicBoundingBox": "\n          ",
+                "BoundingBox": "",
+                "MetadataURL": "\n          "
+              }
+            ]
+          }
+        ],
+        "zoning_verified": false,
+        "missing": [
+          "Hatályos HÉSZ-hez kötött övezeti vektorforrás.",
+          "Teljes területi korlátozáskészlet és alkalmazhatóság."
+        ],
+        "heritage_snapshot": {
+          "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
+          "checked_at_utc": "2026-10-09T21:03:53.598712+00:00",
+          "status": 200,
+          "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
+          "error": "",
+          "final_url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
+          "content_type": "application/zip",
+          "bytes": 1394295,
+          "parcel_boundary_verified": true,
+          "reuse_evidence": {
+            "receipt": {
+              "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
+              "checked_at_utc": "2026-10-09T21:03:53.085771+00:00",
+              "status": 200,
+              "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
+              "error": "",
+              "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
+              "content_type": "application/xml;charset=UTF-8",
+              "bytes": 19146
+            },
+            "public_reuse_verified": true,
+            "license": "CC BY 4.0",
+            "license_url": "https://creativecommons.org/licenses/by/4.0/",
+            "attribution": "Lechner Tudásközpont; TelekElőírás AI térbeli metszésvizsgálata."
+          },
+          "current_legal_protection_verified": false,
+          "complete_restrictions_verified": false,
+          "layers": [
+            {
+              "layer": "castle_building",
+              "features": 33,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "castle_wall",
+              "features": 135,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "cemetery",
+              "features": 6026,
+              "missing_geometry": 5,
+              "invalid_geometry": 2,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "hillfort",
+              "features": 5,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "palace_building",
+              "features": 977,
+              "missing_geometry": 0,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            },
+            {
+              "layer": "ruins",
+              "features": 276,
+              "missing_geometry": 1,
+              "invalid_geometry": 0,
+              "source_crs": "EPSG:23700"
+            }
+          ],
+          "intersections": [],
+          "spatial_snapshot_checked": true,
+          "spatial_snapshot_complete": false,
+          "missing_geometry": 6,
+          "invalid_geometry": 2
+        },
+        "selected_method": "official_pdf_legend",
+        "selection_reason": "A feltárt GIS-adatok hatályos övezeti tervkapcsolata nincs igazolva; a saját jelmagyarázatú hivatalos terv vizsgálata folytatódik."
       },
       "legal_source_url": "https://njt.jog.gov.hu/jogszabaly/2022-38-SP-5Y1070",
       "legal_source_verified": true,
