@@ -39,6 +39,11 @@ def role_for_label(text):
     if re.search(r'ovezet(?:i)?hatar',key):return 'zone_boundary'
     if ('szabalyozasivonal' in key or 'szabayozasivonal' in key):return 'regulatory_line'
     if 'banyatelek' in key:return 'restriction'
+    if any(word in key for word in ('levezetosav','aramlasiholtter','partisav','tolteslab',
+        'erozioerzekeny','alabanyaszott','regeszeti','muemleki','tajkepvedelmi',
+        'okologiaihalozat','nemzetipark','beultetesikotelezettseg')):return 'restriction'
+    if any(word in key for word in ('vezetek','kabel')) and any(word in key for word in ('villamos','foldgaz')):return 'utility_line'
+    if 'epitesivonal' in key:return 'building_line'
     if 'telekhatartol' in key:return 'building_line' if 'vonal' in key else ''
     if 'foldreszlethatar' in key or 'telekhatar' in key:
         return 'proposed_parcel_boundary' if 'javasolt' in key or 'tervezett' in key else 'parcel_boundary'
@@ -111,16 +116,32 @@ def matches_style(actual, expected):
 def caption_rows(page):
     rows=[]
     for block in page.get_text('dict',flags=fitz.TEXTFLAGS_DICT & ~fitz.TEXT_PRESERVE_IMAGES)['blocks']:
+        block_rows=[]
         for line in block.get('lines',[]):
             candidates=[s for s in line['spans'] if len(compact(s['text']))>=6]
             if not candidates:continue
             caption_font=max(candidates,key=lambda s:len(compact(s['text'])))['font']
             spans=[s for s in line['spans'] if s['font']==caption_font]
             text=' '.join(s['text'] for s in spans);role=role_for_label(text)
-            if not role:continue
             rect=fitz.Rect(spans[0]['bbox'])
             for span in spans[1:]:rect|=fitz.Rect(span['bbox'])
-            rows.append({'label':text,'role':role,'rect':list(rect*page.rotation_matrix),'recognition':'native'})
+            block_rows.append({'label':text,'role':role,'rect':rect,'font':caption_font})
+        index=0
+        while index<len(block_rows):
+            row=block_rows[index];index+=1
+            if not row['role']:continue
+            rect=row['rect'];height=rect.height;text=row['label']
+            # A wrapped caption can be taller than the first text line; its
+            # sample is centred on the entire caption. Native font boxes of
+            # wrapped lines overlap substantially. Separate legend rows with
+            # non-overlapping boxes must not be absorbed as continuations.
+            if index<len(block_rows):
+                continuation=block_rows[index];next_rect=continuation['rect']
+                if (not continuation['role'] and continuation['font']==row['font']
+                        and abs(next_rect.x0-rect.x0)<3
+                        and .4*height<next_rect.y0-rect.y0<.8*height):
+                    text+=' '+continuation['label'];rect|=next_rect;index+=1
+            rows.append({'label':text,'role':row['role'],'rect':list(rect*page.rotation_matrix),'recognition':'native'})
     return rows
 
 
@@ -234,6 +255,7 @@ def parse_legend(page,rows):
         # OCR can include neighbouring captions on the right. Only a native
         # caption permits automatic reversal of sample placement.
         right_styles=sample_styles(page,right) if not right.is_empty and row['recognition']=='native' and not neighbour_column else []
+        left_styles=list(styles)
         ambiguous=bool(styles and right_styles and styles!=right_styles)
         if not styles and right_styles:sample=right;styles=right_styles
         if ambiguous:styles=[]
@@ -241,7 +263,29 @@ def parse_legend(page,rows):
         # scale. A single uncertain recognition may be displayed, not trusted.
         stable=row['recognition']=='native'
         result.append({**row,'sample_rect':list(sample),'styles':styles,
-                       'label_verified':stable,'ambiguous_sample':ambiguous,'PDF-oldal':page.number+1})
+                       'label_verified':stable,'ambiguous_sample':ambiguous,'PDF-oldal':page.number+1,
+                       '_left_styles':left_styles if ambiguous else [],
+                       '_right_styles':right_styles,'_right_rect':list(right)})
+    # Multi-column legends can place the next column's graphic immediately
+    # after a long caption. Infer placement only from at least three aligned,
+    # unambiguous native rows in this very legend; a lone two-sided sample
+    # remains ambiguous. No municipality or national placement is assumed.
+    for record in result:
+        if record['ambiguous_sample'] and record['recognition']=='native':
+            x=record['rect'][0]
+            aligned=[other for other in result if other is not record
+                     and other['recognition']=='native' and not other['ambiguous_sample']
+                     and other['styles'] and abs(other['rect'][0]-x)<8]
+            left=sum(other['sample_rect'][2]<other['rect'][0] for other in aligned)
+            right=sum(other['sample_rect'][0]>other['rect'][2] for other in aligned)
+            if left>=3 and right==0:
+                record['styles']=record['_left_styles'];record['ambiguous_sample']=False
+                record['sample_side_basis']={'side':'left','aligned_native_rows':left}
+            elif right>=3 and left==0:
+                record['styles']=record['_right_styles'];record['sample_rect']=record['_right_rect']
+                record['ambiguous_sample']=False
+                record['sample_side_basis']={'side':'right','aligned_native_rows':right}
+        for key in ('_left_styles','_right_styles','_right_rect'):record.pop(key)
     return result
 
 

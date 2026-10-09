@@ -11,7 +11,7 @@ import numpy as np
 from fontTools.ttLib import TTFont
 from fontTools.pens.boundsPen import BoundsPen
 from shapely.geometry import Point, LineString, box
-from shapely.ops import unary_union
+from shapely.ops import unary_union, polygonize
 
 
 def native_dotted_boundaries(page, expected_styles=()):
@@ -135,3 +135,36 @@ def bounded_zone_connections(parcel, frame, markers, labels, masks=(), *, uncert
         result['reason']='Egyetlen övezeti felirat és a telekbelső közötti határmentes tervi kapcsolat ellenőrizve; a teljes határsáv és a zárt övezetpoligon nem igazolt.'
     else:result['reason']='Nincs egyértelmű, határmentes övezeti feliratkapcsolat.'
     return result
+
+
+def closed_zone_faces(parcel, frame, markers, filled_areas, labels, masks=()):
+    """Polygonize only actual source boundaries; never repair their endpoints.
+
+    Filled areas must already have been matched against this plan's own legend.
+    Roads and other filled land uses separate faces, but their inscriptions do
+    not transfer across their boundary. Native circle arrays may contribute
+    actual consecutive segments; isolated circles and missing corners cannot
+    close a face. The caller still verifies complete parcel coverage in EOV.
+    """
+    out={'faces':[], 'audit':{'closed_labelled_faces':[], 'endpoint_repairs':0,
+                            'complete_parcel_coverage':False}}
+    if not markers.get('supported'):return out
+    lines=[line for line in markers.get('lines',[]) if line.geom_type=='LineString']
+    lines.extend(area.boundary for area in filled_areas)
+    if not lines:return out
+    graph=unary_union(lines)
+    for face in polygonize(graph):
+        if not frame.contains(face) or not face.intersects(parcel):continue
+        if any(mask.intersects(face.boundary) for mask in masks):continue
+        codes={code for code,point,_ in labels if face.contains(point)}
+        if len(codes)!=1:continue
+        code=next(iter(codes));coverage=face.intersection(parcel).area/parcel.area
+        out['faces'].append((code,face))
+        out['audit']['closed_labelled_faces'].append({'code':code,
+            'parcel_area_fraction':coverage,'source_pdf_wkt':face.wkt})
+    if out['faces']:
+        out['audit']['complete_parcel_coverage']=unary_union(
+            [face for _,face in out['faces']]).covers(parcel)
+    out['audit']['reason']=('Zárt, feliratozott forrásterület található; a teljes fedés külön ellenőrizendő.'
+        if out['faces'] else 'A saját jelmagyarázattal egyező forráshatárokból nem zárható feliratozott övezet a teleknél; a hiányzó sarkok és eltérő minták nincsenek kiegészítve.')
+    return out

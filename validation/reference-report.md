@@ -2,9 +2,9 @@
 
 **A fő cél még nem teljesült: 0/5 teleknek van teljesen bizonyított, hatályos építési előíráslistája.**
 
-82/82 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
+90/90 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
 Streamlit vizsgálati útvonalát. Az öt mintatelek élő forrásvizsgálata után
-46/46 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
+58/58 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
 időállapotok, jelmagyarázat–tervlap kötés, feldolgozólenyomatok,
 bizonyítottsági állapotok és a miskolci paraméterkód feloldása.
 Ez a forráskezelés helyességét ellenőrzi; nem állít sikeres telekbesorolást.
@@ -74,6 +74,7 @@ A natív körjelek tényleges középpontját a beágyazott betűkészletből sz
 a program. 3314 jel került feldolgozásra. Feliratok alatti hiányokat nem zár
 kitalált vonallal, és a saját szabályozási/területi mintákat is vizsgálja.
 A teljes, zárt övezetpoligon és a teljes telek kapcsolata nem igazolt.
+A fő cél tehát ebben a fejlesztési lépésben sem teljesült.
 A **Gipe-60.63.5 csak tervlapi jelölt**, nem igazolt besorolás.
 
 A jelölt kódot az alkalmazás saját [hivatalos paraméterjelmagyarázatából](https://njt.jog.gov.hu/document/f3/f327LL_EJR_124216758-Param_terek_magyar_zata.pdf)
@@ -92,6 +93,53 @@ Emellett a [2026.09.26. időállapotú rendelet](https://njt.jog.gov.hu/jogszaba
 szöveglenyomat-ellenőrzéssel. A teljes közművesítés, zöldfelületi feltételek,
 rakodás, technológiai eltérések és hivatkozott országos szabályok feltételei
 megmaradnak. A telekre/ügyre alkalmazhatóság külön igazolandó.
+
+
+### Most ellenőrzött fejlesztések és konkrét hiányok
+
+A többoszlopos jelmagyarázat hosszú feliratai mellett a következő oszlop
+mintája tévesen kétértelművé tette az útterület-jelöléseket. A javítás legalább
+három, ugyanebben a saját jelmagyarázatban igazolt, egy oszlophoz tartozó
+natív sor alapján állapítja meg a minták oldalát. Egy magányos, kétoldali
+mintát továbbra sem fogad el. A kétsoros felirat teljes magasságával dolgozik,
+ezért nem cseréli le a magas útterületmintát a szomszéd oszlop mintájára.
+
+A program a saját körjelek tényleges szakaszaiból és a saját jelmagyarázattal
+egyező út- és területkitöltésekből zárt forrásterületet keres. Minden ilyen
+területnél ellenőrzi a belső felirat egyértelműségét és a telek fedését.
+A lap széle és a feliratmaszk nem zárhat le övezetet. A nyitott sarkokat ez az
+éles eljárás még nem rekonstruálja; Miskolcnál nem ad igazolt övezetpoligont.
+
+A hatályos, külön jelmagyarázat közúti mintája RGB (1; 0,761; 0), miközben
+a tervben a korábbi RGB (1; 0,796; 0,31) szerepel. Ennek forrását megtaláltam:
+az [ugyanezen rendelet 2023.02.01. időállapotában](https://njt.jog.gov.hu/jogszabaly/2022-38-SP-5Y1070.0)
+hivatkozott [saját korábbi jelmagyarázat](https://njt.jog.gov.hu/document/80/8042LL_EJR_40048648-1_MELLEKLET.pdf),
+2. PDF-oldal, ugyanilyen megnevezésű közúti minta. A színérték három tizedesre
+kerekítve egyezik. Ez a történeti jelváltozat eredetét igazolja; a hatályos
+tervlapra való automatikus megfeleltetést és a teljes telekbesorolást még nem.
+A részletes receiptek a [miskolc-legend-history.json](miskolc-legend-history.json)
+fájlban vannak. Régi építési előírásokat nem alkalmaz a program.
+
+A területi audit az építési vonal, védelmi, tilalmi és közműjelölések saját
+mintáit vizsgálja. Azonos megjelenésű, eltérő jelentésű minták esetén minden
+lehetséges saját feliratot megőriz. A kitöltés befoglaló téglalapja helyett
+annak tényleges poligonját metszi a telekkel. A nem támogatott jelek és a
+jogi védőtávolságok külön hiányként szerepelnek a JSON-ban és a Streamlitben.
+Ez továbbra sem teljes területi korlátozásvizsgálat.
+
+![A hivatalos terv változatlan kivágata](miskolc-plan-context.png)
+
+A kivágat a fent hivatkozott terv 31. PDF-oldaláról, a 20-4 szelvényről készült,
+[300; 452; 435; 590] PDF-pont tartományban, nyolcszoros raszterezéssel.
+A 4755/11 és 4755/10 telekfelirat, a közöttük húzódó telekhatár és a
+Gipe-60.63.5 felirat külön látható. Ez a forrásképet dokumentálja,
+a teljes geometriai besorolást önmagában nem igazolja.
+
+A friss helyi HTML-forrásból 253 témabeli találat, 186 külön hivatkozható
+rendelkezés megőrződött. Az öt paramétert, a 20 kapcsolódó bekezdést és a
+kinyert helyi forrásleltárat a [miskolc-source-clauses.md](miskolc-source-clauses.md)
+fájl tartalmazza. Az általános és más területek rendelkezéseit is tartalmazó
+leltár nem tekinthető a 4755/11 teljes alkalmazható előíráslistájának.
 
 ## A további telkek
 
@@ -112,12 +160,12 @@ valódi tervlap; a korábbi téves mellékletválasztás javítva.
 ```sh
 python -m unittest discover
 python reference_checks.py --output work/reference-results.json
-python validation/check_sources.py work/reference-results.json --output work/source-check-results.json
+python validation/check_sources.py work/reference-results.json --history-report validation/miskolc-legend-history.json --output work/source-check-results.json
 python reference_checks.py --outlined --output work/reference-outlined-results.json
 ```
 
 reference-results.json: aktuális öttelekes vizsgálat és forrásreceiptek.
-source-check-results.json: 46 sikeres ellenőrzés, a jelentés lenyomatával.
+source-check-results.json: 58 sikeres ellenőrzés, a jelentés lenyomatával.
 reference-outlined-results.json: külön HRSZ-feliratpróba, saját forrás- és
 feliratfeldolgozó-lenyomatokkal; nem övezeti bizonyíték.
 conditional-zone-parameters.json: a Gip/3 forrássor feltételes ellenőrzése.

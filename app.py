@@ -972,7 +972,8 @@ def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
     Explicit closed zone areas are required for the general coverage engine.
     """
     from geopdf import page_registrations, to_world, to_pdf, named_layer_paths, polygon_faces, source_zone_polygons, legend_layer_paths
-    from plan_connections import native_dotted_boundaries, bounded_zone_connections
+    from plan_connections import native_dotted_boundaries, bounded_zone_connections, closed_zone_faces
+    from plan_geometry_audit import audit_plan_geometry
     from shapely.geometry import shape, Point, Polygon, mapping
     result = {"zone": "", "candidate_zone": "", "detail": "", "registrations": [],
               "parcel_boundary_verified": False, "zone_features": []}
@@ -1056,15 +1057,16 @@ def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
                                       [[to_world(p,matrix) for p in ring.coords] for ring in area.interiors])
                         zones.append({'code':next(iter(codes)), 'geometry':mapping(world), 'crs':'EPSG:23700'})
                 candidates=zone_candidates(page,rect)
-                connection={}
+                connection={};closure_audit={}
                 if not zones:
                     markers=native_dotted_boundaries(page,styles_for(legend_profile,'zone_boundary'))
+                    source_areas=[];regulatory_segments=[]
                     if markers.get('supported'):
                         separating=legend_layer_paths(page,legend_profile,'regulatory_line')
-                        markers['lines'].extend(segment for path in separating for segment in path['segments'])
-                        for role in ('road_area','landuse_area','prohibition','restriction'):
+                        regulatory_segments=[segment for path in separating for segment in path['segments']]
+                        for role in ('road_area','landuse_area'):
                             areas=legend_layer_paths(page,legend_profile,role)
-                            markers['lines'].extend(source_zone_polygons(areas))
+                            source_areas.extend(source_zone_polygons(areas))
                     labels=[(word[4],Point((word[0]+word[2])/2,(word[1]+word[3])/2),word[:4])
                             for word in page.get_text('words')
                             if ZONE_PATTERN.fullmatch(word[4]) or word[4] in ('Ev','Eg','Ve','V','kt.')]
@@ -1086,6 +1088,15 @@ def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
                     import numpy as np
                     error_points=registration['error_m']*float(np.linalg.svd(
                         np.linalg.inv(matrix[:2]),compute_uv=False)[0])
+                    closed=closed_zone_faces(boundary,registration['frame'],markers,
+                                            source_areas,labels,masks)
+                    closure_audit=closed['audit']
+                    for code,area in closed['faces']:
+                        world=Polygon([to_world(p,matrix) for p in area.exterior.coords],
+                                      [[to_world(p,matrix) for p in ring.coords] for ring in area.interiors])
+                        zones.append({'code':code,'geometry':mapping(world),'crs':'EPSG:23700'})
+                    markers['lines'].extend(regulatory_segments)
+                    markers['lines'].extend(source_areas)
                     connection=bounded_zone_connections(boundary,registration['frame'],markers,
                                                         labels,masks,uncertainty_points=error_points)
                 confirmed.append({'parcel_wkt':parcel.wkt,'parcel_geometry':mapping(parcel),
@@ -1094,6 +1105,8 @@ def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
                     'candidate_zone':(connection['supported_codes'][0] if connection.get('verified')
                                       else candidates[0]['Övezeti kód'] if candidates else ''),
                     'boundary_connection':connection,
+                    'closure_audit':closure_audit,
+                    'territorial_audit':audit_plan_geometry(page,boundary,legend_profile),
                     'pdf_page':page.number+1,'uncertainty_m':registration['error_m'],
                     'hrsz_method':'pontos HRSZ a zárt, georeferált tervlapi telekben',
                     'preview':page.get_pixmap(matrix=fitz.Matrix(3,3),clip=rect+(-25,-25,25,25)).tobytes('png')})
@@ -1231,6 +1244,8 @@ def connect_automatic_zone(parcel_api, plan_result, plan_inputs, ksh, hrsz):
     result['candidate_zone']=plan_result.get('candidate_zone') or plan_result.get('zone','')
     result['uncertainty_m']=plan_result.get('uncertainty_m')
     result['boundary_connection']=plan_result.get('boundary_connection',{})
+    result['closure_audit']=plan_result.get('closure_audit',{})
+    result['territorial_audit']=plan_result.get('territorial_audit',{})
     return result
 
 
@@ -1396,6 +1411,7 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
     result['legal_source_verified']=inputs.get('source_valid',False)
     result['rules_count']=len(inventory['rows'])
     result['rules_errors']=inventory['errors']
+    result['source_inventory']=inventory
     result['zone_rules']=automatic_zone_rule_evidence(meta,page,inputs,result['identification'])
     result['evidence']=automatic_evidence_rows(result['parcel_api'],inputs,result['identification'],
                                               rules_available=bool(inventory['rows']))
@@ -5777,6 +5793,13 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     connection=geometric_identification.get('boundary_connection',{})
     if connection.get('verified'):
         st.info('Ellenőrzött tervi kapcsolat a telekbelsőhöz: '+', '.join(connection['supported_codes'])+'. '+connection['reason'])
+    audit=geometric_identification.get('territorial_audit',{})
+    closure=geometric_identification.get('closure_audit',{})
+    if audit or closure:
+        with st.expander('Övezetlezárás és területi korlátozások forrásellenőrzése'):
+            if closure.get('reason'):st.info(closure['reason'])
+            st.caption('A metsző tervi jelek és a hiányok elkülönülnek. Az ellenőrzés nem teljes előíráslista.')
+            st.json({'övezetlezárás':closure,'területi_ellenőrzés':audit})
     if zone_rule_evidence['parameter_rows'] or zone_rule_evidence['clause_rows']:
         with st.expander('Önállóan felismert kód forrásolt szabályai: '+zone_rule_evidence['zone']):
             st.caption('A kódhoz tartozó forrásszabályok. A teljes telekre és a konkrét építési ügyre alkalmazhatóságuk még nem igazolt.')

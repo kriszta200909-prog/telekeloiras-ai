@@ -45,7 +45,7 @@ def main():
     report = {'checked_at_utc': datetime.now(timezone.utc).isoformat(),
               'outlined_label_search': args.outlined,
               'code_sha256': {name:app.source_digest(Path(name).read_bytes())
-                              for name in ('app.py','geopdf.py','plan_legend.py','plan_connections.py','zone_parameters.py','reference_checks.py')}, 'cases': []}
+                              for name in ('app.py','geopdf.py','plan_legend.py','plan_connections.py','plan_geometry_audit.py','zone_parameters.py','reference_checks.py')}, 'cases': []}
     for place, hrsz in CASES:
         print(place + ' ' + hrsz + ': hivatalos forráslekérés…', flush=True)
         def progress(page, pages, scanned, labels):

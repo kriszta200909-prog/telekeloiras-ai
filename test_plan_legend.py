@@ -61,6 +61,33 @@ class PlanLegendTests(unittest.TestCase):
             result=self.read(doc,cache)
             self.assertFalse(result['zone_style_verified']);self.assertTrue(result['records'][0]['ambiguous_sample'])
 
+    def test_sample_column_is_inferred_from_own_aligned_native_rows(self):
+        with tempfile.TemporaryDirectory() as cache,legend_document() as doc:
+            page=doc[0]
+            page.draw_line((180,80),(205,80),color=(.8,.1,.5),width=2)
+            for y,label in ((124,'Szabalyozasi vonal'),(164,'Foldreszlet hatar'),(204,'Natura 2000 terulet')):
+                page.insert_text((100,y),label)
+                page.draw_line((65,y-4),(90,y-4),color=(.2,.7,.1),width=2)
+            result=self.read(doc,cache)
+            self.assertTrue(result['zone_style_verified'])
+            self.assertEqual(styles_for(result,'zone_boundary')[0]['stroke'],[.2,.7,.1])
+            self.assertEqual(result['records'][0]['sample_side_basis']['aligned_native_rows'],3)
+
+    def test_wrapped_caption_uses_whole_caption_height_and_not_next_column(self):
+        with tempfile.TemporaryDirectory() as cache,fitz.open() as doc:
+            page=doc.new_page(width=600,height=300)
+            page.insert_text((100,40),'Jelmagyarazat')
+            page.insert_text((100,84),'Kozuti kozlekedesi terulet',fontsize=11)
+            page.insert_text((100,94),'orszagos kozut',fontsize=11)
+            page.draw_rect((65,79,90,94),fill=(.8,.4,.2),color=None)
+            # A foreign column graphic is not a replacement for the tall
+            # original sample next to the two-line caption.
+            page.draw_line((290,80),(315,80),color=(.1,.9,.2),width=2)
+            result=self.read(doc,cache)
+            road=next(r for r in result['records'] if r['role']=='road_area')
+            self.assertIn('orszagos kozut',road['label'])
+            self.assertEqual(road['styles'][0]['fill'],[.8,.4,.2])
+
     def test_legend_reused_across_parcels_but_not_across_plan_editions(self):
         with tempfile.TemporaryDirectory() as cache,legend_document() as doc:
             first=self.read(doc,cache);second=self.read(doc,cache)
@@ -105,6 +132,10 @@ class PlanLegendTests(unittest.TestCase):
         self.assertEqual(role_for_label('Földrészlet határ'),'parcel_boundary')
         self.assertEqual(role_for_label('Építési övezeten belül gépjárműtároló határa'),'')
         self.assertEqual(role_for_label('Megyei övezetek határa'),'restriction')
+        self.assertEqual(role_for_label('Elsődleges levezető sáv'),'restriction')
+        self.assertEqual(role_for_label('Erozió érzékeny terület'),'restriction')
+        self.assertEqual(role_for_label('Középfeszültségű villamosenergia kábel'),'utility_line')
+        self.assertEqual(role_for_label('Építési vonal'),'building_line')
 
     def test_missing_own_legend_cannot_prove_source_geometry_or_zone(self):
         with geo_document() as doc:

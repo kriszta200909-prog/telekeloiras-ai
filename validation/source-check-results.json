@@ -1,12 +1,13 @@
 {
-  "report_sha256": "b46a8140cf90b1e8355e3f2f0bb052f35aae723dbd959ab30648ae11359c205f",
-  "passed": 46,
+  "report_sha256": "1e319f1da33d55c86a932e4a459c6f0d12603afcc1692577d7099b4113604cf1",
+  "passed": 58,
   "checks": [
     "Mind az öt kért telek szerepel",
     "Feldolgozó lenyomata: app.py",
     "Feldolgozó lenyomata: geopdf.py",
     "Feldolgozó lenyomata: plan_legend.py",
     "Feldolgozó lenyomata: plan_connections.py",
+    "Feldolgozó lenyomata: plan_geometry_audit.py",
     "Feldolgozó lenyomata: zone_parameters.py",
     "Feldolgozó lenyomata: reference_checks.py",
     "Tiszaújváros 2200/8: hivatalos, hatályos NJT-terv",
@@ -16,6 +17,7 @@
     "Tiszaújváros 2200/8: külön bizonyítottsági állapotok",
     "Tiszaújváros 2200/8: a jelölt nem bizonyított övezet",
     "Tiszaújváros 2200/8: hiányzó feltételekből nincs teljes előíráslista",
+    "Tiszaújváros 2200/8: teljes forrásbekezdések megőrzött hivatkozásokkal",
     "Budapest XII. kerület 8448/46: hivatalos, hatályos NJT-terv",
     "Budapest XII. kerület 8448/46: eredeti tervbájtok lenyomata",
     "Budapest XII. kerület 8448/46: saját jelmagyarázat ugyanahhoz a tervhez és időállapothoz kötve",
@@ -23,6 +25,7 @@
     "Budapest XII. kerület 8448/46: külön bizonyítottsági állapotok",
     "Budapest XII. kerület 8448/46: a jelölt nem bizonyított övezet",
     "Budapest XII. kerület 8448/46: hiányzó feltételekből nincs teljes előíráslista",
+    "Budapest XII. kerület 8448/46: teljes forrásbekezdések megőrzött hivatkozásokkal",
     "Komádi 1558: hivatalos, hatályos NJT-terv",
     "Komádi 1558: eredeti tervbájtok lenyomata",
     "Komádi 1558: saját jelmagyarázat ugyanahhoz a tervhez és időállapothoz kötve",
@@ -30,6 +33,7 @@
     "Komádi 1558: külön bizonyítottsági állapotok",
     "Komádi 1558: a jelölt nem bizonyított övezet",
     "Komádi 1558: hiányzó feltételekből nincs teljes előíráslista",
+    "Komádi 1558: teljes forrásbekezdések megőrzött hivatkozásokkal",
     "Gersekarát 034/15: hivatalos, hatályos NJT-terv",
     "Gersekarát 034/15: eredeti tervbájtok lenyomata",
     "Gersekarát 034/15: saját jelmagyarázat ugyanahhoz a tervhez és időállapothoz kötve",
@@ -37,6 +41,7 @@
     "Gersekarát 034/15: külön bizonyítottsági állapotok",
     "Gersekarát 034/15: a jelölt nem bizonyított övezet",
     "Gersekarát 034/15: hiányzó feltételekből nincs teljes előíráslista",
+    "Gersekarát 034/15: teljes forrásbekezdések megőrzött hivatkozásokkal",
     "Miskolc 4755/11: hivatalos, hatályos NJT-terv",
     "Miskolc 4755/11: eredeti tervbájtok lenyomata",
     "Miskolc 4755/11: saját jelmagyarázat ugyanahhoz a tervhez és időállapothoz kötve",
@@ -44,9 +49,17 @@
     "Miskolc 4755/11: külön bizonyítottsági állapotok",
     "Miskolc 4755/11: a jelölt nem bizonyított övezet",
     "Miskolc 4755/11: hiányzó feltételekből nincs teljes előíráslista",
+    "Miskolc 4755/11: teljes forrásbekezdések megőrzött hivatkozásokkal",
     "Miskolc: önállóan azonosított 4755/11 telekhatár",
     "Miskolc: Gipe-60.63.5 kizárólag jelölt",
     "Miskolc: saját paraméterjelmagyarázat öt kódpozíciója",
-    "Miskolc: teljes forrásbekezdések, kiadáseltérés nélkül"
-  ]
+    "Miskolc: teljes forrásbekezdések, kiadáseltérés nélkül",
+    "Miskolc: saját jelmagyarázati oszlop alapján felismert két útterületminta",
+    "Miskolc: hiányzó sarkok javítása nélkül nincs állított teljes fedés",
+    "Miskolc: területi audit mindkét eredeti forráshoz kötve",
+    "Miskolc: korábbi saját jelmagyarázat eredeti NJT-bájtjai",
+    "Miskolc: korábbi kétsoros felirat és valódi bal oldali minta",
+    "Miskolc: történeti jelváltozat nem válik automatikusan hatályos övezetbizonyítékká"
+  ],
+  "history_report_sha256": "a180478ba6b16328cd41b8b3c04a5caa18257b0975166e04198c8671bef95773"
 }

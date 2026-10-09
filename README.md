@@ -10,8 +10,9 @@ Magyarországi település és helyrajzi szám alapján a hatályos helyi épít
 - `plan_labels.py` és `plan_ocr_worker.py` – tervlapfeliratok feldolgozása; a worker a tervlapolvasás része.
 - `rule_inventory.py` – a jogszabályi rendelkezések nyilvántartása.
 - `geopdf.py` – a PDF saját földrajzi koordinátáinak, jelmagyarázat szerinti vonalainak és poligonjainak feldolgozása.
-- `plan_legend.py` – saját hivatalos jelmagyarázat keresése, natív/OCR-feliratok és jelminták feldolgozása, tartós fájlgyorsítótár.
+- `plan_legend.py` – saját hivatalos jelmagyarázat keresése, többoszlopos és kétsoros feliratok, natív/OCR-jelminták és tartós fájlgyorsítótár.
 - `plan_connections.py` – natív határjelek és részleges tervi feliratkapcsolatok ellenőrzése.
+- `plan_geometry_audit.py` – telekkel metsző, saját jelmagyarázati minták és tényleges kitöltött geometriák ellenőrzése, külön jelzett hiányokkal.
 - `zone_parameters.py` – kódpozíciók feloldása a tényleges hivatalos paraméterjelmagyarázatból.
 - `reference_checks.py` – az öt mintatelek megismételhető, élő hivatalos forrásellenőrzése.
 - `test_plan_labels.py`, `test_rule_inventory.py` és `test_parcel_zones.py`, `test_automatic_sources.py`, `test_plan_legend.py`, `test_zone_evidence.py` – automatikus és Streamlit-integrációs ellenőrzések.
@@ -97,7 +98,7 @@ python validation/check_sources.py work/reference-results.json --output work/sou
 streamlit run app.py
 ```
 
-A teljes regressziós csomag 82 teszt, köztük a 36 eredeti ellenőrzés és a teljes
+A teljes regressziós csomag 90 teszt, köztük a 36 eredeti ellenőrzés és a teljes
 Streamlit vizsgálati útvonal tesztje. A GitHub Actions a főágon és a főágra
 nyitott pull requesteken is futtatja. Az élő ellenőrzés külön parancs: nem függ
 külső szerverek aktuális elérhetőségétől az offline regresszió.

@@ -8,7 +8,7 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 from shapely.geometry import box,Point,LineString
 
 import app
-from plan_connections import native_dotted_boundaries,bounded_zone_connections
+from plan_connections import native_dotted_boundaries,bounded_zone_connections,closed_zone_faces
 from plan_legend import font_registry,glyph_description,_colour
 from zone_parameters import legend_tables,decode_zone,ORDINALS
 
@@ -110,6 +110,36 @@ class ZoneEvidenceTests(unittest.TestCase):
             {},'00001','034/15')
         self.assertFalse(result['intersection_verified']);self.assertEqual(result['zone'],'')
         self.assertTrue(result['boundary_connection']['verified'])
+
+    def test_actual_closed_zone_graph_uses_internal_label_not_nearest_label(self):
+        parcel=box(20,20,40,40)
+        boundary=box(10,10,50,50).boundary
+        markers={'supported':True,'lines':[boundary]}
+        labels=[('A',Point(45,45),(44,44,46,46)),('B',Point(19,19),(18,18,20,20))]
+        # B is inside the same zone too: contradictory labels cannot certify it.
+        result=closed_zone_faces(parcel,box(0,0,100,100),markers,[],labels)
+        self.assertEqual(result['faces'],[])
+        labels[1]=('B',Point(51,21),(50,20,52,22))
+        result=closed_zone_faces(parcel,box(0,0,100,100),markers,[],labels)
+        self.assertEqual(result['faces'][0][0],'A')
+        self.assertTrue(result['audit']['complete_parcel_coverage'])
+
+    def test_open_corner_mask_and_frame_edge_cannot_close_zone(self):
+        parcel=box(20,20,40,40);frame=box(0,0,100,100)
+        labels=[('A',Point(45,45),(44,44,46,46))]
+        markers={'supported':True,'lines':[LineString([(10,10),(50,10),(50,50),(10,50),(10,10.001)])]}
+        self.assertEqual(closed_zone_faces(parcel,frame,markers,[],labels)['faces'],[])
+        markers['lines']=[box(10,10,50,50).boundary]
+        self.assertEqual(closed_zone_faces(parcel,frame,markers,[],labels,[box(9,30,11,35)])['faces'],[])
+        markers['lines']=[LineString([(0,0),(50,0),(50,50),(0,50)])]
+        self.assertEqual(closed_zone_faces(parcel,frame,markers,[],labels)['faces'],[])
+
+    def test_source_landuse_edge_separates_label_and_partial_parcel(self):
+        markers={'supported':True,'lines':[box(10,10,50,50).boundary]}
+        road=box(30,5,35,55);labels=[('A',Point(20,20),(19,19,21,21)),('B',Point(40,20),(39,19,41,21))]
+        result=closed_zone_faces(box(20,20,40,40),box(0,0,100,100),markers,[road],labels)
+        self.assertEqual({code for code,_ in result['faces']},{'A','B'})
+        self.assertFalse(result['audit']['complete_parcel_coverage'])
 
 
 if __name__=='__main__':unittest.main()
