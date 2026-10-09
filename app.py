@@ -882,6 +882,52 @@ def parcel_zone_coverage(parcel_geojson, zone_features, crs):
     return out
 
 
+def identify_parcel_zones(parcel, zone_source, *, ksh_code, hrsz, edition):
+    """First automatic polygon identification stage for verified source adapters.
+
+    Adapters must supply verified boundaries, an explicit CRS and the current
+    plan edition. Label proximity and bounding boxes cannot satisfy this input
+    contract. This function consumes verification evidence; it does not establish
+    source authenticity itself. Multiple zones never become a single zone code.
+    """
+    out = {"status": "unverified", "zone": "", "zones": [], "coverage": 0.0,
+           "intersection_verified": False, "reason": "", "source": {}}
+    if not isinstance(parcel, dict) or not isinstance(zone_source, dict):
+        out["reason"] = "Hiányzó telek- vagy övezeti adatforrás."
+        return out
+    if (not ksh_code or not hrsz or not edition
+            or str(parcel.get("ksh_code", "")) != str(ksh_code)
+            or str(zone_source.get("ksh_code", "")) != str(ksh_code)
+            or normalize_hrsz(parcel.get("hrsz", "")) != normalize_hrsz(hrsz)):
+        out["reason"] = "A település, a pontos HRSZ vagy a forráskiadás nem egyezik."
+        return out
+    if (parcel.get("boundary_verified") is not True
+            or zone_source.get("boundary_verified") is not True
+            or zone_source.get("current_verified") is not True):
+        out["reason"] = "A telekhatár, az övezethatár vagy a hatályos forrás nincs ellenőrizve."
+        return out
+    digest = zone_source.get("source_hash", "")
+    source_url = zone_source.get("source_url", "")
+    if (zone_source.get("edition") != edition
+            or not isinstance(source_url, str) or not source_url.startswith("https://")
+            or not is_official_njt_url(source_url)
+            or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)):
+        out["reason"] = "Hiányzó vagy eltérő hivatalos tervforrás, kiadás vagy SHA-256."
+        return out
+    out["source"] = {key: zone_source[key] for key in ("source_url", "source_hash", "edition")}
+    coverage = parcel_zone_coverage(parcel.get("geometry"), zone_source.get("features"),
+                                    parcel.get("crs"))
+    out.update(coverage)
+    if out["status"] in ("single_zone_spatial", "multiple_zones"):
+        out["intersection_verified"] = True
+        if out["status"] == "single_zone_spatial":
+            out["zone"] = out["zones"][0]["code"]
+        out["reason"] = "Teljes telekfedés, ellenőrzött bemeneti forrásbizonyítékokkal."
+    else:
+        out["reason"] = "Hiányos, átfedő vagy érvénytelen övezeti geometria; nincs igazolt besorolás."
+    return out
+
+
 def geometry_summary(geom):
     if not isinstance(geom, dict):
         return {}, ""

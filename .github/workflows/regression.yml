@@ -2,6 +2,8 @@ name: TelekEloiras regression tests
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 jobs:
   unit-tests:
@@ -19,7 +21,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt numpy
       - name: Syntax check
-        run: python -m compileall -q app.py plan_labels.py plan_ocr_worker.py rule_inventory.py test_plan_labels.py test_rule_inventory.py
+        run: python -m compileall -q app.py plan_labels.py plan_ocr_worker.py rule_inventory.py test_plan_labels.py test_rule_inventory.py test_parcel_zones.py
       - name: Unit and regression tests
         env:
           STREAMLIT_SERVER_HEADLESS: 'true'
