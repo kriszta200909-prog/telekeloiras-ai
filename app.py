@@ -1061,12 +1061,11 @@ def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
                 if not zones:
                     markers=native_dotted_boundaries(page,styles_for(legend_profile,'zone_boundary'))
                     source_areas=[];regulatory_segments=[]
-                    if markers.get('supported'):
-                        separating=legend_layer_paths(page,legend_profile,'regulatory_line')
-                        regulatory_segments=[segment for path in separating for segment in path['segments']]
-                        for role in ('road_area','landuse_area'):
-                            areas=legend_layer_paths(page,legend_profile,role)
-                            source_areas.extend(source_zone_polygons(areas))
+                    separating=legend_layer_paths(page,legend_profile,'regulatory_line')
+                    regulatory_segments=[segment for path in separating for segment in path['segments']]
+                    for role in ('road_area','landuse_area'):
+                        areas=legend_layer_paths(page,legend_profile,role)
+                        source_areas.extend(source_zone_polygons(areas))
                     labels=[(word[4],Point((word[0]+word[2])/2,(word[1]+word[3])/2),word[:4])
                             for word in page.get_text('words')
                             if ZONE_PATTERN.fullmatch(word[4]) or word[4] in ('Ev','Eg','Ve','V','kt.')]
@@ -1074,7 +1073,7 @@ def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
                     # may mask a boundary. Neither its layer name nor its colour
                     # determines regulatory meaning.
                     masks=[]
-                    if markers.get('supported'):
+                    if markers.get('supported') or zone_paths or source_areas:
                         def label_mask(drawing):
                             if drawing.get('fill') is None or drawing.get('fill_opacity',1)!=1:return
                             if len(drawing['items'])!=1 or drawing['items'][0][0]!='re':return
@@ -1089,8 +1088,21 @@ def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
                     error_points=registration['error_m']*float(np.linalg.svd(
                         np.linalg.inv(matrix[:2]),compute_uv=False)[0])
                     closed=closed_zone_faces(boundary,registration['frame'],markers,
-                                            source_areas,labels,masks)
+                                            source_areas,labels,masks,
+                                            native_paths=[segment for path in zone_paths
+                                                if path['fill'] is None for segment in path['segments']])
                     closure_audit=closed['audit']
+                    closure_audit['georeferencing']={
+                        'shared_source_coordinates':True,
+                        'residual_m':registration['residual_m'],
+                        'uncertainty_m':registration['error_m'],
+                        'affine_matrix':matrix.tolist(),
+                        'registration_closes_source_gaps':False}
+                    for endpoint in closure_audit['topology']['open_endpoints']:
+                        if 'nearest_source_point_pdf' in endpoint:
+                            endpoint['gap_m']=float(np.linalg.norm(
+                                np.array(to_world(endpoint['point_pdf'],matrix))-
+                                to_world(endpoint['nearest_source_point_pdf'],matrix)))
                     for code,area in closed['faces']:
                         world=Polygon([to_world(p,matrix) for p in area.exterior.coords],
                                       [[to_world(p,matrix) for p in ring.coords] for ring in area.interiors])

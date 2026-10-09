@@ -137,7 +137,42 @@ def bounded_zone_connections(parcel, frame, markers, labels, masks=(), *, uncert
     return result
 
 
-def closed_zone_faces(parcel, frame, markers, filled_areas, labels, masks=()):
+def boundary_topology_audit(parcel, lines, filled_areas, *, neighbourhood_points):
+    """Report actual dangling endpoints and their nearest source connections.
+
+    Distances are in PDF points. Nearby endpoints are evidence of a gap, not
+    permission to snap. Crossings are noded before identifying open ends.
+    The same source-coordinate graph is independent of world registration.
+    """
+    from shapely import line_merge
+    from shapely.ops import nearest_points
+    graph=unary_union(list(lines)+[area.boundary for area in filled_areas])
+    if graph.is_empty:return {'open_endpoints':[], 'endpoint_repairs':0}
+    merged=line_merge(graph)
+    runs=[merged] if merged.geom_type=='LineString' else list(merged.geoms)
+    runs=[run for run in runs if run.geom_type=='LineString']
+    records=[]
+    for index,run in enumerate(runs):
+        if run.is_ring:continue
+        for side,coordinate in ((0,run.coords[0]),(-1,run.coords[-1])):
+            point=Point(coordinate)
+            if point.distance(parcel)>neighbourhood_points:continue
+            others=[other for j,other in enumerate(runs) if j!=index]
+            # A degree-three node is not an open endpoint.
+            if any(point.intersects(other) for other in others):continue
+            candidates=others+[Point(run.coords[-1 if side==0 else 0])]
+            other=min(candidates,key=point.distance)
+            record={'point_pdf':list(coordinate), 'distance_to_parcel_points':point.distance(parcel),
+                    'run_wkt':run.wkt, 'connection_verified':False}
+            if other is not None:
+                record.update(nearest_source_point_pdf=list(nearest_points(point,other)[1].coords[0]),
+                              gap_points=point.distance(other))
+            records.append(record)
+    return {'open_endpoints':records, 'endpoint_repairs':0,
+            'coordinate_basis':'source PDF points; no snapping or registration correction'}
+
+
+def closed_zone_faces(parcel, frame, markers, filled_areas, labels, masks=(), *, native_paths=()):
     """Polygonize only actual source boundaries; never repair their endpoints.
 
     Filled areas must already have been matched against this plan's own legend.
@@ -148,8 +183,13 @@ def closed_zone_faces(parcel, frame, markers, filled_areas, labels, masks=()):
     """
     out={'faces':[], 'audit':{'closed_labelled_faces':[], 'endpoint_repairs':0,
                             'complete_parcel_coverage':False}}
-    if not markers.get('supported'):return out
-    lines=[line for line in markers.get('lines',[]) if line.geom_type=='LineString']
+    lines=[line for line in markers.get('lines',[]) if line.geom_type=='LineString'] if markers.get('supported') else []
+    # The caller has matched each complete native stroke (including its dash
+    # pattern) to this plan's own legend. Combine actual source intersections
+    # across symbol types, never infer a segment across a physical gap.
+    lines.extend(native_paths)
+    out['audit']['topology']=boundary_topology_audit(parcel,lines,filled_areas,
+        neighbourhood_points=max(markers.get('spacing_points',0)*2,1))
     lines.extend(area.boundary for area in filled_areas)
     if not lines:return out
     graph=unary_union(lines)

@@ -2,9 +2,9 @@
 
 **A fő cél még nem teljesült: 0/5 teleknek van teljesen bizonyított, hatályos építési előíráslistája.**
 
-90/90 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
+95/95 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
 Streamlit vizsgálati útvonalát. Az öt mintatelek élő forrásvizsgálata után
-58/58 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
+62/62 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
 időállapotok, jelmagyarázat–tervlap kötés, feldolgozólenyomatok,
 bizonyítottsági állapotok és a miskolci paraméterkód feloldása.
 Ez a forráskezelés helyességét ellenőrzi; nem állít sikeres telekbesorolást.
@@ -70,6 +70,12 @@ színe/vastagsága eltér a jelmagyarázat mintájától, ezért a kataszteri ad
 a név szerint azonosított forrásréteg és a geometriavizsgálat igazolja.
 Az övezethatárnál nincs ilyen névalapú kivétel: a saját körjel-alak egyezése kötelező.
 
+A hatályos saját jelmagyarázat „Építési övezet, övezet határa, jele” sorában
+a piros beágyazott körjel szerepel. A piros folytonos, 0,96 PDF-pont
+vastagságú vonal külön sor szerint **szabályozási vonal**, ezért nem
+használható fel övezeti sarok önkényes lezárására. Más településnél a
+folytonos vagy szaggatott határ szerepét annak saját jelmagyarázata adja meg.
+
 A natív körjelek tényleges középpontját a beágyazott betűkészletből számítja
 a program. 3314 jel került feldolgozásra. Feliratok alatti hiányokat nem zár
 kitalált vonallal, és a saját szabályozási/területi mintákat is vizsgálja.
@@ -104,11 +110,55 @@ natív sor alapján állapítja meg a minták oldalát. Egy magányos, kétoldal
 mintát továbbra sem fogad el. A kétsoros felirat teljes magasságával dolgozik,
 ezért nem cseréli le a magas útterületmintát a szomszéd oszlop mintájára.
 
-A program a saját körjelek tényleges szakaszaiból és a saját jelmagyarázattal
-egyező út- és területkitöltésekből zárt forrásterületet keres. Minden ilyen
-területnél ellenőrzi a belső felirat egyértelműségét és a telek fedését.
-A lap széle és a feliratmaszk nem zárhat le övezetet. A nyitott sarkokat ez az
-éles eljárás még nem rekonstruálja; Miskolcnál nem ad igazolt övezetpoligont.
+A program közös, tényleges metszéspontokon csomópontosított gráfban dolgozza
+fel a saját jelmagyarázattal egyező natív folytonos/szaggatott szakaszokat,
+a natív pontsorokat és az igazolt út-/területkitöltések határait. Korábban
+a külön feldolgozás miatt a vegyes határtípusok nem tudtak közös poligont
+alkotni; ez javítva. Külön ellenőrzött teszt igazolja a PDF kifejezett
+`h` záróparancsának natív szakaszként való kiolvasását. Hiányzó
+zárószakaszt nem pótol a program.
+A lap széle és a feliratmaszk nem zárhat le övezetet.
+
+### Konkrét tervlapi csatlakozásvizsgálat
+
+A 31. PDF-oldal / 20-4 szelvény eredeti bájtjaiból újramért, a telekhez
+legfeljebb két natív jelismétlési távolságra található nyitott végpontok:
+
+| Nyitott végpont, PDF-pont (x; y) | Legközelebbi igazolt forráshatárig mért rés, PDF-pont | EOV-távolság |
+|---|---|---|
+| 309,627815; 476,334748 | 0,003131 | 0,004417 m |
+| 312,674873; 478,988520 | 0,600543 | 0,847242 m |
+| 400,342294; 468,207266 | 0,007697 | 0,010859 m |
+| 313,921548; 478,230551 | 0,008733 | 0,012320 m |
+
+A legközelebbi forrásgeometria nem feltétlenül a hiányzó övezeti csatlakozás
+másik oldala. Ezek **résmérések**, nem bizonyított vonalösszetartozások.
+Az eredeti pontok, a legközelebbi forráspont és a teljes szakasz WKT-je a
+`reference-results.json` miskolci `closure_audit.topology` mezőjében vannak.
+Az önálló forrásellenőrzés ismételten megnyitja az eredeti hivatalos PDF-et,
+és újraszámítja a végpontokat, a távolságokat és a poligonzárást. A saját
+hatályos jelmagyarázattal igazolt gráf nem ad feliratozott övezetpoligont
+a teleknél; ez **nem cáfolja** a Gipe-60.63.5 besorolást, hanem a bizonyítás
+sikertelenségét dokumentálja.
+
+Az illesztési maradék 0,0701385 m, a konzervatív abszolút bizonytalanság
+1,0701385 m. A telekhatár és az övezeti jelek ugyanazon natív PDF-rendszerben
+vannak. A közös invertálható affine transzformáció megőrzi a metszéseket és
+a fedési kapcsolatokat; ezért koordinátaeltolással nem lehet hitelesen
+bezárni ezeket a forrásréseket. A forrásellenőrzés az invertálhatóságot és
+a telekkoordináták visszaalakítását is ellenőrzi. A bizonytalansági sáv nem
+felhatalmazás a telek más övezetbe történő átmozgatására.
+
+**A fennmaradó akadály:** nincs bizonyított, jelenlegi saját jelmagyarázattal
+értelmezett zárt övezeti terület, amely a teljes telket fedi. A natív PDF a
+pontjel-sorozatok között nem ad közös sarokazonosítót vagy övezeti
+vektortopológiát; a déli kitöltés hatályos jelváltozatként való használata
+sem igazolt. A rendelkezésre álló PDF-ből ezek feltételezés nélküli pótlása
+nem sikerült. Az akadály feloldásához a csatlakozásokat és a jelváltozatot
+igazoló, hatályos hivatalos geometriára vagy egyértelmű tervi megfeleltetésre
+van szükség. A város [hivatalos szabályzati oldala](https://www.miskolc.hu/varoshaza/onkormanyzat/strategiak-koncepciok/miskolc-megyei-jogu-varos-epitesi-szabalyzata)
+az NJT-rendeletre hivatkozik; az oldalon talált partnerségi és korábbi
+tervdokumentumok nem helyettesítik ezt a hatályos bizonyítékot.
 
 A hatályos, külön jelmagyarázat közúti mintája RGB (1; 0,761; 0), miközben
 a tervben a korábbi RGB (1; 0,796; 0,31) szerepel. Ennek forrását megtaláltam:
@@ -165,7 +215,7 @@ python reference_checks.py --outlined --output work/reference-outlined-results.j
 ```
 
 reference-results.json: aktuális öttelekes vizsgálat és forrásreceiptek.
-source-check-results.json: 58 sikeres ellenőrzés, a jelentés lenyomatával.
+source-check-results.json: 62 sikeres ellenőrzés, a jelentés lenyomatával.
 reference-outlined-results.json: külön HRSZ-feliratpróba, saját forrás- és
 feliratfeldolgozó-lenyomatokkal; nem övezeti bizonyíték.
 conditional-zone-parameters.json: a Gip/3 forrássor feltételes ellenőrzése.

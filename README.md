@@ -98,7 +98,7 @@ python validation/check_sources.py work/reference-results.json --output work/sou
 streamlit run app.py
 ```
 
-A teljes regressziós csomag 90 teszt, köztük a 36 eredeti ellenőrzés és a teljes
+A teljes regressziós csomag 95 teszt, köztük a 36 eredeti ellenőrzés és a teljes
 Streamlit vizsgálati útvonal tesztje. A GitHub Actions a főágon és a főágra
 nyitott pull requesteken is futtatja. Az élő ellenőrzés külön parancs: nem függ
 külső szerverek aktuális elérhetőségétől az offline regresszió.

@@ -71,6 +71,61 @@ def check_report(report, cache, history=None):
     closure=miskolc['identification']['closure_audit']
     check('Miskolc: hiányzó sarkok javítása nélkül nincs állított teljes fedés',
           closure['endpoint_repairs']==0 and not closure['complete_parcel_coverage'])
+    # Reconstruct from the actual official target page, not from expected zone
+    # text or a fabricated test polygon. Recompute source gaps independently
+    # of the persisted receipt and test their world-coordinate measurements.
+    import fitz
+    import numpy as np
+    from shapely import wkt
+    from shapely.geometry import Polygon,Point,box
+    from geopdf import page_registrations,to_pdf,to_world,legend_layer_paths,source_zone_polygons
+    from plan_connections import native_dotted_boundaries,boundary_topology_audit,closed_zone_faces
+    plan_path=cache/(hashlib.sha256(miskolc['plan_inputs']['source_url'].encode()).hexdigest()+'.pdf')
+    with fitz.open(plan_path) as doc:
+        page=doc[miskolc['plan_result']['pdf_page']-1]
+        registration=page_registrations(page)[0];matrix=registration['matrix']
+        world=wkt.loads(miskolc['plan_result']['parcel_wkt'])
+        parcel=Polygon([to_pdf(q,matrix) for q in world.exterior.coords])
+        markers=native_dotted_boundaries(page,styles_for(miskolc['legend'],'zone_boundary'))
+        areas=[area for role in ('road_area','landuse_area')
+               for area in source_zone_polygons(legend_layer_paths(page,miskolc['legend'],role))]
+        lines=[line for line in markers['lines'] if line.geom_type=='LineString']
+        lines.extend(segment for path in legend_layer_paths(page,miskolc['legend'],'zone_boundary')
+                     if path['fill'] is None for segment in path['segments'])
+        topology=boundary_topology_audit(parcel,lines,areas,
+            neighbourhood_points=max(markers.get('spacing_points',0)*2,1))
+        labels=[(word[4],Point((word[0]+word[2])/2,(word[1]+word[3])/2),word[:4])
+                for word in page.get_text('words') if app.ZONE_PATTERN.fullmatch(word[4])
+                or word[4] in ('Ev','Eg','Ve','V','kt.')]
+        native=[segment for path in legend_layer_paths(page,miskolc['legend'],'zone_boundary')
+                if path['fill'] is None for segment in path['segments']]
+        masks=[]
+        def read_mask(drawing):
+            if drawing.get('fill') is None or drawing.get('fill_opacity',1)!=1:return
+            if len(drawing['items'])!=1 or drawing['items'][0][0]!='re':return
+            rectangle=fitz.Rect(drawing['items'][0][1])
+            if any(rectangle.contains(fitz.Rect(label[2])) for label in labels):
+                masks.append(box(*rectangle))
+        page.get_cdrawings(callback=read_mask)
+        rebuilt=closed_zone_faces(parcel,registration['frame'],markers,areas,labels,masks,native_paths=native)
+        check('Miskolc: tényleges forráshatárokból újrafuttatott poligonzárás nem bizonyít övezetet',
+              rebuilt['audit']['closed_labelled_faces']==closure['closed_labelled_faces']
+              and not rebuilt['audit']['complete_parcel_coverage'])
+        expected=closure['topology']['open_endpoints'];actual=topology['open_endpoints']
+        check('Miskolc: nyitott csatlakozások újramérése az eredeti tervlapból',
+              bool(actual) and len(actual)==len(expected)
+              and all(a['point_pdf']==b['point_pdf']
+                      and abs(a['gap_points']-b['gap_points'])<1e-9 for a,b in zip(actual,expected)))
+        check('Miskolc: a tervlapi rések EOV-mérete nem becsült javítás',
+              all(abs(float(np.linalg.norm(np.array(to_world(a['point_pdf'],matrix))-
+                  to_world(a['nearest_source_point_pdf'],matrix)))-b['gap_m'])<1e-9
+                  for a,b in zip(actual,expected)))
+        check('Miskolc: közös invertálható GEO-illesztés nem zárhat forrásrést',
+              abs(float(np.linalg.det(matrix[:2])))>0
+              and closure['georeferencing']['affine_matrix']==matrix.tolist()
+              and not closure['georeferencing']['registration_closes_source_gaps']
+              and max(np.linalg.norm(np.array(to_world(to_pdf(q,matrix),matrix))-q)
+                      for q in world.exterior.coords)<1e-7)
     audit=miskolc['identification']['territorial_audit']
     check('Miskolc: területi audit mindkét eredeti forráshoz kötve',
           audit['plan_sha256']==miskolc['plan_inputs']['source_hash']

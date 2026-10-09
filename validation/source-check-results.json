@@ -1,6 +1,6 @@
 {
-  "report_sha256": "1e319f1da33d55c86a932e4a459c6f0d12603afcc1692577d7099b4113604cf1",
-  "passed": 58,
+  "report_sha256": "2a342dd8e3f4e7791f5e806e1cf6c21d900479034faff50ee3f3b86e2c6c00e3",
+  "passed": 62,
   "checks": [
     "Mind az öt kért telek szerepel",
     "Feldolgozó lenyomata: app.py",
@@ -56,6 +56,10 @@
     "Miskolc: teljes forrásbekezdések, kiadáseltérés nélkül",
     "Miskolc: saját jelmagyarázati oszlop alapján felismert két útterületminta",
     "Miskolc: hiányzó sarkok javítása nélkül nincs állított teljes fedés",
+    "Miskolc: tényleges forráshatárokból újrafuttatott poligonzárás nem bizonyít övezetet",
+    "Miskolc: nyitott csatlakozások újramérése az eredeti tervlapból",
+    "Miskolc: a tervlapi rések EOV-mérete nem becsült javítás",
+    "Miskolc: közös invertálható GEO-illesztés nem zárhat forrásrést",
     "Miskolc: területi audit mindkét eredeti forráshoz kötve",
     "Miskolc: korábbi saját jelmagyarázat eredeti NJT-bájtjai",
     "Miskolc: korábbi kétsoros felirat és valódi bal oldali minta",

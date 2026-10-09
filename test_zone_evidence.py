@@ -141,5 +141,68 @@ class ZoneEvidenceTests(unittest.TestCase):
         self.assertEqual({code for code,_ in result['faces']},{'A','B'})
         self.assertFalse(result['audit']['complete_parcel_coverage'])
 
+    def test_mixed_native_and_marker_boundaries_close_only_at_real_junctions(self):
+        markers={'supported':True,'lines':[LineString([(10,10),(50,10),(50,50)])]}
+        native=[LineString([(50,50),(10,50),(10,10)])]
+        labels=[('A',Point(30,30),(29,29,31,31))]
+        result=closed_zone_faces(box(20,20,40,40),box(0,0,100,100),markers,[],labels,native_paths=native)
+        self.assertTrue(result['audit']['complete_parcel_coverage'])
+        self.assertEqual(result['audit']['topology']['open_endpoints'],[])
+        native=[LineString([(50,50),(10,50),(10,10.001)])]
+        result=closed_zone_faces(box(20,20,40,40),box(0,0,100,100),markers,[],labels,native_paths=native)
+        self.assertEqual(result['faces'],[])
+        self.assertEqual(result['audit']['endpoint_repairs'],0)
+
+    def test_native_strokes_work_without_circle_font_and_crossings_are_noded(self):
+        native=[LineString([(10,10),(50,10),(50,50),(10,50),(10,10)]),
+                LineString([(30,5),(30,55)])]
+        labels=[('A',Point(20,30),(19,29,21,31)),('B',Point(40,30),(39,29,41,31))]
+        result=closed_zone_faces(box(15,20,25,40),box(0,0,100,100),{'supported':False},[],labels,native_paths=native)
+        self.assertEqual([code for code,_ in result['faces']],['A'])
+        self.assertTrue(result['audit']['complete_parcel_coverage'])
+
+    def test_endpoint_audit_measures_gap_without_connecting_it(self):
+        from plan_connections import boundary_topology_audit
+        lines=[LineString([(10,10),(50,10),(50,50),(10,50),(10,10.001)])]
+        result=boundary_topology_audit(box(9,9,11,11),lines,[],neighbourhood_points=1)
+        self.assertEqual(len(result['open_endpoints']),2)
+        self.assertFalse(any(row['connection_verified'] for row in result['open_endpoints']))
+        # Ends of the same run still have a real gap: identify its opposite end.
+        self.assertAlmostEqual(result['open_endpoints'][0]['gap_points'],.001)
+        self.assertEqual(result['endpoint_repairs'],0)
+
+    def test_pdf_dash_variants_are_selected_from_own_legend_before_polygonizing(self):
+        from geopdf import legend_layer_paths
+        from plan_legend import drawing_style
+        with fitz.open() as doc:
+            page=doc.new_page(width=100,height=100)
+            for points,colour,dashes in [([(10,10),(50,10),(50,50)],(.2,.3,.4),'[3 2] 0'),
+                                          ([(50,50),(10,50),(10,10)],(.6,.4,.2),None)]:
+                drawing=page.new_shape();drawing.draw_polyline(points)
+                drawing.finish(color=colour,width=1,dashes=dashes,closePath=False);drawing.commit()
+            styles=[drawing_style(d) for d in page.get_drawings()]
+            profile={'records':[{'role':'zone_boundary','label_verified':True,'styles':styles}]}
+            paths=legend_layer_paths(page,profile,'zone_boundary')
+            native=[segment for path in paths for segment in path['segments']]
+            result=closed_zone_faces(box(20,20,40,40),box(0,0,100,100),{'supported':False},[],
+                [('A',Point(30,30),(29,29,31,31))],native_paths=native)
+            self.assertTrue(result['audit']['complete_parcel_coverage'])
+            # Another plan's dash sample cannot silently borrow this variant.
+            profile['records'][0]['styles']=styles[:1]
+            self.assertEqual(len(legend_layer_paths(page,profile,'zone_boundary')),1)
+
+    def test_pdf_explicit_closepath_is_preserved_without_inventing_a_corner(self):
+        from geopdf import legend_layer_paths,polygon_faces
+        from plan_legend import drawing_style
+        with fitz.open() as doc:
+            page=doc.new_page(width=100,height=100)
+            drawing=page.new_shape();drawing.draw_polyline([(10,10),(50,10),(50,50),(12,50)])
+            drawing.finish(color=(.2,.3,.4),width=1,closePath=True);drawing.commit()
+            profile={'records':[{'role':'zone_boundary','label_verified':True,
+                                'styles':[drawing_style(page.get_drawings()[0])]}]}
+            paths=legend_layer_paths(page,profile,'zone_boundary')
+            self.assertEqual(len(polygon_faces(paths)),1)
+            self.assertTrue(polygon_faces(paths)[0].covers(box(20,20,40,40)))
+
 
 if __name__=='__main__':unittest.main()
