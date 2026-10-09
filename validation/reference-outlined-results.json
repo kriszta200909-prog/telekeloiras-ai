@@ -1,0 +1,671 @@
+{
+  "checked_at_utc": "2026-10-09T16:41:48.211187+00:00",
+  "outlined_label_search": true,
+  "code_sha256": {
+    "app.py": "bbf17206ca36f44f16ef3624dcdef1c0f206bedceb4e484243d9fa8a19f16408",
+    "geopdf.py": "8d83c80dda39c2f51eae5581573fadb1c75b10bc2c8491050d96f789c6327cf8",
+    "reference_checks.py": "97432a74c62c17fc057ea497736f8d4938ccece7c29e4786f5dab44b661d49fd"
+  },
+  "cases": [
+    {
+      "place": "Tiszaújváros",
+      "hrsz": "2200/8",
+      "ksh": "28352",
+      "errors": [],
+      "plan_inputs": {
+        "source_valid": true,
+        "current_verified": true,
+        "edition": "2024.10.10.",
+        "checks": {
+          "NJT-domain": true,
+          "település": true,
+          "építési szabályzat": true
+        },
+        "attachments": [
+          {
+            "Megnevezés": "1.1. melléklet",
+            "URL": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf"
+          },
+          {
+            "Megnevezés": "1.2. melléklet 7",
+            "URL": "https://njt.jog.gov.hu/document/af/afafLL_EJR_80774847-2._mell_klet.pdf"
+          },
+          {
+            "Megnevezés": "2.1. melléklet",
+            "URL": "https://njt.jog.gov.hu/document/09/0919LL_EJR_16627534-2.1_mell_klet.pdf"
+          },
+          {
+            "Megnevezés": "2.2. melléklet 8",
+            "URL": "https://njt.jog.gov.hu/document/9f/9f7bLL_EJR_41238882-2_2_melleklet_Elovasarlas_2022_11_24_Jovahagyasra.pdf"
+          },
+          {
+            "Megnevezés": "2.3. melléklet 9",
+            "URL": "https://njt.jog.gov.hu/document/d7/d7d4LL_EJR_17272355-2.3_mell_klet.pdf"
+          },
+          {
+            "Megnevezés": "2.4. melléklet 10",
+            "URL": "https://njt.jog.gov.hu/document/74/74c9LL_EJR_17272356-2.4_mell_klet.pdf"
+          },
+          {
+            "Megnevezés": "Akadálymentesítési nyilatkozat PDF",
+            "URL": "https://njt.jog.gov.hu/bundles/njtfrontend/docs/akadalymentesitesi.pdf?v3be09a83f.13594.20260828124931.2.7.1"
+          }
+        ],
+        "source_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+        "source_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+        "error": ""
+      },
+      "plan_result": {
+        "zone": "Gip/3",
+        "detail": "Pontos HRSZ és övezeti körjel két felbontásban; vektorillesztés, teljes szelvényfedés és belső övezethatár-vizsgálat ellenőrizve.",
+        "registrations": [
+          {
+            "PDF-oldal": 29,
+            "Egyező vektorok": 9,
+            "Legnagyobb eltérés (m)": 0.076,
+            "Illesztés": "natív telekhatár"
+          },
+          {
+            "PDF-oldal": 35,
+            "Egyező vektorok": 9,
+            "Legnagyobb eltérés (m)": 0.076,
+            "Illesztés": "ellenőrzött szomszédos forrás-szelvényháló"
+          }
+        ],
+        "parcel_wkt": "POLYGON ((801307.4034285896 287860.9999291017, 801398.423413169 287948.48415491363, 801398.6244277116 287948.7080091675, 801398.8374023399 287949.0476212989, 801398.9801278285 287949.42221978656, 801399.0376724467 287949.717526729, 801399.0460401096 287950.1183066864, 801398.9467156858 287950.6089872845, 801398.7831401617 287950.97496220167, 801398.4837954558 287951.37624207605, 801326.303439266 288026.79992550175, 801381.1949040917 288079.3984315254, 801457.9974303505 288152.3008601078, 801499.3917401581 288191.4954744709, 801525.5026629939 288215.2057082024, 801530.6013908186 288219.9045583158, 801546.0529242749 288234.2732569889, 801546.23672188 288234.51570222765, 801553.7995626642 288246.20374411176, 801605.493710427 288326.594643147, 801610.9927782712 288335.2930546191, 801631.400449029 288366.8965772021, 801643.7074968142 288355.77674557257, 801644.1519408296 288355.4577313843, 801646.5308831519 288353.36522657017, 801646.9041240559 288352.9036912065, 801647.4118730222 288352.39026403695, 801653.906581139 288345.0962825554, 801785.6151301279 288199.28737928916, 801790.1965809085 288194.4071382402, 801793.119653426 288191.18285546364, 801797.2048688158 288186.8983903219, 801865.4681871032 288115.936522117, 801865.5037321312 288115.85170924745, 801866.680427288 288073.39262567146, 801866.7110310006 288073.0921925932, 801866.819802414 288072.70480755274, 801866.9500558065 288072.4323544825, 801867.1189654756 288072.1820224121, 801879.2000246795 288059.60342675046, 802039.1972754921 287892.3997246074, 802027.3061832747 287873.50532942737, 802024.2566397693 287868.5792565285, 802024.0783103517 287868.2148158392, 802023.9937442259 287867.9222759793, 802023.9501156159 287867.51889657776, 802023.9701768913 287867.21504045307, 802024.0664596949 287866.8208983227, 802024.1887524344 287866.5420157576, 802024.4134475054 287866.2041836657, 802025.0963395123 287865.5000406671, 802024.0309668258 287864.47071832843, 802023.8402998609 287864.2372527216, 802023.6859743246 287863.9783247203, 802023.5423957555 287863.60324209236, 802023.4747942742 287863.2073483907, 802023.4857706517 287862.8058744782, 802023.5749026039 287862.4142659002, 802023.738761037 287862.0475886618, 802024.0388093172 287861.6456569203, 802026.2727509681 287859.5290699923, 802027.095631013 287858.79990783834, 802022.0001166962 287853.93013511784, 802021.7368766564 287853.6234164532, 802021.5390151814 287853.2709643366, 802021.3951044098 287852.7871356805, 802021.3739308137 287852.28280230117, 802021.4767811653 287851.78861379076, 802021.6974049932 287851.3346032124, 802021.9499126306 287851.01899023604, 802024.6964447469 287848.20006225136, 802020.3375645339 287844.03254899924, 802020.2507599023 287844.0067782411, 801999.9014733172 287847.8027755333, 801984.6751593609 287863.2930136138, 801984.4378554665 287863.4813800575, 801984.175353828 287863.6326676813, 801983.8934016682 287863.7435641869, 801983.4979231626 287863.82453335845, 801983.1950749867 287863.83336725057, 801982.8942385599 287863.79741589876, 801982.602000409 287863.71746642364, 801982.2367386945 287863.5455852585, 801981.8390837972 287863.2356997246, 801979.8250661002 287861.2216820277, 801976.7998165804 287857.9965464706, 801927.5118359367 287808.2170342188, 801927.2285048902 287807.8127622534, 801927.0768433738 287807.44773014326, 801926.990279343 287806.96170650964, 801927.0225555861 287806.4690904847, 801927.0984710986 287806.18230276473, 801927.2625180971 287805.822666505, 801928.1684076923 287804.64376121893, 801928.1961356449 287804.6001945582, 801928.1641721069 287804.55963318073, 801917.5036813621 287793.6003444255, 801896.4927586996 287772.2073938825, 801896.3008420459 287771.98134529626, 801896.0596691931 287771.5508502013, 801895.967123561 287771.26913177577, 801895.9162391089 287770.9770004049, 801895.9265051334 287770.4836597717, 801895.9894983148 287770.1938981034, 801896.093683429 287769.91627348756, 801917.5797958453 287723.24960398616, 801917.5965378069 287723.2006332145, 801917.5635465111 287723.1607583585, 801911.2067791024 287716.90331544064, 801860.0385548191 287667.2340904642, 801860.0000480403 287667.20342850644, 801859.9624152024 287667.2351575686, 801853.8840351586 287673.475627747, 801853.5772734929 287673.73423223075, 801853.3172598879 287673.886123401, 801853.0377808722 287673.99823710293, 801852.7448809112 287674.0681485842, 801852.3444442784 287674.09323845594, 801851.946802425 287674.0397599098, 801851.659610146 287673.94921380415, 801851.3888034717 287673.81752573507, 801851.1402393054 287673.64754380175, 801708.7037480477 287548.1001139229, 801614.0001631104 287465.1031715956, 801612.6973412073 287466.4994122368, 801602.8934932796 287477.34836804314, 801602.6562786831 287477.53428547585, 801602.3025044998 287477.72429342463, 801601.9184495044 287477.84160051733, 801601.6193945113 287477.87904604716, 801601.3180823645 287477.8721869826, 801600.9240940806 287477.7945182913, 801600.552841329 287477.64144775906, 801600.2000442178 287477.4036784125, 801600.1622170787 287477.43617623794, 801531.2032187886 287549.7999613072, 801533.8996763563 287552.5029464653, 801540.7647207371 287559.11416361976, 801541.0651942993 287559.526624982, 801541.2260911334 287559.9022398406, 801541.3091996772 287560.30232393567, 801541.3028043256 287560.79913414805, 801541.3351408803 287560.837998855, 801555.3004880041 287574.60357136594, 801731.7005751356 287738.5100402921, 801731.9052702067 287738.7303884211, 801732.1238949486 287739.066221706, 801732.2729244394 287739.43820421083, 801732.3466508295 287739.8320889559, 801732.3422503885 287740.23279010283, 801732.2598916537 287740.62496074405, 801732.1487505003 287740.9044263306, 801731.9392860653 287741.2460480856, 801722.2505133239 287751.7288720465, 801722.0106484294 287751.91219626606, 801721.6539327964 287752.09809187526, 801721.366262697 287752.18968254613, 801720.9677330912 287752.24424786144, 801720.5662260567 287752.2198486517, 801720.2724755651 287752.1501809703, 801719.9027739807 287751.9916755797, 801719.6497849827 287751.8269348622, 801562.9445479813 287606.03818003344, 801562.8417469566 287605.9930128391, 801550.2008608143 287605.0021196481, 801523.4676344465 287635.4303291238, 801307.4034285896 287860.9999291017))",
+        "parcel_area_m2": 333696.17491159774,
+        "uncertainty_m": 1.0,
+        "display_buffer_m": 2.047607099447565,
+        "hrsz_method": "ferde rajzi HRSZ, két felbontás és telekbelső ellenőrizve",
+        "pdf_page": 35,
+        "external_zone_label": false
+      },
+      "identification": {
+        "status": "unverified",
+        "zone": "",
+        "zones": [],
+        "coverage": 0.0,
+        "intersection_verified": false,
+        "reason": "A telekhatár, az övezethatár vagy a hatályos forrás nincs ellenőrizve.",
+        "source": {},
+        "parcel_boundary_verified": false,
+        "candidate_zone": "Gip/3",
+        "uncertainty_m": 1.0
+      },
+      "evidence": [
+        {
+          "Adat": "Helyrajzi szám",
+          "Bizonyított": true,
+          "Eredmény": "pontos hivatalos HRSZ-találat",
+          "Forrás": "https://www.oeny.hu/hk-api/parcels/search?kshCode=28352&lotNumber=2200%2F8"
+        },
+        {
+          "Adat": "Telekgeometria",
+          "Bizonyított": false,
+          "Eredmény": "csak megjelenítési poligon / nincs igazolt telekhatár",
+          "Forrás": "https://www.oeny.hu/hk-api/parcels/bounding-box?id=5104713"
+        },
+        {
+          "Adat": "Övezet",
+          "Bizonyított": false,
+          "Eredmény": "jelölt: Gip/3; poligonfedés nem igazolt",
+          "Forrás": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf"
+        },
+        {
+          "Adat": "Hatályos előírások – teljes telekspecifikus kör",
+          "Bizonyított": false,
+          "Eredmény": "hivatalos rendelkezések betöltve; teljes telekre alkalmazhatóság nem igazolt",
+          "Forráskiadás": "2024.10.10."
+        }
+      ],
+      "legal_source_url": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228",
+      "legal_source_verified": true,
+      "rules_count": 172,
+      "rules_errors": [],
+      "parcel_source": {
+        "id": "5104713",
+        "search_url": "https://www.oeny.hu/hk-api/parcels/search?kshCode=28352&lotNumber=2200%2F8",
+        "geometry_url": "https://www.oeny.hu/hk-api/parcels/bounding-box?id=5104713",
+        "parcel_polygon_candidate": true,
+        "parcel_boundary_verified": false,
+        "geometry_crs": "EPSG:23700",
+        "geometry_role": "display_outline",
+        "geometry_sha256": "fe173805013f09032a6e7705e7c4feb9a5f1141c12e739f727423c0d323c9e96"
+      }
+    },
+    {
+      "place": "Budapest XII. kerület",
+      "hrsz": "8448/46",
+      "ksh": "24697",
+      "errors": [],
+      "plan_inputs": {
+        "source_valid": true,
+        "current_verified": true,
+        "edition": "2026.06.08.",
+        "checks": {
+          "NJT-domain": true,
+          "település": true,
+          "építési szabályzat": true
+        },
+        "attachments": [
+          {
+            "Megnevezés": "1. melléklet 45",
+            "URL": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf"
+          },
+          {
+            "Megnevezés": "Akadálymentesítési nyilatkozat PDF",
+            "URL": "https://njt.jog.gov.hu/bundles/njtfrontend/docs/akadalymentesitesi.pdf?v3be09a83f.13594.20260828124931.2.7.1"
+          }
+        ],
+        "source_url": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf",
+        "source_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
+        "error": ""
+      },
+      "plan_result": {
+        "zone": "",
+        "candidate_zone": "",
+        "detail": "Nincs együtt igazolt GEO-illesztés, zárt telekhatár és pontos HRSZ.",
+        "registrations": [],
+        "parcel_boundary_verified": false,
+        "zone_features": []
+      },
+      "identification": {
+        "status": "unverified",
+        "zone": "",
+        "zones": [],
+        "coverage": 0.0,
+        "intersection_verified": false,
+        "reason": "A telekhatár, az övezethatár vagy a hatályos forrás nincs ellenőrizve.",
+        "source": {},
+        "parcel_boundary_verified": false,
+        "candidate_zone": "",
+        "uncertainty_m": null
+      },
+      "evidence": [
+        {
+          "Adat": "Helyrajzi szám",
+          "Bizonyított": true,
+          "Eredmény": "pontos hivatalos HRSZ-találat",
+          "Forrás": "https://www.oeny.hu/hk-api/parcels/search?kshCode=24697&lotNumber=8448%2F46"
+        },
+        {
+          "Adat": "Telekgeometria",
+          "Bizonyított": false,
+          "Eredmény": "csak megjelenítési poligon / nincs igazolt telekhatár",
+          "Forrás": "https://www.oeny.hu/hk-api/parcels/bounding-box?id=2637534"
+        },
+        {
+          "Adat": "Övezet",
+          "Bizonyított": false,
+          "Eredmény": "nincs igazolt övezet",
+          "Forrás": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf"
+        },
+        {
+          "Adat": "Hatályos előírások – teljes telekspecifikus kör",
+          "Bizonyított": false,
+          "Eredmény": "hivatalos rendelkezések betöltve; teljes telekre alkalmazhatóság nem igazolt",
+          "Forráskiadás": "2026.06.08."
+        }
+      ],
+      "minerva_detail": "MINERVA térbeli lekérdezés: HTTPError: HTTP Error 503: Service Unavailable",
+      "label_search": {
+        "status": "parcel_not_found",
+        "candidates": [],
+        "zone": "",
+        "scan": {
+          "hits": [],
+          "complete": true,
+          "scanned": 353,
+          "candidates": 353,
+          "pages": 37,
+          "source_sha256": "9d2307d389babb511ff3fac1e0078589c37fc13fee2728c2ac4c465a98942490"
+        }
+      },
+      "label_hits": [],
+      "legal_source_url": "https://njt.jog.gov.hu/jogszabaly/2021-36-SP-5Y261",
+      "legal_source_verified": true,
+      "rules_count": 266,
+      "rules_errors": [],
+      "parcel_source": {
+        "id": "2637534",
+        "search_url": "https://www.oeny.hu/hk-api/parcels/search?kshCode=24697&lotNumber=8448%2F46",
+        "geometry_url": "https://www.oeny.hu/hk-api/parcels/bounding-box?id=2637534",
+        "parcel_polygon_candidate": true,
+        "parcel_boundary_verified": false,
+        "geometry_crs": "EPSG:23700",
+        "geometry_role": "display_outline",
+        "geometry_sha256": "dd1bd73530d5aaf087f1f964ce2b5111c90521df821935f064fa3649d07e9553"
+      }
+    },
+    {
+      "place": "Komádi",
+      "hrsz": "1558",
+      "ksh": "02167",
+      "errors": [],
+      "plan_inputs": {
+        "source_valid": true,
+        "current_verified": true,
+        "edition": "2025.12.22.",
+        "checks": {
+          "NJT-domain": true,
+          "település": true,
+          "építési szabályzat": true
+        },
+        "attachments": [
+          {
+            "Megnevezés": "1. melléklet az 1/2007. (I. 26.) önkormányzati rendelethez 1",
+            "URL": "https://njt.jog.gov.hu/document/3e/3ef5LL_EJR_109881481-Helyi__p_t_si_Szabalyzat_EGYS_GES_202512_-_pirossal_a_v_ltoz_s_F_zesiAttila.pdf"
+          },
+          {
+            "Megnevezés": "2. melléklet 2",
+            "URL": "https://njt.jog.gov.hu/document/97/971eLL_EJR_109881482-T_2_KULTERULETI_SZAB_LYOZ_SI_TERVLAP_2025_egyben.pdf"
+          },
+          {
+            "Megnevezés": "3. melléklet 3",
+            "URL": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf"
+          },
+          {
+            "Megnevezés": "(A melléklet szövegét a(z) 01 szablyozs mdostott.pdf elnevezésű fájl tartalmazza.)",
+            "URL": "https://njt.jog.gov.hu/document/c9/c941LL_EJR_45908890-01_szablyozs_mdostott.pdf"
+          },
+          {
+            "Megnevezés": "(A melléklet szövegét a(z) komdi 3 telephely szab.terv. md.pdf elnevezésű fájl tartalmazza.)",
+            "URL": "https://njt.jog.gov.hu/document/d6/d6c6LL_EJR_45909004-komdi_3_telephely_szab.terv._md.pdf"
+          },
+          {
+            "Megnevezés": "(A melléklet szövegét a(z) komdi erzsbet-hajnal u. szabt. md.pdf elnevezésű fájl tartalmazza.)",
+            "URL": "https://njt.jog.gov.hu/document/1a/1a48LL_EJR_45909006-komdi_erzsbet-hajnal_u._szabt._md.pdf"
+          },
+          {
+            "Megnevezés": "(A melléklet szövegét a(z) komdi szerk. terv md.pdf elnevezésű fájl tartalmazza.)",
+            "URL": "https://njt.jog.gov.hu/document/80/8031LL_EJR_45909010-komdi_szerk._terv_md.pdf"
+          },
+          {
+            "Megnevezés": "(A melléklet szövegét a(z) TR_sz-m1-tervlap--hibajav-2021dec.pdf elnevezésű fájl tartalmazza.)",
+            "URL": "https://njt.jog.gov.hu/document/01/0139LL_EJR_46091808-TR_sz-m1-tervlap--hibajav-2021dec.pdf"
+          },
+          {
+            "Megnevezés": "(A melléklet szövegét a(z) tr_sz_m szablyozsi tervlap 2016.pdf elnevezésű fájl tartalmazza.)",
+            "URL": "https://njt.jog.gov.hu/document/13/1390LL_EJR_45909026-tr_sz_m_szablyozsi_tervlap_2016.pdf"
+          },
+          {
+            "Megnevezés": "Akadálymentesítési nyilatkozat PDF",
+            "URL": "https://njt.jog.gov.hu/bundles/njtfrontend/docs/akadalymentesitesi.pdf?v3be09a83f.13594.20260828124931.2.7.1"
+          }
+        ],
+        "source_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+        "source_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+        "error": ""
+      },
+      "plan_result": {
+        "zone": "",
+        "candidate_zone": "",
+        "detail": "Nincs együtt igazolt GEO-illesztés, zárt telekhatár és pontos HRSZ.",
+        "registrations": [],
+        "parcel_boundary_verified": false,
+        "zone_features": []
+      },
+      "identification": {
+        "status": "unverified",
+        "zone": "",
+        "zones": [],
+        "coverage": 0.0,
+        "intersection_verified": false,
+        "reason": "A telekhatár, az övezethatár vagy a hatályos forrás nincs ellenőrizve.",
+        "source": {},
+        "parcel_boundary_verified": false,
+        "candidate_zone": "",
+        "uncertainty_m": null
+      },
+      "evidence": [
+        {
+          "Adat": "Helyrajzi szám",
+          "Bizonyított": true,
+          "Eredmény": "pontos hivatalos HRSZ-találat",
+          "Forrás": "https://www.oeny.hu/hk-api/parcels/search?kshCode=02167&lotNumber=1558"
+        },
+        {
+          "Adat": "Telekgeometria",
+          "Bizonyított": false,
+          "Eredmény": "csak megjelenítési poligon / nincs igazolt telekhatár",
+          "Forrás": "https://www.oeny.hu/hk-api/parcels/bounding-box?id=6220536"
+        },
+        {
+          "Adat": "Övezet",
+          "Bizonyított": false,
+          "Eredmény": "nincs igazolt övezet",
+          "Forrás": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf"
+        },
+        {
+          "Adat": "Hatályos előírások – teljes telekspecifikus kör",
+          "Bizonyított": false,
+          "Eredmény": "hivatalos rendelkezések betöltve; teljes telekre alkalmazhatóság nem igazolt",
+          "Forráskiadás": "2025.12.22."
+        }
+      ],
+      "label_search": {
+        "status": "zone_not_found",
+        "spatial_evidence": {
+          "parcel_boundary_verified": false,
+          "zone_boundary_verified": false,
+          "intersection_verified": false,
+          "reason": "A tervlapi feliratokhoz nincs hitelesen összerendelt telek- és övezetpoligon."
+        },
+        "candidates": [],
+        "zone": "",
+        "scan": {
+          "hits": [
+            {
+              "page_number": 0,
+              "pdf_rect": [
+                1577.8199462890625,
+                1790.280029296875,
+                1583.93994140625,
+                1793.93994140625
+              ],
+              "angle": -17.727852496532797,
+              "text": "1558",
+              "label_only": true,
+              "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés"
+            }
+          ],
+          "complete": true,
+          "scanned": 6355,
+          "candidates": 6355,
+          "pages": 4,
+          "source_sha256": "eec40a43417cdc8578b2b22c8917987adf4b038072cea696367e70147a5f3b0a"
+        }
+      },
+      "label_hits": [
+        {
+          "page": 1,
+          "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés"
+        }
+      ],
+      "legal_source_url": "https://njt.jog.gov.hu/jogszabaly/2007-1-SP-5Y1608",
+      "legal_source_verified": true,
+      "rules_count": 58,
+      "rules_errors": [],
+      "parcel_source": {
+        "id": "6220536",
+        "search_url": "https://www.oeny.hu/hk-api/parcels/search?kshCode=02167&lotNumber=1558",
+        "geometry_url": "https://www.oeny.hu/hk-api/parcels/bounding-box?id=6220536",
+        "parcel_polygon_candidate": true,
+        "parcel_boundary_verified": false,
+        "geometry_crs": "EPSG:23700",
+        "geometry_role": "display_outline",
+        "geometry_sha256": "77671f66ab7b7fa10ebfee628de932c2534ea09487be76c1916a6276fb147a12"
+      }
+    },
+    {
+      "place": "Gersekarát",
+      "hrsz": "034/15",
+      "ksh": "30942",
+      "errors": [
+        "HRSZ/telek: A kereső nem adott pontosan egyező HRSZ-rekordot."
+      ],
+      "plan_inputs": {
+        "source_valid": true,
+        "current_verified": true,
+        "edition": "2019.06.01.",
+        "checks": {
+          "NJT-domain": true,
+          "település": true,
+          "építési szabályzat": true
+        },
+        "attachments": [
+          {
+            "Megnevezés": "1. melléklet a 2/2007. (II. 15.) önkormányzati rendelethez a 2/2007. (II. 15.) önkormányzati rendelethez",
+            "URL": "https://njt.jog.gov.hu/document/0d/0dafLL_EJR_116753400-Gersekar_t-szt.pdf"
+          },
+          {
+            "Megnevezés": "2. melléklet a 2/2007. (II. 15.) önkormányzati rendelethez a 2/2007. (II. 15.) önkormányzati rendelethez",
+            "URL": "https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf"
+          },
+          {
+            "Megnevezés": "3. melléklet a 2/2007. (II. 15.) önkormányzati rendelethez a 2/2007. (II. 15.) önkormányzati rendelethez",
+            "URL": "https://njt.jog.gov.hu/document/e6/e610LL_EJR_55522786-3._sz_m__mell_klet.pdf"
+          },
+          {
+            "Megnevezés": "Akadálymentesítési nyilatkozat PDF",
+            "URL": "https://njt.jog.gov.hu/bundles/njtfrontend/docs/akadalymentesitesi.pdf?v3be09a83f.13594.20260828124931.2.7.1"
+          }
+        ],
+        "source_url": "https://njt.jog.gov.hu/document/0d/0dafLL_EJR_116753400-Gersekar_t-szt.pdf",
+        "source_hash": "be680e7b2cd26973a34be6ad3e1c9c9f9118421cf668ba991641c8ea7f64e567",
+        "error": ""
+      },
+      "plan_result": {
+        "zone": "",
+        "candidate_zone": "",
+        "detail": "Nincs pontos HRSZ-hez kapcsolt megjelenítési poligon a tervlapkereséshez.",
+        "registrations": [],
+        "parcel_boundary_verified": false,
+        "zone_features": []
+      },
+      "identification": {
+        "status": "unverified",
+        "zone": "",
+        "zones": [],
+        "coverage": 0.0,
+        "intersection_verified": false,
+        "reason": "A telekhatár, az övezethatár vagy a hatályos forrás nincs ellenőrizve.",
+        "source": {},
+        "parcel_boundary_verified": false,
+        "candidate_zone": "",
+        "uncertainty_m": null
+      },
+      "evidence": [
+        {
+          "Adat": "Helyrajzi szám",
+          "Bizonyított": false,
+          "Eredmény": "nincs pontos hivatalos HRSZ-találat",
+          "Forrás": ""
+        },
+        {
+          "Adat": "Telekgeometria",
+          "Bizonyított": false,
+          "Eredmény": "csak megjelenítési poligon / nincs igazolt telekhatár",
+          "Forrás": ""
+        },
+        {
+          "Adat": "Övezet",
+          "Bizonyított": false,
+          "Eredmény": "nincs igazolt övezet",
+          "Forrás": "https://njt.jog.gov.hu/document/0d/0dafLL_EJR_116753400-Gersekar_t-szt.pdf"
+        },
+        {
+          "Adat": "Hatályos előírások – teljes telekspecifikus kör",
+          "Bizonyított": false,
+          "Eredmény": "hivatalos rendelkezések betöltve; teljes telekre alkalmazhatóság nem igazolt",
+          "Forráskiadás": "2019.06.01."
+        }
+      ],
+      "label_search": {
+        "status": "parcel_not_found",
+        "candidates": [],
+        "zone": "",
+        "scan": {
+          "hits": [],
+          "complete": true,
+          "scanned": 0,
+          "candidates": 0,
+          "pages": 1,
+          "source_sha256": "7ebddca19a6309b3949a777c2ea8287b99cd260d97017c1588d076a1c677c842"
+        }
+      },
+      "label_hits": [],
+      "legal_source_url": "https://njt.jog.gov.hu/jogszabaly/2007-2-SP-5Y3101",
+      "legal_source_verified": true,
+      "rules_count": 14,
+      "rules_errors": []
+    },
+    {
+      "place": "Miskolc",
+      "hrsz": "4755/11",
+      "ksh": "30456",
+      "errors": [],
+      "plan_inputs": {
+        "source_valid": true,
+        "current_verified": true,
+        "edition": "2026.09.26.",
+        "checks": {
+          "NJT-domain": true,
+          "település": true,
+          "építési szabályzat": true
+        },
+        "attachments": [
+          {
+            "Megnevezés": "1. melléklet a 38/2022. (XII. 16.) önkormányzati rendelethez 16",
+            "URL": "https://njt.jog.gov.hu/document/03/0366LL_EJR_83921015-Jelmagyarazat_modositasa.pdf"
+          },
+          {
+            "Megnevezés": "2. melléklet a 38/2022. (XII. 16.) önkormányzati rendelethez 17",
+            "URL": "https://njt.jog.gov.hu/document/f3/f327LL_EJR_124216758-Param_terek_magyar_zata.pdf"
+          },
+          {
+            "Megnevezés": "3. melléklet a 38/2022. (XII. 16.) önkormányzati rendelethez",
+            "URL": "https://njt.jog.gov.hu/document/61/614cLL_EJR_39762123-3_MELLEKLET.pdf"
+          },
+          {
+            "Megnevezés": "4. melléklet a 38/2022. (XII. 16.) önkormányzati rendelethez",
+            "URL": "https://njt.jog.gov.hu/document/20/2005LL_EJR_39762484-4_MELLEKLET.pdf"
+          },
+          {
+            "Megnevezés": "5. melléklet a 38/2022. (XII. 16.) önkormányzati rendelethez 18",
+            "URL": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf"
+          },
+          {
+            "Megnevezés": "6. melléklet a 38/2022. (XII. 16.) önkormányzati rendelethez 19",
+            "URL": "https://njt.jog.gov.hu/document/f2/f202LL_EJR_124216760-K_lter_leti_szab_lyoz_si_tervlapok_m_dos_t_sa.pdf"
+          },
+          {
+            "Megnevezés": "9. melléklet a 38/2022. (XII. 16.) önkormányzati rendelethez 33",
+            "URL": "https://njt.jog.gov.hu/document/da/da12LL_EJR_48567616-9_melleklet_20230427.pdf"
+          },
+          {
+            "Megnevezés": "Akadálymentesítési nyilatkozat PDF",
+            "URL": "https://njt.jog.gov.hu/bundles/njtfrontend/docs/akadalymentesitesi.pdf?v3be09a83f.13594.20260828124931.2.7.1"
+          }
+        ],
+        "source_url": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
+        "source_hash": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc",
+        "error": ""
+      },
+      "plan_result": {
+        "zone": "",
+        "candidate_zone": "Gipe-60.63.5",
+        "detail": "Pontos HRSZ és zárt tervlapi telekhatár a PDF saját koordinátáiból ellenőrizve. Az övezetfelirat még jelölt: teljes, feliratozott övezetpoligon nem igazolt.",
+        "registrations": [
+          {
+            "PDF-oldal": 31,
+            "Illesztés": "a PDF saját GEO-koordinátái",
+            "Legnagyobb eltérés (m)": 0.07013849867297638,
+            "Bizonytalanság (m)": 1.0701384986729763
+          }
+        ],
+        "parcel_boundary_verified": true,
+        "zone_features": [],
+        "parcel_wkt": "POLYGON ((781983.823887223 308634.8408706517, 781966.217156045 308716.2722825505, 781841.6581399944 308701.8374327305, 781853.3395147114 308647.6062172882, 781928.0640032168 308656.3462008084, 781928.0640407063 308656.3460279394, 781928.0640462716 308656.34602859034, 781932.1271193769 308637.6106521853, 781983.823887223 308634.8408706517))",
+        "parcel_geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                781983.823887223,
+                308634.8408706517
+              ],
+              [
+                781966.217156045,
+                308716.2722825505
+              ],
+              [
+                781841.6581399944,
+                308701.8374327305
+              ],
+              [
+                781853.3395147114,
+                308647.6062172882
+              ],
+              [
+                781928.0640032168,
+                308656.3462008084
+              ],
+              [
+                781928.0640407063,
+                308656.3460279394
+              ],
+              [
+                781928.0640462716,
+                308656.34602859034
+              ],
+              [
+                781932.1271193769,
+                308637.6106521853
+              ],
+              [
+                781983.823887223,
+                308634.8408706517
+              ]
+            ]
+          ]
+        },
+        "pdf_page": 31,
+        "uncertainty_m": 1.0701384986729763,
+        "hrsz_method": "pontos HRSZ a zárt, georeferált tervlapi telekben"
+      },
+      "identification": {
+        "status": "unverified",
+        "zone": "",
+        "zones": [],
+        "coverage": 0.0,
+        "intersection_verified": false,
+        "reason": "A telekhatár, az övezethatár vagy a hatályos forrás nincs ellenőrizve.",
+        "source": {},
+        "parcel_boundary_verified": true,
+        "candidate_zone": "Gipe-60.63.5",
+        "uncertainty_m": 1.0701384986729763
+      },
+      "evidence": [
+        {
+          "Adat": "Helyrajzi szám",
+          "Bizonyított": true,
+          "Eredmény": "pontos hivatalos HRSZ-találat",
+          "Forrás": "https://www.oeny.hu/hk-api/parcels/search?kshCode=30456&lotNumber=4755%2F11"
+        },
+        {
+          "Adat": "Telekgeometria",
+          "Bizonyított": true,
+          "Eredmény": "zárt tervlapi telekhatár; bizonytalanság: 1.0701384986729763 m",
+          "Forrás": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf"
+        },
+        {
+          "Adat": "Övezet",
+          "Bizonyított": false,
+          "Eredmény": "jelölt: Gipe-60.63.5; poligonfedés nem igazolt",
+          "Forrás": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf"
+        },
+        {
+          "Adat": "Hatályos előírások – teljes telekspecifikus kör",
+          "Bizonyított": false,
+          "Eredmény": "hivatalos rendelkezések betöltve; teljes telekre alkalmazhatóság nem igazolt",
+          "Forráskiadás": "2026.09.26."
+        }
+      ],
+      "legal_source_url": "https://njt.jog.gov.hu/jogszabaly/2022-38-SP-5Y1070",
+      "legal_source_verified": true,
+      "rules_count": 253,
+      "rules_errors": [],
+      "parcel_source": {
+        "id": "5143390",
+        "search_url": "https://www.oeny.hu/hk-api/parcels/search?kshCode=30456&lotNumber=4755%2F11",
+        "geometry_url": "https://www.oeny.hu/hk-api/parcels/bounding-box?id=5143390",
+        "parcel_polygon_candidate": true,
+        "parcel_boundary_verified": false,
+        "geometry_crs": "EPSG:23700",
+        "geometry_role": "display_outline",
+        "geometry_sha256": "6b182d7df035c204b8fa55e23c95787e85a299fc7a64bd19214735fd505df1d4"
+      }
+    }
+  ]
+}
