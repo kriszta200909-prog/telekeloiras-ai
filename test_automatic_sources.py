@@ -12,7 +12,7 @@ import app
 from geopdf import page_registrations, to_pdf, to_world
 
 
-def geo_document():
+def geo_document(parcel_colour=(0,0,0),parcel_width=1,cadastral_name='Földrészlet'):
     """Actual PDF GEO dictionaries and named layers, without municipality data."""
     doc = fitz.open()
     page = doc.new_page(width=1000, height=800)
@@ -30,13 +30,19 @@ def geo_document():
                       ' '.join(str(v) for v in gpts) + '] >>')
     doc.update_object(viewport, f'<< /Type /Viewport /BBox [20 20 980 780] /Measure {measure} 0 R >>')
     doc.xref_set_key(page.xref, 'VP', f'[{viewport} 0 R]')
-    cadastral = doc.add_ocg('Földrészlet')
+    cadastral = doc.add_ocg(cadastral_name)
     zones = doc.add_ocg('Epitesi_ovezet_polygon')
-    page.draw_rect(fitz.Rect(300, 300, 400, 400), color=(0, 0, 0), oc=cadastral)
+    page.draw_rect(fitz.Rect(300, 300, 400, 400), color=parcel_colour,width=parcel_width,oc=cadastral)
     page.insert_text((325, 355), '034/15', fontsize=10)
-    page.draw_rect(fitz.Rect(200, 200, 500, 500), fill=(1, 1, 1), color=None,
+    page.draw_rect(fitz.Rect(200, 200, 500, 500), fill=(.7, .8, .9), color=None,
                    oc=zones, overlay=False)
     page.insert_text((230, 250), 'Gip/3', fontsize=10)
+    legend=doc.new_page(width=400,height=300)
+    legend.insert_text((100,40),'Jelmagyarazat')
+    legend.draw_line((70,80),(90,80),color=(0,0,0),width=1)
+    legend.insert_text((100,84),'Foldreszlet hatar')
+    legend.draw_rect(fitz.Rect(70,110,90,120),fill=(.7,.8,.9),color=None)
+    legend.insert_text((100,120),'Ovezet hatara')
     # Reopening also exercises the real PDF optional-content layer reader.
     raw = doc.tobytes()
     doc.close()
@@ -93,10 +99,12 @@ class AutomaticSourceTests(unittest.TestCase):
         self.assertTrue(result['source_valid']);self.assertFalse(result['current_verified'])
         self.assertEqual(result['error'],'HTTP 503')
 
-    def test_gersekarat_index_selects_plan_instead_of_text_annex(self):
+    def test_gersekarat_selects_administrative_area_plan_for_outer_parcel(self):
         source=app.source_for_town('Gersekarát')
-        self.assertIn('Gersekar_t-szt.pdf',source['plan_url'])
-        self.assertNotIn('H_SZ.pdf',source['plan_url'])
+        self.assertEqual(source['plan_scope'],'igazgatási terület')
+        self.assertIn('2._mell_klet_H_SZ.pdf',source['plan_url'])
+        self.assertEqual(source['plan_sha256'],
+                         'a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca')
 
     def test_geometry_failure_preserves_proven_hrsz_and_retries(self):
         app.public_parcel_geometry.clear()

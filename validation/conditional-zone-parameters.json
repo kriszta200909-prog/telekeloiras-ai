@@ -1,0 +1,17 @@
+{
+  "purpose": "A felhasználó által megkérdezett Gip/3 övezet forrástáblájának ellenőrzése, nem automatikus telekbesorolás.",
+  "zone": "Gip/3",
+  "parcel_zone_proved": false,
+  "source_url": "https://njt.jog.gov.hu/document/af/afafLL_EJR_80774847-2._mell_klet.pdf",
+  "source_hash": "646f63c2c6da99ea9862dc6da3abfc3ed54883be718180f48e446496eac62a42",
+  "edition": "2024.10.10.",
+  "pdf_page": 2,
+  "parameters": {
+    "Beépítési mód": "SZ",
+    "Legnagyobb beépítettség": "30 %",
+    "Legkisebb telekterület": "10000 m²",
+    "Legkisebb zöldfelület": "25 %",
+    "Legnagyobb épületmagasság": "12,50 m; 2. lábjegyzet"
+  },
+  "footnote": "2. lábjegyzet: Technológiai indokoltság esetére alkalmazható eltérés. (3. PDF-oldal)"
+}

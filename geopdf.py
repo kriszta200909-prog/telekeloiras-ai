@@ -104,7 +104,44 @@ def named_layer_paths(page, names):
             else:
                 return
         if segments:
-            paths.append({'layer': layer, 'segments': segments, 'fill': drawing.get('fill')})
+            from plan_legend import drawing_style
+            paths.append({'layer': layer, 'segments': segments, 'fill': drawing.get('fill'),
+                          'style':drawing_style(drawing)})
+    page.get_cdrawings(callback=collect)
+    return paths
+
+
+def legend_layer_paths(page, profile, role):
+    """Match own legend styles; preserve explicitly named cadastral CAD data.
+
+    A cadastral layer may be printed thin/grey despite the legend's thicker
+    black sample. Its explicit source name is accepted only when that same
+    cadastral term appears in the verified legend. This exception never maps
+    a zoning or regulatory line by its layer name.
+    """
+    from plan_legend import styles_for,matches_style,drawing_style
+    from zone_parameters import compact
+    styles=styles_for(profile,role);paths=[]
+    if not styles:return paths
+    cadastral_names=set()
+    if role=='parcel_boundary':
+        for record in profile.get('records',[]):
+            if record['role']==role and record.get('label_verified') and record['recognition']=='native':
+                term=compact(record['label'])
+                if term.endswith('hatar'):cadastral_names.add(term[:-5])
+    def collect(drawing):
+        style=drawing_style(drawing)
+        visual_match=any(matches_style(style,expected) for expected in styles)
+        semantic_match=compact(drawing.get('layer','').rstrip('\0')) in cadastral_names
+        if not visual_match and not semantic_match:return
+        segments=[]
+        for item in drawing['items']:
+            if item[0]=='l':segments.append(LineString([item[1],item[2]]))
+            elif item[0]=='re':
+                r=fitz.Rect(item[1]);segments.append(LineString([r.tl,r.tr,r.br,r.bl,r.tl]))
+            else:return  # Curves are not silently approximated by chords.
+        if segments:paths.append({'layer':role,'segments':segments,'fill':drawing.get('fill'),'style':style,
+                                  'visual_match':visual_match,'semantic_cadastral_layer':semantic_match})
     page.get_cdrawings(callback=collect)
     return paths
 

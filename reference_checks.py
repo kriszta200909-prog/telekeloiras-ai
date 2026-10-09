@@ -24,6 +24,13 @@ def public_result(result):
         result['parcel_source']['geometry_sha256'] = app.source_digest(
             json.dumps(parcel.get('geometry',{}).get('outline'), sort_keys=True))
     result['plan_inputs'].pop('path', None)
+    def strip_templates(value):
+        if isinstance(value,dict):
+            value.pop('png_base64',None)
+            for child in value.values():strip_templates(child)
+        elif isinstance(value,list):
+            for child in value:strip_templates(child)
+    strip_templates(result)
     return result
 
 
@@ -38,7 +45,7 @@ def main():
     report = {'checked_at_utc': datetime.now(timezone.utc).isoformat(),
               'outlined_label_search': args.outlined,
               'code_sha256': {name:app.source_digest(Path(name).read_bytes())
-                              for name in ('app.py','geopdf.py','reference_checks.py')}, 'cases': []}
+                              for name in ('app.py','geopdf.py','plan_legend.py','plan_connections.py','zone_parameters.py','reference_checks.py')}, 'cases': []}
     for place, hrsz in CASES:
         print(place + ' ' + hrsz + ': hivatalos forráslekérés…', flush=True)
         def progress(page, pages, scanned, labels):
