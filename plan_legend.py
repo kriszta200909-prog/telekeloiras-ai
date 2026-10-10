@@ -37,6 +37,7 @@ def role_for_label(text):
     if 'megyei' in key or 'megyeteruletrendezesi' in key:return 'restriction'
     if 'veszelyessegiovezet' in key or any(word in key for word in ('natura2000','vedoterulet','vedosav','vedotavolsag','vedettterulet','hidrogeologia','vizbazis','nagyvizimeder')):return 'restriction'
     if re.search(r'ovezet(?:i)?hatar',key):return 'zone_boundary'
+    if any(term in key for term in ('epitesiovezetiparameter','ovezetiparameter','szabalyozasijel','ovezetijel','ovezetkod')):return 'zone_code'
     if ('szabalyozasivonal' in key or 'szabayozasivonal' in key):return 'regulatory_line'
     if 'banyatelek' in key:return 'restriction'
     if any(word in key for word in ('levezetosav','aramlasiholtter','partisav','tolteslab',
@@ -105,6 +106,7 @@ def matches_style(actual, expected):
                 and actual.get('colour')==expected.get('colour')
                 and .7<=actual.get('size',0)/max(expected.get('size',0),1e-9)<=1.4)
     if actual['kind']=='path':
+        if expected.get('closed') and not actual.get('closed'):return False
         if expected.get('fill') is not None:
             return actual.get('fill')==expected['fill']
         if any(actual.get(key)!=expected.get(key) for key in ('stroke','fill','dash')):return False
@@ -153,7 +155,7 @@ def ocr_rows(page,tessdata,clip=None,scale=None):
     with fitz.open(stream=pix.pdfocr_tobytes(language='eng',tessdata=tessdata),filetype='pdf') as doc:
         rows=caption_rows(doc[0])
         words=doc[0].get_text('words')
-        prefixes=('jelmagyarazat','tervezett','meglevo','javasolt','epites','eptes','egyesitett','ovezet','ovezeti',
+        prefixes=('jelmagyarazat','tervezett','meglevo','javasolt','epites','eptes','egyesitett','ovezet','ovezeti','szabalyozasi',
                   'foldreszlet','telekhatar','hidrogeologia','natura','vedoterulet','vedosav',
                   'vedotav','vizmukut','vizmokut','termalkut','orszagos','banyatelek')
         for row in rows:
@@ -190,15 +192,26 @@ def sample_styles(page,rect):
             except (ValueError,KeyError,IndexError,TypeError):continue
             styles.append({'kind':'marker','glyph_hash':description['glyph_hash'],
                            'colour':_colour(trace['color']),'size':round(trace['size'],4)})
+    drawings=[]
     def collect(drawing):
         bounds=(fitz.Rect(drawing['rect'])*rotation)+(-.01,-.01,.01,.01)
-        if rect.intersects(bounds) and rect.contains(bounds):
-            style=drawing_style(drawing)
-            # Ignore sample box backgrounds and printed table borders. Their
-            # geometric extent does not qualify them as regulatory symbols.
-            if style['fill'] is not None and min(style['fill'])>.99:return
-            if bounds.width>.5 or bounds.height>.5:styles.append(style)
+        if rect.intersects(bounds) and rect.contains(bounds):drawings.append((drawing,bounds))
     page.get_cdrawings(callback=collect)
+    chromatic=[bounds for drawing,bounds in drawings if any(
+        max(c)-min(c)>.08 for c in (drawing.get('fill'),drawing.get('color')) if c)]
+    for drawing,bounds in drawings:
+        style=drawing_style(drawing)
+        if style['fill'] is not None and min(style['fill'])>.99:continue
+        neutral=all(max(c)-min(c)<.025 for c in (style['fill'],style['stroke']) if c)
+        rectangle=all(item[0]=='re' for item in drawing['items'])
+        # A rectangular container around a coloured sample is not a standalone
+        # line symbol. Retain black-only symbols, including rectangular ones.
+        container=(neutral and rectangle and any(bounds.contains(other) and
+            bounds.height>other.height+.5 and bounds.width>other.width+.5 for other in chromatic))
+        edge_fragment=(neutral and rectangle and chromatic and max(bounds.width,bounds.height)<1 and
+            min(abs(bounds.x0-rect.x0),abs(bounds.x1-rect.x1))<2)
+        if container or edge_fragment:continue
+        if bounds.width>.5 or bounds.height>.5:styles.append(style)
     return list({json.dumps(s,sort_keys=True):s for s in styles}.values())
 
 

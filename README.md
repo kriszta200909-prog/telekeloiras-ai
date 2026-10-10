@@ -92,13 +92,12 @@ A `requirements.txt` Python-csomagjai és a `packages.txt` OCR-csomagja szüksé
 
 ```sh
 python -m unittest discover -v
-python reference_checks.py --output work/reference-results.json
-python reference_checks.py --outlined --output work/reference-outlined-results.json
+python reference_checks.py --output work/reference-results.json --visual-images work/reference-images
 python validation/check_sources.py work/reference-results.json --output work/source-checks.json
 streamlit run app.py
 ```
 
-A teljes regressziós csomag 96 teszt, köztük a 36 eredeti ellenőrzés és a teljes
+A teljes regressziós csomag 134 teszt, köztük a 36 eredeti ellenőrzés és a teljes
 Streamlit vizsgálati útvonal tesztje. A GitHub Actions a főágon és a főágra
 nyitott pull requesteken is futtatja. Az élő ellenőrzés külön parancs: nem függ
 külső szerverek aktuális elérhetőségétől az offline regresszió.
@@ -110,3 +109,14 @@ forrásait és korlátait a `validation/` eredményfájlok rögzítik; a pillana
 elérhetőség és forráskiadás később megváltozhat. Az aktuális összesített eredmény
 a `validation/reference-results.json` és a `validation/reference-report.md`;
 a korábbi külön OCR-próba saját időbélyeggel és feldolgozólenyomatokkal szerepel.
+
+
+A forrásként igazolt terveken a HRSZ-feliratok keresése automatikus: a natív
+szöveg után a kitöltött és a vonalas CAD-betűk külön OCR-csoportokba kerülnek.
+Az index forráshoz és algoritmushoz kötve, folytathatóan tárolódik. A pontos,
+egyértelmű felirathely előzetes B besorolás alapja lehet teljes telekpoligon
+nélkül is, ha a saját jelmagyarázat kódmezője és határjelei alapján a helyi
+kapcsolat ellenőrizhető. Ez nem igazolja a teljes övezeti fedést vagy az
+építési jogosultságot. A C kategóriához mentett kép forrásáttekintés, nem
+lokalizált telek. Az alternatív KÉSZ-ek területi hatályát a program nem
+feltételezi; történeti tanulmányból nem állapít meg hatályos övezetet.

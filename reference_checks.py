@@ -36,23 +36,37 @@ def public_result(result):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--resume-attempts',type=int,default=3,help='Resume bounded OCR searches before recording a partial result.')
     parser.add_argument('--output', default='work/reference-results.json')
     parser.add_argument('--outlined', action='store_true',
                         help='Run bounded/resumable outlined-label recognition when needed.')
+    parser.add_argument('--visual-images',help='Save source-bound illustrations for every localised case.')
     parser.add_argument('--visual-image',help='Save the Miskolc reference illustration with its original legend.')
     args = parser.parse_args()
     destination = Path(args.output)
     destination.parent.mkdir(parents=True, exist_ok=True)
     report = {'checked_at_utc': datetime.now(timezone.utc).isoformat(),
-              'outlined_label_search': args.outlined,
+              'outlined_label_search': True,
+              'legacy_outlined_flag': args.outlined,
               'code_sha256': {name:app.source_digest(Path(name).read_bytes())
-                              for name in ('app.py','geopdf.py','plan_legend.py','plan_connections.py','plan_geometry_audit.py','zone_parameters.py','gis_sources.py','visual_plan.py','reference_checks.py')}, 'cases': []}
+                              for name in ('app.py','plan_labels.py','geopdf.py','plan_legend.py','plan_connections.py','plan_geometry_audit.py','zone_parameters.py','gis_sources.py','visual_plan.py','reference_checks.py')}, 'cases': []}
     for place, hrsz in CASES:
         print(place + ' ' + hrsz + ': hivatalos forráslekérés…', flush=True)
         def progress(page, pages, scanned, labels):
             print(f'  OCR: {page}/{pages} oldal; {scanned} feliratcsoport; {labels} jelölt', flush=True)
-        result = app.inspect_official_parcel(place, hrsz, outlined=args.outlined, on_progress=progress)
+        for attempt in range(max(1,args.resume_attempts)):
+            result = app.inspect_official_parcel(place, hrsz, outlined=args.outlined, on_progress=progress)
+            scan=result.get('label_search',{}).get('scan',{})
+            alternatives=result.get('plan_inputs',{}).get('alternative_plan_search',[])
+            if (not scan or scan.get('complete')) and all(r.get('complete') or r.get('error') for r in alternatives):break
+            print('  Részleges index folytatása: '+str(attempt+1),flush=True)
         png=result.get('visual',{}).pop('annotated_png',None)
+        if png and args.visual_images:
+            folder=Path(args.visual_images);folder.mkdir(parents=True,exist_ok=True)
+            name=place.lower().replace(' ','-')+'-'+hrsz.replace('/','-')+'.png'
+            if (place,hrsz)==('Miskolc','4755/11') and args.visual_image:name=Path(args.visual_image).name
+            (folder/name).write_bytes(png)
+            result['visual']['illustration_file']=name
         if png and args.visual_image and (place,hrsz)==('Miskolc','4755/11'):
             Path(args.visual_image).write_bytes(png)
         report['cases'].append(public_result(result))

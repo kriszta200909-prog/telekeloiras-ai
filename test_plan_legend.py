@@ -39,6 +39,26 @@ class PlanLegendTests(unittest.TestCase):
             self.assertFalse(matches_style(first,second));self.assertFalse(matches_style(second,first))
             self.assertEqual(first['dash'],[]);self.assertEqual(second['dash'],[.6,.4])
 
+    def test_sample_container_is_not_a_black_boundary_but_black_symbols_remain(self):
+        from plan_legend import sample_styles
+        doc=fitz.open();p=doc.new_page()
+        p.draw_rect(fitz.Rect(20,20,70,40),color=(0,0,0),width=.12)
+        p.draw_line((25,30),(65,30),color=(1,0,0),width=1)
+        styles=sample_styles(p,fitz.Rect(18,18,72,42))
+        self.assertEqual(len(styles),1);self.assertEqual(styles[0]['stroke'],[1.,0.,0.])
+        p.draw_rect(fitz.Rect(100,20,150,40),color=(0,0,0),width=.12)
+        black=sample_styles(p,fitz.Rect(98,18,152,42))
+        self.assertEqual(black[0]['stroke'],[0.,0.,0.])
+
+    def test_closed_legend_symbol_does_not_match_an_open_line_of_same_colour(self):
+        expected={'kind':'path','stroke':[0,0,0],'fill':None,'width':1,'dash':[],'closed':True}
+        self.assertFalse(matches_style(dict(expected,closed=False),expected))
+        self.assertTrue(matches_style(expected,expected))
+
+    def test_source_code_layout_captions_are_recognised(self):
+        for label in ('Építési övezeti paraméterek','Övezeti paraméterek','Szabályozási jel'):
+            self.assertEqual(role_for_label(label),'zone_code')
+
     def test_symbol_to_right_of_caption_is_supported(self):
         with tempfile.TemporaryDirectory() as cache,legend_document(right=True) as doc:
             result=self.read(doc,cache)

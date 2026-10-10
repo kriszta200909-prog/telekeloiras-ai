@@ -1,16 +1,18 @@
 {
-  "checked_at_utc": "2026-10-10T07:30:04.835564+00:00",
-  "outlined_label_search": false,
+  "checked_at_utc": "2026-10-10T08:50:04.230892+00:00",
+  "outlined_label_search": true,
+  "legacy_outlined_flag": false,
   "code_sha256": {
-    "app.py": "028a4c4597d3d77f5b2dad216042cf596d8f940dfa954dc0b0854f47a0fe5232",
+    "app.py": "05d906c19e9a10063e55bcc1132e3d7e40bdb803a82dce9b3858d220bca62e7c",
+    "plan_labels.py": "4a64c5a33519f61222e02f4dafcd18499ee2ba25b4c417c6ca1b6855660691d8",
     "geopdf.py": "fb1be96afdd386834bc0ad1e476c7f7be5c72269c114cedb122998b6e6a2b8f8",
-    "plan_legend.py": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6",
+    "plan_legend.py": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a",
     "plan_connections.py": "944e6dfac09ba97c748cecefc52c0c9ff1b1a9931d11139852bb63941a890487",
     "plan_geometry_audit.py": "c8ba17190a62963fb1d44c0c7a8ae69503c82c66235e5178d6665c3a6a46e2b5",
     "zone_parameters.py": "38cc96cdffa44d089870e9306185b7f8b46fc2152db3dbe13e6b24e16fddfb69",
     "gis_sources.py": "8244b7e5ba281d9aaedf6b7e3f9c92caf72d9859d3796062dabfbe793bf3103f",
-    "visual_plan.py": "7a41d5339d0645d33b034a80f3a7e9bbaf34959aa3495cef4bff96dbce55ca28",
-    "reference_checks.py": "2a600de1630d3d74d5c7b48cb7dc2698990163ce8e7395d8444716bdc891dbdc"
+    "visual_plan.py": "2fe2616e4e87eee868af9e106270db6fc850f94b88c4114834c1e3b2e43d4aef",
+    "reference_checks.py": "a2972e536e40bfbb8ccf4a9f9b648b8cb8f17b04fd1942c657b466c32468adb5"
   },
   "cases": [
     {
@@ -59,7 +61,9 @@
         ],
         "source_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
         "source_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
-        "error": ""
+        "error": "",
+        "source_warning": "https://njt.jog.gov.hu/document/af/afafLL_EJR_80774847-2._mell_klet.pdf: nem igazolt szabályozási terv | https://njt.jog.gov.hu/document/09/0919LL_EJR_16627534-2.1_mell_klet.pdf: nem igazolt szabályozási terv",
+        "supplementary_location_sources": []
       },
       "plan_result": {
         "zone": "",
@@ -114,7 +118,7 @@
           "plan_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
           "edition": "2024.10.10.",
           "ksh": "28352",
-          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
         },
         "records": [
           {
@@ -155,18 +159,6 @@
               88.7672492980957
             ],
             "styles": [
-              {
-                "kind": "path",
-                "stroke": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
               {
                 "kind": "path",
                 "stroke": [
@@ -406,18 +398,6 @@
                 "width": 0.84,
                 "dash": [],
                 "closed": false
-              },
-              {
-                "kind": "path",
-                "stroke": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
               }
             ],
             "label_verified": false,
@@ -735,18 +715,6 @@
                 "kind": "path",
                 "stroke": [
                   0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
-              {
-                "kind": "path",
-                "stroke": [
-                  0.0,
                   0.647,
                   0.867
                 ],
@@ -789,18 +757,6 @@
               436.26726684570315
             ],
             "styles": [
-              {
-                "kind": "path",
-                "stroke": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
               {
                 "kind": "path",
                 "stroke": [
@@ -850,18 +806,6 @@
               {
                 "kind": "path",
                 "stroke": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
-              {
-                "kind": "path",
-                "stroke": [
                   0.867,
                   0.541,
                   0.431
@@ -908,18 +852,6 @@
               {
                 "kind": "path",
                 "stroke": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
-              {
-                "kind": "path",
-                "stroke": [
                   0.749,
                   0.0,
                   1.0
@@ -963,18 +895,6 @@
               480.1771697998047
             ],
             "styles": [
-              {
-                "kind": "path",
-                "stroke": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
               {
                 "kind": "path",
                 "stroke": [
@@ -1080,6 +1000,27 @@
                 "closed": true
               }
             ],
+            "label_verified": false,
+            "ambiguous_sample": false,
+            "PDF-oldal": 2
+          },
+          {
+            "label": "EPITESI OVEZETI PARAMETEREK",
+            "role": "zone_code",
+            "rect": [
+              200.5,
+              525.75,
+              307.5848388671875,
+              538.7630004882812
+            ],
+            "recognition": "OCR candidate",
+            "sample_rect": [
+              140.5,
+              523.7980499267578,
+              199.5,
+              540.7149505615234
+            ],
+            "styles": [],
             "label_verified": false,
             "ambiguous_sample": false,
             "PDF-oldal": 2
@@ -1395,6 +1336,27 @@
             "PDF-oldal": 2
           },
           {
+            "label": "OVEZETI PARAMETEREK",
+            "role": "zone_code",
+            "rect": [
+              200.25,
+              649.5,
+              280.62127685546875,
+              657.2577514648438
+            ],
+            "recognition": "OCR candidate",
+            "sample_rect": [
+              140.25,
+              648.3363372802735,
+              199.25,
+              658.4214141845703
+            ],
+            "styles": [],
+            "label_verified": false,
+            "ambiguous_sample": false,
+            "PDF-oldal": 2
+          },
+          {
             "label": "OVEZET - KOZEPSO",
             "role": "restriction",
             "rect": [
@@ -1591,18 +1553,6 @@
               89.36801567077637
             ],
             "styles": [
-              {
-                "kind": "path",
-                "stroke": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
               {
                 "kind": "path",
                 "stroke": [
@@ -1892,18 +1842,6 @@
               {
                 "kind": "path",
                 "stroke": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
-              {
-                "kind": "path",
-                "stroke": [
                   0.584,
                   0.0,
                   0.584
@@ -2002,18 +1940,6 @@
               298.39902954101564
             ],
             "styles": [
-              {
-                "kind": "path",
-                "stroke": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
               {
                 "kind": "path",
                 "stroke": [
@@ -2241,18 +2167,6 @@
                 "kind": "path",
                 "stroke": [
                   0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
-              {
-                "kind": "path",
-                "stroke": [
-                  0.0,
                   0.439,
                   0.584
                 ],
@@ -2344,18 +2258,6 @@
               {
                 "kind": "path",
                 "stroke": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
-              {
-                "kind": "path",
-                "stroke": [
                   0.749,
                   0.0,
                   1.0
@@ -2399,18 +2301,6 @@
               478.9959777832031
             ],
             "styles": [
-              {
-                "kind": "path",
-                "stroke": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "fill": null,
-                "width": 0.12,
-                "dash": [],
-                "closed": true
-              },
               {
                 "kind": "path",
                 "stroke": [
@@ -2537,6 +2427,27 @@
                 "closed": true
               }
             ],
+            "label_verified": true,
+            "ambiguous_sample": false,
+            "PDF-oldal": 2
+          },
+          {
+            "label": "EPITESI OVEZETI PARAMETEREK",
+            "role": "zone_code",
+            "rect": [
+              200.3331298828125,
+              527.6666259765625,
+              307.6132507324219,
+              537.0093383789062
+            ],
+            "recognition": "two-scale OCR",
+            "sample_rect": [
+              140.3331298828125,
+              526.2652191162109,
+              199.3331298828125,
+              538.4107452392578
+            ],
+            "styles": [],
             "label_verified": true,
             "ambiguous_sample": false,
             "PDF-oldal": 2
@@ -2852,6 +2763,27 @@
             "PDF-oldal": 2
           },
           {
+            "label": "OVEZETI PARAMETEREK",
+            "role": "zone_code",
+            "rect": [
+              200.3331298828125,
+              649.6666870117188,
+              280.49981689453125,
+              655.6726684570312
+            ],
+            "recognition": "two-scale OCR",
+            "sample_rect": [
+              140.3331298828125,
+              648.7657897949218,
+              199.3331298828125,
+              656.5735656738282
+            ],
+            "styles": [],
+            "label_verified": true,
+            "ambiguous_sample": false,
+            "PDF-oldal": 2
+          },
+          {
             "label": "OVEZET - KOZEPSO",
             "role": "restriction",
             "rect": [
@@ -2990,6 +2922,27 @@
             "PDF-oldal": 2
           },
           {
+            "label": "OVEZETI JEL",
+            "role": "zone_code",
+            "rect": [
+              288.99981689453125,
+              677.6666870117188,
+              316.6497802734375,
+              687.6766967773438
+            ],
+            "recognition": "OCR candidate",
+            "sample_rect": [
+              228.99981689453125,
+              676.165185546875,
+              287.99981689453125,
+              689.1781982421875
+            ],
+            "styles": [],
+            "label_verified": false,
+            "ambiguous_sample": false,
+            "PDF-oldal": 2
+          },
+          {
             "label": "(_”}   NAGYVIZI   MEDER  HATARA",
             "role": "restriction",
             "rect": [
@@ -3017,9 +2970,18 @@
         "zone_style_verified": true
       },
       "visual": {
-        "status": "not_identifiable",
-        "zone": "",
+        "status": "probable",
+        "zone": "Gip/3",
         "intersection_verified": false,
+        "source": {
+          "source_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+          "source_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+          "plan_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+          "plan_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+          "edition": "2024.10.10.",
+          "ksh": "28352",
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
+        },
         "model": {
           "multimodal_api_configured": false,
           "credential_present": false,
@@ -3030,77 +2992,500 @@
           "reason": "Nincs ellenőrzött multimodális modellkapcsolat; képfeldolgozó útvonal."
         },
         "reasons": [
-          "Nincs igazolt telekgeometria a helyi vizuális kapcsolat ellenőrzéséhez."
+          "Pontos forrástervi felirathely; a teljes telekgeometria és az övezeti fedés nincs igazolva.",
+          "A környezeti egyezés és a változó telekállapot további térképi ellenőrzést igényel."
         ],
-        "source": {
-          "source_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
-          "source_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+        "candidate_labels": [
+          {
+            "code": "Gip/3",
+            "label_rect_pdf": [
+              419.0,
+              28.25,
+              433.25,
+              44.5
+            ],
+            "clear_paths": 9,
+            "label_inside_target_parcel": false,
+            "tested_anchors": 9,
+            "paths": [
+              {
+                "start_pdf": [
+                  426.125,
+                  36.375
+                ],
+                "end_pdf": [
+                  538.010986328125,
+                  112.20999145507812
+                ]
+              },
+              {
+                "start_pdf": [
+                  426.125,
+                  36.375
+                ],
+                "end_pdf": [
+                  538.010986328125,
+                  113.20999145507812
+                ]
+              },
+              {
+                "start_pdf": [
+                  426.125,
+                  36.375
+                ],
+                "end_pdf": [
+                  538.010986328125,
+                  114.20999145507812
+                ]
+              },
+              {
+                "start_pdf": [
+                  426.125,
+                  36.375
+                ],
+                "end_pdf": [
+                  539.010986328125,
+                  112.20999145507812
+                ]
+              },
+              {
+                "start_pdf": [
+                  426.125,
+                  36.375
+                ],
+                "end_pdf": [
+                  539.010986328125,
+                  113.20999145507812
+                ]
+              },
+              {
+                "start_pdf": [
+                  426.125,
+                  36.375
+                ],
+                "end_pdf": [
+                  539.010986328125,
+                  114.20999145507812
+                ]
+              },
+              {
+                "start_pdf": [
+                  426.125,
+                  36.375
+                ],
+                "end_pdf": [
+                  540.010986328125,
+                  112.20999145507812
+                ]
+              },
+              {
+                "start_pdf": [
+                  426.125,
+                  36.375
+                ],
+                "end_pdf": [
+                  540.010986328125,
+                  113.20999145507812
+                ]
+              },
+              {
+                "start_pdf": [
+                  426.125,
+                  36.375
+                ],
+                "end_pdf": [
+                  540.010986328125,
+                  114.20999145507812
+                ]
+              }
+            ]
+          }
+        ],
+        "location": {
+          "verified_preliminary": true,
+          "parcel_boundary_verified": false,
+          "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés",
+          "hrsz_rect_display_pdf": [
+            536.8209838867188,
+            110.96002197265625,
+            541.2009887695312,
+            115.4599609375
+          ],
           "plan_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
           "plan_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
-          "edition": "2024.10.10.",
-          "ksh": "28352",
-          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+          "hrsz": "2200/8",
+          "page_rotation": 270,
+          "coordinate_space": "display",
+          "geographic_registration_verified": false
         },
-        "nearby_parcel_labels": [],
-        "street_labels": [],
-        "candidate_labels": [],
+        "pdf_page": 35,
+        "clip_pdf": [
+          386.82098388671875,
+          0.0,
+          691.2009887695312,
+          265.4599609375
+        ],
+        "legend_bound": true,
+        "circle_layout_examples": [
+          {
+            "PDF-oldal": 2,
+            "rect_display_pdf": [
+              171.0,
+              541.5,
+              197.0,
+              567.5
+            ],
+            "circle_coverage": 0.9375,
+            "divider_verified": true,
+            "caption": "EPITESI OVEZETI PARAMETEREK"
+          },
+          {
+            "PDF-oldal": 2,
+            "rect_display_pdf": [
+              171.0,
+              662.5,
+              197.0,
+              688.5
+            ],
+            "circle_coverage": 0.9791666666666666,
+            "divider_verified": true,
+            "caption": "OVEZETI PARAMETEREK"
+          }
+        ],
+        "circle_layout_from_own_legend": true,
+        "context_text": "Ia \\ KC) 7 We DV AN Wn S ‘<q ONS OS N&Y “\\\\ 7 A SNC ENA L VX 7 aN [ 12,5 [10000) J »~ y XN, Oss. LP, SS 77 NYY \\ A) ~ Na aN ; o NY * x NNT Se Ly. ’ OSS Va . SIENNA _ < »S soN™ INS * A 7 LON \\ 7 IN Yr x N YQ, a oN \\ON J LON XON a Wx \\ 7dk 7 SK Soy o( x SN SSE, \\ON9 ({ \\ SON Snv ’ \\ ‘x “ aN ey NO SB x N : Na NA °% y, LN WN IN oar . 4 INN \\ a ASS \\ 7 ; i ‘ < < . < ) ¢ SY KS XY \\ YS \\ y \\ ® ’ 2 Ske NS Worew LC a . RS ; “ . (vy ~ aN x \\ Wo? S SKN ne » ~ | aN, LAER ON ae “NS ‘\\ |] xe KN NY “ye “os RX, \\ NSE NAY ty NSS Sth COU 7 vO Ye N >) IL ARS Lr We 4 SoS | li (AS \\ ° , Ky, ON OTIS. ' \\ , CU KAS begun ~ S Wr 7 Sf 7 \\ N \\Me \\ D SONOS ay Br \\ YY SN & DO. \\ / SON NS YY’. N X \\\\ SN a7 NN X\\ SONS DN TaN \\ AS NS IOS an ° /Y\\\\3 > é \\ Se QS - x . yD Na YX &> wa ( My 2) ¢ * QSOS XN NN la y 7 S\\N LOY waaay Ser ( SKé ~ ( \\ LN SOY XX 0G. (RS YON vo aN K fo OS \\ 7 — 7 . Ss CLs SS. J Jf 7 x NON QA Nd e/ /! 47 \\N? AN “ne NY G \\ Lo x NN Les a \\ (e) “ey J ONG cor — i “7 LN SONY 707 “ 7 ve “ Na SOY aa “oN Z ig NG “~\\ ““ ”~\\s vy ~ ) oy NU N47 “ 7 \\ SN nd <> ) L&C \\ SY L “vo \\N / ia a - Sv < 7 SSN / Ax OW 4 > OS ANY ~ . SS \\ / 7 SN A Z , ss AS ( > \\¢ oN >» |, RRO aA. oy SONS \\ \\ / a a X \\ SON Lo oS iS _X, _ af a—WY . \\. “ o ~ we) le \\ NON a Sa ON Cy ROY 4K Wig SY NO A A No weve _ ~ “ fa \\ Ss Uh ’ \\ aN \\ a ( YOY KZ , Ww 8 \\ 7 ac \\ Ob , NOON Z NaNS Sy . ; SOS “ \\ So %Z ’ SS SO Sw 4 J ~ NO) 7 . WZ ad",
+        "context_landmarks": [
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              511.6156234741211,
+              27.629375457763672
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              508.4987487792969,
+              30.004249572753906
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              689.1212463378906,
+              30.004249572753906
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "77",
+            "centre_display_pdf": [
+              491.2387466430664,
+              44.128374099731445
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              482.5,
+              56.00250053405762
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              680.25,
+              56.00250053405762
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              668.3718719482422,
+              63.878875732421875
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              424.3712501525879,
+              77.50674819946289
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              683.875,
+              84.00350189208984
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "2",
+            "centre_display_pdf": [
+              420.86124992370605,
+              92.75325012207031
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              666.7312469482422,
+              116.87937545776367
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              390.49000000953674,
+              119.75450134277344
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              680.625,
+              129.1293716430664
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              400.991250038147,
+              134.2532501220703
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              659.2400054931641,
+              160.50450134277344
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              654.25,
+              174.5009994506836
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              742.2462463378906,
+              175.6258773803711
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              420.23500061035156,
+              185.5032501220703
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "47",
+            "centre_display_pdf": [
+              420.0,
+              186.7542495727539
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "707",
+            "centre_display_pdf": [
+              541.5,
+              197.75399780273438
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              641.25,
+              197.75399780273438
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              440.2474994659424,
+              208.50475311279297
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              433.98999977111816,
+              216.3791275024414
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              619.1193771362305,
+              216.3791275024414
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              542.6149978637695,
+              219.25475311279297
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "8",
+            "centre_display_pdf": [
+              465.3706245422363,
+              249.12862396240234
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              498.24687576293945,
+              249.12862396240234
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              558.1237487792969,
+              261.00474548339844
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              483.25,
+              263.25250244140625
+            ],
+            "independent_map_match_verified": false
+          }
+        ],
+        "local_source_boundary_segments": 0,
+        "source_dot_clearance_pdf": 0.0,
+        "anchor_role": "HRSZ-felirat környezete, nem telekpoligon",
+        "context_image_sha256": "a3509dde592d5e9e0fe74f39c067f7c288c9762f69c35c5fef17dc07ae86d436",
+        "annotation_note": "Cián: három felbontásban vagy natív szövegből ellenőrzött HRSZ-hely, nem igazolt telekhatár. Lila: felirat és ellenőrzött helyi jelöltkapcsolat. Az eredeti tervi határjelek változatlanok.",
+        "native_boundary_absence_is_not_zone_proof": true,
+        "legend_image_source_verified": true,
+        "annotated_image_sha256": "487edd19bc365baea7d520717377a15a0c264b86679ebd326966607bf62f20b3",
         "ai_review": {
           "status": "not_run",
           "external_ai_requests": 0,
           "external_ai_cost": 0,
           "intersection_verified": false,
           "reason": "Opcionális API nincs engedélyezve vagy nincs hozzáférés."
-        }
+        },
+        "illustration_file": "tiszaújváros-2200-8.png"
       },
       "label_search": {
-        "status": "parcel_not_found",
+        "status": "zone_not_found",
+        "spatial_evidence": {
+          "parcel_boundary_verified": false,
+          "zone_boundary_verified": false,
+          "intersection_verified": false,
+          "reason": "A tervlapi feliratokhoz nincs hitelesen összerendelt telek- és övezetpoligon."
+        },
         "candidates": [],
         "zone": "",
-        "scan": {}
+        "scan": {
+          "hits": [
+            {
+              "page_number": 34,
+              "pdf_rect": [
+                536.8209838867188,
+                110.96002197265625,
+                541.2009887695312,
+                115.4599609375
+              ],
+              "angle": 50.15035884116729,
+              "text": "2200/8",
+              "label_only": true,
+              "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés"
+            }
+          ],
+          "complete": true,
+          "scanned": 31663,
+          "candidates": 31663,
+          "pages": 56,
+          "source_sha256": "ad67f8107097925a6825d03de8d4aff281ce2cdbd1630120464d08724b75b385"
+        }
       },
-      "label_hits": [],
+      "label_hits": [
+        {
+          "page": 35,
+          "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés"
+        }
+      ],
       "gis_sources": {
         "place": "Tiszaújváros",
         "catalog_complete": true,
         "catalog_receipts": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
-            "checked_at_utc": "2026-10-10T07:30:45.782830+00:00",
+            "checked_at_utc": "2026-10-10T08:51:26.671943+00:00",
             "status": 200,
-            "sha256": "76824d957ea5e2baf91988b2a5935d3266484049dc9dd23e12569a7420beac5b",
+            "sha256": "26d776b69910872fc5a6fbc279d721282f8bba3c5d38817de13885068cd7f787",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 312225
+            "bytes": 300552
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
-            "checked_at_utc": "2026-10-10T07:30:51.933219+00:00",
+            "checked_at_utc": "2026-10-10T08:51:32.740823+00:00",
             "status": 200,
-            "sha256": "aef21edd2d883272420177fcfb23399a4ff57b23a269bead13e03a1c612f4e1c",
+            "sha256": "50a8e7a9f2e6735122b9ae4e8bd8ccedb17662b6b24bec4af95dcfa1f39b90cd",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 262481
+            "bytes": 276980
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
-            "checked_at_utc": "2026-10-10T07:30:58.512371+00:00",
+            "checked_at_utc": "2026-10-10T08:51:40.400096+00:00",
             "status": 200,
-            "sha256": "fa4e7b36cf5144c7b2ed5562a749ccb54544eec8bda1bc36eafb32f887984ff3",
+            "sha256": "18c07b9fd46150b53ebc09095144b907bbecafd57fae2b5fb44644616b5c0a7e",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 270429
+            "bytes": 267603
           }
         ],
         "catalog_error": "",
         "entries": [
           {
             "url": "https://map.tiszaujvaros.hu/",
-            "checked_at_utc": "2026-10-10T07:31:04.349210+00:00",
+            "checked_at_utc": "2026-10-10T08:51:55.254234+00:00",
             "status": 200,
-            "sha256": "658610d5e692a6cd690e5763a89dcb3ed07b2cd41e2493070a807a192a0b71e7",
+            "sha256": "4fe406b406f1fd7910cd0812f6c608fad2e67ccca0efd7ebd7035ad57aa09272",
             "error": "",
             "final_url": "https://map.tiszaujvaros.hu/",
             "content_type": "text/html; charset=utf-8",
@@ -3197,39 +3582,6 @@
               {
                 "protocol": "image/gif",
                 "url": "http://webgis.okir.hu/geonetwork/srv/api/records/MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c/attachments/nptkttte.gif"
-              }
-            ]
-          },
-          {
-            "identifier": [
-              "ProtectedAreaLine_HU_20160322"
-            ],
-            "title": [
-              "Protected Area Line"
-            ],
-            "abstract": [
-              "Designated waters for other protection."
-            ],
-            "subject": [
-              "Protected sites",
-              "protected area",
-              "freshwater",
-              "fish",
-              "Protected areas (Water Framework Directive)",
-              "inlandWaters"
-            ],
-            "rights": [
-              "otherRestrictions"
-            ],
-            "date": [
-              "2026-10-05T08:04:38.143Z"
-            ],
-            "links": [
-              {
-                "protocol": "OGC:WFS",
-                "name": "ProtectedAreaL",
-                "description": "ProtectedAreaL",
-                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
               }
             ]
           },
@@ -3493,12 +3845,45 @@
                 "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
               }
             ]
+          },
+          {
+            "identifier": [
+              "ProtectedAreaLine_HU_20160322"
+            ],
+            "title": [
+              "Protected Area Line"
+            ],
+            "abstract": [
+              "Designated waters for other protection."
+            ],
+            "subject": [
+              "Protected sites",
+              "protected area",
+              "freshwater",
+              "fish",
+              "Protected areas (Water Framework Directive)",
+              "inlandWaters"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-05T08:04:38.143Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WFS",
+                "name": "ProtectedAreaL",
+                "description": "ProtectedAreaL",
+                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
+              }
+            ]
           }
         ],
         "services": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:31:05.784249+00:00",
+            "checked_at_utc": "2026-10-10T08:51:56.651487+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -3525,16 +3910,8 @@
             ]
           },
           {
-            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
-            "checked_at_utc": "2026-10-10T07:31:06.012306+00:00",
-            "status": 400,
-            "sha256": "",
-            "error": "HTTP Error 400: Bad Request",
-            "zoning_verified": false
-          },
-          {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
-            "checked_at_utc": "2026-10-10T07:31:07.242910+00:00",
+            "checked_at_utc": "2026-10-10T08:51:56.974227+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -3562,7 +3939,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:31:07.464390+00:00",
+            "checked_at_utc": "2026-10-10T08:51:57.393444+00:00",
             "status": 200,
             "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
             "error": "",
@@ -3587,7 +3964,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:31:08.268188+00:00",
+            "checked_at_utc": "2026-10-10T08:51:58.221015+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
@@ -3612,7 +3989,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:31:08.478308+00:00",
+            "checked_at_utc": "2026-10-10T08:51:58.443429+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
@@ -3634,6 +4011,14 @@
                 "MetadataURL": "\n          "
               }
             ]
+          },
+          {
+            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
+            "checked_at_utc": "2026-10-10T08:51:58.752450+00:00",
+            "status": 400,
+            "sha256": "",
+            "error": "HTTP Error 400: Bad Request",
+            "zoning_verified": false
           }
         ],
         "zoning_verified": false,
@@ -3643,7 +4028,7 @@
         ],
         "heritage_snapshot": {
           "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
-          "checked_at_utc": "2026-10-10T07:31:09.142603+00:00",
+          "checked_at_utc": "2026-10-10T08:52:00.665209+00:00",
           "status": 200,
           "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
           "error": "",
@@ -3654,7 +4039,7 @@
           "reuse_evidence": {
             "receipt": {
               "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
-              "checked_at_utc": "2026-10-10T07:31:08.791818+00:00",
+              "checked_at_utc": "2026-10-10T08:52:00.069740+00:00",
               "status": 200,
               "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
               "error": "",
@@ -5370,17 +5755,367 @@
         "source_verified": true
       },
       "classification": {
-        "category": "C",
-        "title": "NEM AZONOSÍTHATÓ",
-        "zone": "",
+        "category": "B",
+        "title": "NAGY VALÓSZÍNŰSÉGGEL AZONOSÍTOTT BESOROLÁS",
+        "zone": "Gip/3",
         "zone_verified": false,
         "rules_conditional": true
       },
       "zone_rules": {
-        "zone": "",
+        "zone": "Gip/3",
         "zone_verified": false,
-        "parameter_rows": [],
-        "clause_rows": [],
+        "parameter_rows": [
+          {
+            "Előírás": "Beépítési mód",
+            "Érték": "SZ",
+            "Forrás": "NJT – 1.2. melléklet, 2. PDF-oldal",
+            "Bizonyosság": "ellenőrzött forrássor; azonos PDF-kiadás",
+            "URL": "https://njt.jog.gov.hu/document/af/afafLL_EJR_80774847-2._mell_klet.pdf",
+            "Forrás SHA-256": "646f63c2c6da99ea9862dc6da3abfc3ed54883be718180f48e446496eac62a42",
+            "PDF-oldal": 2,
+            "Lábjegyzet": "2. lábjegyzet: Technológiai indokoltság esetére alkalmazható eltérés. (3. PDF-oldal)",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Előírás": "Legnagyobb beépítettség",
+            "Érték": "30 %",
+            "Forrás": "NJT – 1.2. melléklet, 2. PDF-oldal",
+            "Bizonyosság": "ellenőrzött forrássor; azonos PDF-kiadás",
+            "URL": "https://njt.jog.gov.hu/document/af/afafLL_EJR_80774847-2._mell_klet.pdf",
+            "Forrás SHA-256": "646f63c2c6da99ea9862dc6da3abfc3ed54883be718180f48e446496eac62a42",
+            "PDF-oldal": 2,
+            "Lábjegyzet": "2. lábjegyzet: Technológiai indokoltság esetére alkalmazható eltérés. (3. PDF-oldal)",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Előírás": "Legkisebb telekterület",
+            "Érték": "10000 m²",
+            "Forrás": "NJT – 1.2. melléklet, 2. PDF-oldal",
+            "Bizonyosság": "ellenőrzött forrássor; azonos PDF-kiadás",
+            "URL": "https://njt.jog.gov.hu/document/af/afafLL_EJR_80774847-2._mell_klet.pdf",
+            "Forrás SHA-256": "646f63c2c6da99ea9862dc6da3abfc3ed54883be718180f48e446496eac62a42",
+            "PDF-oldal": 2,
+            "Lábjegyzet": "2. lábjegyzet: Technológiai indokoltság esetére alkalmazható eltérés. (3. PDF-oldal)",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Előírás": "Legkisebb zöldfelület",
+            "Érték": "25 %",
+            "Forrás": "NJT – 1.2. melléklet, 2. PDF-oldal",
+            "Bizonyosság": "ellenőrzött forrássor; azonos PDF-kiadás",
+            "URL": "https://njt.jog.gov.hu/document/af/afafLL_EJR_80774847-2._mell_klet.pdf",
+            "Forrás SHA-256": "646f63c2c6da99ea9862dc6da3abfc3ed54883be718180f48e446496eac62a42",
+            "PDF-oldal": 2,
+            "Lábjegyzet": "2. lábjegyzet: Technológiai indokoltság esetére alkalmazható eltérés. (3. PDF-oldal)",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Előírás": "Legnagyobb épületmagasság",
+            "Érték": "12,50 m; 2. lábjegyzet",
+            "Forrás": "NJT – 1.2. melléklet, 2. PDF-oldal",
+            "Bizonyosság": "ellenőrzött forrássor; azonos PDF-kiadás",
+            "URL": "https://njt.jog.gov.hu/document/af/afafLL_EJR_80774847-2._mell_klet.pdf",
+            "Forrás SHA-256": "646f63c2c6da99ea9862dc6da3abfc3ed54883be718180f48e446496eac62a42",
+            "PDF-oldal": 2,
+            "Lábjegyzet": "2. lábjegyzet: Technológiai indokoltság esetére alkalmazható eltérés. (3. PDF-oldal)",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          }
+        ],
+        "clause_rows": [
+          {
+            "Forrás": "7. § (1)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7.@BE(1)",
+            "Teljes rendelkezés": "7. § (1) Amennyiben egy telek egynél több építési övezetbe vagy övezetbe tartozik, kizárólag a beépítés paraméterek számításánál az övezeti határvonalat úgy kell tekinteni, mintha az telekhatár lenne. Az előírás építési hely kijelölésénél nem alkalmazható.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "7. § (2)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7.@BE(2)",
+            "Teljes rendelkezés": "(2) Az építési helyen kívül álló, meglévő épületek felújíthatók, tetőterük beépíthető, de szintszám-növekedéssel együtt járó, továbbá beépítettséget növelő bővítésük nem engedélyezhető.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "7. § (3)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7.@BE(3)",
+            "Teljes rendelkezés": "(3) Lakóterületen és vegyes területen a beépítés engedélyezésének feltétele a telek belterületi jogállása.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "7. § (4)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7.@BE(4)",
+            "Teljes rendelkezés": "(4) Belterületi lakóterületen telek magánúti megközelítése kizárólag közforgalom számára megnyitott korlátlan használatú magánútról engedélyezhető.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "7. § (5)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7.@BE(5)",
+            "Teljes rendelkezés": "(5) Terepszint alatti építmény – a közművek és közműépítmények kivételével – csak az építési hely határain belül engedélyezhető.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "7. § (6)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7.@BE(6)",
+            "Teljes rendelkezés": "(6) Anyaggödör és vízállás művelési ágban nyilvántartott telkek építési alkalmasságát talajmechanikai szakvélemény alapján kell megállapítani.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "7. § (7)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7.@BE(7)",
+            "Teljes rendelkezés": "(7) A 35 sz. főút, Örösi út, Lévai József utca és Szederkényi út által határolt területen az egyes telkek és építmények rendeltetésszerű használatához a telken belül az országos előírásokban szereplő személygépkocsi elhelyezést – lakás és üdülő önálló rendeltetési egység kivételével - 50 %-ra lecsökkentve kell figyelembe venni.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "7. § (8)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7.@BE(8)",
+            "Teljes rendelkezés": "(8) Az északi lakóterület fejlesztési területén a szabályozási terven feltüntetett „magassági pont terepszint kialakításához” megnevezésű pontok közül a legközelebb esőhöz képest legfeljebb 0,5 m szintkülönbséggel kell a végleges terepszintet kialakítani.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "7. § (9)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7.@BE(9)",
+            "Teljes rendelkezés": "(9) Szabályozással érintett telkek esetén a telekalakítás végrehajtható az építési övezetekre és övezetekre vonatkozó legkisebb telekterület érékének figyelembe vétele nélkül.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "7. § (10)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7@BE10",
+            "Teljes rendelkezés": "(10) Tiszaújváros teljes közigazgatási területe a felszín alatti vizek állapota szempontjából fokozottan érzékeny terület.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "7. § (11)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7@BE11",
+            "Teljes rendelkezés": "(11) Hidrogeológiai védőidomok érintettségében a hidrogeológiai védőidomok kijelöléséről szóló határozatok vonatkozó előírásait be kell tartani.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "7. § (12)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ7@BE12",
+            "Teljes rendelkezés": "(12) A felszín alatti vizek védelméről szóló Korm. rendeletben szereplő, fokozottan veszélyeztetett területeken, valamint a belső, „A” és „B” jelű hidrogeológiai védőövezet területén a következő előírások betartása kötelező: a) Belső védőterületen: aa) A belső védőterület határait be kell keríteni, vagy őrzéséről egyéb módon gondoskodni kell. A kerítés rendeltetésszerű műszaki állapotát folyamatosan fenn kell tartani. ab) A belső védőövezet területén kizárólag a vízkivétel létesítményei, valamint a vízkivételhez csatlakozó vízellátó rendszer létesítményei helyezhetők el. ac) A vízműtelep létesítményeit úgy kell üzemeltetni, hogy a vízbe, a terepfelszínre és a felszín alá szennyező anyag ne kerülhessen. ad) A belső védőterületen mezőgazdasági tevékenység végzése tilos. A védőövezet területén lehetőleg összefüggő füvesített területet kell kialakítani és fenntartani, ahol trágyázás, valamint növényvédő szerek használata tilos. A nem füvesíthető területeket időtálló, szennyezést nem okozó anyaggal kell burkolni. A vezetékek és műtárgyak környezetében csak olyan bokrok, fák telepíthetők, melyek gyökérzete ezeket nem sérti. ae) A belső védőterületet úgy kell kialakítani és fenntartani, hogy ott csapadékvízből pangó vizek ne keletkezzenek. b) „A” és „B” jelű hidrogeológiai védőövezet területén: ba) A hidrogeológiai védőövezeten belül nem végezhető olyan tevékenység, amelynek következtében: növekszik a terület sérülékenysége és csökken a természetes védettsége, 6 hónapon belül le nem bomló, illetve olyan lebomló anyag juthat a felszín alatti vízkészletbe, amely annak minőségét, felhasználhatóságát károsítja, olyan mértékben megváltoznak (megváltozhatnak) a hidraulikai viszonyok, hogy az ivóvízellátásra hátrányos. bb) A hidrogeológiai védőövezeten tilos olyan létesítmény telepítése, amelynek jelenléte, vagy üzeme a termelt víz minőségét, mennyiségét veszélyezteti, károsítja. bc) A hidrogeológiai védőövezet területén új építmény csak akkor engedélyezhető, ha szennyvíz elvezetése közműcsatorna-hálózaton keresztül biztosított. Közműcsatorna kiépítéséig a szennyvíz vízzáró tárolóban történő gyűjtése és rendszeres ürítése, szállítása is elfogadható. A csatorna kiépítésekor a szennyvizet arra rá kell kötni. bd) A hidrogeológiai védőövezet területén szennyvízszikkasztás, szennyvíz-öntözés, szennyvíziszap-lerakás tilos. be) Az önellátást meghaladó állattartás a hidrogeológiai védőövezet „A” zónájában tilos. Önellátás céljára történő állattartásnál is biztosítani kell az ólak aljzatának vízzáróságát, a keletkező trágya, szennyezett csurgalék vízzáró aljzaton és tárolóban történő gyűjtését, rendszeres ürítését. bf) Az önellátást meghaladó állattartás a hidrogeológiai védőövezet „B” zónájában akkor engedélyezhető, ha biztosított a tevékenység során keletkező trágya, csurgalékvíz olyan gyűjtése, kezelése, tárolása, amely kizárja a talaj és vízszennyezés lehetőségét. bg) Ipari, szolgáltató, mezőgazdasági üzem, kereskedelmi, gazdasági épület, istálló akkor telepíthető, ha létesítményben használt, tárolt, szállított vizet szennyező anyagok a talajfelszínre nem kerülnek és nem jutnak a felszín alá, valamint biztosított, hogy annak esetleges szennyező hatását észlelik és a bekövetkezett rendkívüli szennyezés is rövid időn belül eltávolítható. bh) Olyan vegyi anyaggal, amely a vizet károsítja, vagy amelyből a víz minőségét károsító anyagok oldódhatnak ki, csak zárt építményben szabad dolgozni és azt csak zárt építményben szabad tárolni. bi) Vizet károsító folyékony anyagok tárolására szolgáló létesítmény csak úgy telepíthető, hogy állapota kívülről bármikor ellenőrizhető legyen. A tároló tartály olyan vízzáró falú kármentő tartályban kerüljön elhelyezésre, amely meghibásodás esetén a teljes tárolt folyadékmennyiség felfogására alkalmas. bj) Vízre veszélyes anyagot szállító regionális csővezeték az „A” védőövezeten nem vezethető keresztül. A „B” védőövezetben akkor engedélyezhető, ha a vezeték védelmét megteremtik és gondoskodnak rendszeres ellenőrzéséről, csőtörést jelző berendezésről. bk) A hidrogeológiai „A” védőzónában új út csak vízzáróan burkolt csapadékvíz-elvezető rendszerrel építhető.",
+            "Forrás SHA-256": "cff5c49ee1a00ba6c890b78a4342d843cbd6751acda3fa898a9419dbe7565f03",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "8. § (1)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ8.@BE(1)",
+            "Teljes rendelkezés": "8. § (1) Az építési övezetben vagy övezetben közműépítmények elhelyezése érdekében, továbbá közút, magánút számára az övezeti előírásoktól eltérő telek is kialakítható.",
+            "Forrás SHA-256": "c1ad75b3cf38fd5a2d11113346acd72fc28c58ea9fd7a4e96ddf18dc9424a5d1",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "8. § (2)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ8.@BE(2)",
+            "Teljes rendelkezés": "(2) A közterület kiszabályozása miatt az építési övezetben meghatározott legkisebb telekméret alá csökkenő telkek az eredeti telekméret szerint építhetők be az épület elhelyezésére vonatkozó szabályok betartásával, ha a visszamaradó telekméret eléri az építési övezetre előírt minimális telekméret 75%-át.",
+            "Forrás SHA-256": "c1ad75b3cf38fd5a2d11113346acd72fc28c58ea9fd7a4e96ddf18dc9424a5d1",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "8. § (3)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ8.@BE(3)",
+            "Teljes rendelkezés": "(3) A közforgalom számára meg nem nyitott magánútról önálló helyrajzi számú telek csak akkor nyitható, ha az út használatára vonatkozóan a felek szerződésben megegyeznek, és az út használatára vonatkozó szolgalmi jogot az ingatlan-nyilvántartásba bejegyezték.",
+            "Forrás SHA-256": "c1ad75b3cf38fd5a2d11113346acd72fc28c58ea9fd7a4e96ddf18dc9424a5d1",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "8. § (4)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ8.@BE(4)",
+            "Teljes rendelkezés": "(4) Újonnan kialakításra kerülő magánút minimális telekszélessége 8,0 m, kivéve a garázstelepek garázsegységeinek megközelítésére szolgáló magánutakat, amelyek a szabályozási terven szereplő telekszélességekkel (legalább 6,0 méter) is kialakíthatók.",
+            "Forrás SHA-256": "c1ad75b3cf38fd5a2d11113346acd72fc28c58ea9fd7a4e96ddf18dc9424a5d1",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "8. § (5)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ8.@BE(5)",
+            "Teljes rendelkezés": "(5) Úszótelek területe kizárólag utólagos hőszigetelés, felvonóépítés, valamint bejárati egység bővítése céljából, a műszakilag szükséges legkisebb mértékben növelhető.",
+            "Forrás SHA-256": "c1ad75b3cf38fd5a2d11113346acd72fc28c58ea9fd7a4e96ddf18dc9424a5d1",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "8. § (6)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ8.@BE(6)",
+            "Teljes rendelkezés": "(6) Újonnan kialakított, vagy több mint 50%-ában átosztásra kerülő telektömbben a telekalakítás kizárólag az egész tömb területére egységesen készített telekosztás alapján engedélyezhető.",
+            "Forrás SHA-256": "c1ad75b3cf38fd5a2d11113346acd72fc28c58ea9fd7a4e96ddf18dc9424a5d1",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "8. § (7)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ8.@BE(7)",
+            "Teljes rendelkezés": "(7) A szabályozási tervlapon jelölt, magánúttal feltárt telekosztási javaslattal rendelkező tömböknél telekalakítás kizárólag a telektömb egészére, a tömb közepének megközelítését lehetővé tevő magánút figyelembevételével készült telekalakítási terv alapján engedélyezhető.",
+            "Forrás SHA-256": "c1ad75b3cf38fd5a2d11113346acd72fc28c58ea9fd7a4e96ddf18dc9424a5d1",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "11. § (1)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ11.@BE(1)",
+            "Teljes rendelkezés": "11. § (1) A telek előkertjének mérete újonnan kiszabályozott telektömb esetén 5 m.",
+            "Forrás SHA-256": "959bfd19bbb1c2918f3bba3d032e6bb61d92dcdca6d8e1eae3763bcafecfb159",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "11. § (2)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ11.@BE(2)",
+            "Teljes rendelkezés": "(2) A telek oldalkertjének mérete, ahol a szabályozási terven vagy a TÉSZ-ben más előírás nem szerepel az alábbi: a) oldalhatáron álló beépítés esetén legalább 4,0 m. b) szabadon álló beépítés esetén az övezetre előírt legfeljebb az épületmagasság fele, de legalább 3,0 m.",
+            "Forrás SHA-256": "959bfd19bbb1c2918f3bba3d032e6bb61d92dcdca6d8e1eae3763bcafecfb159",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "11. § (3)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ11.@BE(3)",
+            "Teljes rendelkezés": "(3) Az előkert, valamint a hátsókert legkisebb méretének meghatározásánál a kialakult állapot szerinti értéket a telepítési távolság betartásának, a benapozás biztosításának, valamint az utcakép védelmének elve felülírja.",
+            "Forrás SHA-256": "959bfd19bbb1c2918f3bba3d032e6bb61d92dcdca6d8e1eae3763bcafecfb159",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "12. §",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ12.@BE0",
+            "Teljes rendelkezés": "12. § Valamennyi építési övezetben vagy övezetben elhelyezhető: a) köztárgy (utcabútor, szemétgyűjtő, telefonfülke, árusító automata), b) díszmű (szobor, kereszt, emlékmű, szökőkút, vízmedence, zászlórúd), c) nyomvonal jellegű építmény, d) közmű és közműpótló műtárgy, e) vízgazdálkodási műtárgy, f) megújuló energiaforrások műtárgya, g) kutatást és ismeretterjesztést szolgáló műtárgy, h) geodéziai jel, i) fegyveres erők, fegyveres testületek, rendészeti szervek, mentők, tűzoltók, vízügyi szolgálat építményei, j) segélyhívó, valamint k) nyilvános illemhely.",
+            "Forrás SHA-256": "717f50befce9a1281eb3ebfd748c417fb1bd9248fc186e8e41ddadc30771a5e8",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "26. §",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ26.@BE0",
+            "Teljes rendelkezés": "26. § Gazdasági területeken az építési övezetre előírt maximális épületmagasság – a technológiai indokoltság mértékéig – túlléphető.",
+            "Forrás SHA-256": "4cc70661aa0dae8617fe2c8e215b5e23979b6135a52fa7066815e6c200a40618",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "29. § (1)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ29.@BE(1)",
+            "Teljes rendelkezés": "29. § (1) Környezetére jelentős hatást gyakorló ipar területen – az OTÉK-ban felsoroltakon túl – elhelyezhető: a) igazgatási épület, b) irodaépület, c) parkolóház, valamint d) üzemanyagtöltő.",
+            "Forrás SHA-256": "0be00a5ea3b33189777d033113a7b5cd6b969d953c82e42ce6b48d96a37fe84b",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "29. § (2)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ29.@BE(2)",
+            "Teljes rendelkezés": "(2) Környezetére jelentős hatást gyakorló ipar területen a melléképítmények közül: a) háztartási célú kemence, húsfüstölő, jégverem, zöldségverem, valamint b) állatól, állatkifutó nem helyezhető el.",
+            "Forrás SHA-256": "0be00a5ea3b33189777d033113a7b5cd6b969d953c82e42ce6b48d96a37fe84b",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "29. § (3)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ29.@BE(3)",
+            "Teljes rendelkezés": "(3) Az építési övezetben a beépítés feltétele a teljes közművesítés megléte.",
+            "Forrás SHA-256": "0be00a5ea3b33189777d033113a7b5cd6b969d953c82e42ce6b48d96a37fe84b",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "29. § (4)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ29.@BE(4)",
+            "Teljes rendelkezés": "(4) Az építési övezetben lévő telkek közterületi határa, valamint a lakóterületekkel, településközpont területekkel határos telekhatára mentén – ahol a szabályozási tervlap ettől eltérő értéket nem határoz meg – legalább 10 méter széles beültetési kötelezettségű terület alakítandó ki.",
+            "Forrás SHA-256": "0be00a5ea3b33189777d033113a7b5cd6b969d953c82e42ce6b48d96a37fe84b",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "29. § (5)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ29.@BE(5)",
+            "Teljes rendelkezés": "(5) Kijelölt veszélyességi övezettel, kijelölt levegővédelmi védőterülettel, vagy kijelölt zajforrás hatásterülettel rendelkező telephely kizárólag a jelentős mértékű zavaró hatású ipari területen helyezhető el.",
+            "Forrás SHA-256": "0be00a5ea3b33189777d033113a7b5cd6b969d953c82e42ce6b48d96a37fe84b",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "29. § (6)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ29.@BE(6)",
+            "Teljes rendelkezés": "(6) A csővezetékeket, a kábelkötegeket közmű becsatlakozási műtárgyaknak kell tekinteni, és a beépítettségbe nem kell beleszámítani.",
+            "Forrás SHA-256": "0be00a5ea3b33189777d033113a7b5cd6b969d953c82e42ce6b48d96a37fe84b",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "30. § (1)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ30.@BE(1)",
+            "Teljes rendelkezés": "30. § (1) Egyesített építési övezetre vonatkozó előírások: a) Az egyesített építési övezet valamennyi építési telkét mint az egyesített építési övezet részét kell tekinteni. b) Az egyesített építési övezeten belüli telkek kötött funkcióval érintett részére építési tilalmat (zöldfelület, vízfelület), illetve építési korlátozást (magánút, iparvasút) kell bejegyezni az ingatlan-nyilvántartásban.",
+            "Forrás SHA-256": "027d4b09225b44233e0b56180f4e61560f3c2d0512138ddbbf7d66cfdeb86033",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "30. § (2)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ30.@BE(2)",
+            "Teljes rendelkezés": "(2) Kötött funkciójú területekre vonatkozó előírások: a) Az építési övezeten belül kijelölt kötött funkciójú területrészek közül a magánút területének, az iparvasút területének, valamint a zöldfelület területének lehatárolása és területi kiterjedése csak a szabályozási terv módosításával változtatható meg, amennyiben az a kötött funkciójú területrész térmértékének csökkenését eredményezné. b) Az építési övezeten belül kijelölt kötött funkciójú területrészek közül a vízfelület területe és az így jelölt zöldfelület területe szerkezeti szintű elem, ezért lehatárolásának és területi kiterjedésének változtatása a szabályozási terv módosításán túl a település-szerkezeti terv módosítását is maga után vonja. c) A kötött funkciójú zöldfelületek kialakítására és fenntartására az egyesített építési övezeten belül megállapodás kell, hogy szülessen. A megállapodás mellékletét kell, hogy képezze a szabályozási tervlap adott telephelyre vonatkozó része. d) Építési telek kialakítása kötött funkciójú magánút területének megszüntetésével nem járhat együtt. e) A mutatók számítása során a telken belül elhelyezkedő kötött funkciójú területek területét figyelmen kívül kell hagyni.",
+            "Forrás SHA-256": "027d4b09225b44233e0b56180f4e61560f3c2d0512138ddbbf7d66cfdeb86033",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "30. § (3)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ30.@BE(3)",
+            "Teljes rendelkezés": "(3) Vízfelületekre vonatkozó rendelkezések: a) A kötelező legkisebb zöldfelület számításánál a Sajó-csatorna kötött funkciójú vízfelület területe legfeljebb 75%-ban beszámítható az előírt legkisebb zöldfelület értékébe. b) A Sajó-csatorna kötött funkciójú vízfelület területének vízmeder-rendezése csak természetközeli megoldásokkal történhet.",
+            "Forrás SHA-256": "027d4b09225b44233e0b56180f4e61560f3c2d0512138ddbbf7d66cfdeb86033",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "30. § (4)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ30.@BE(4)",
+            "Teljes rendelkezés": "(4) A TVK Ipartelep építési övezetére vonatkozó egyedi előírások: a) Az építési telekre megengedett beépítési mutatók érvényesítésének feltétele, hogy az építési telek tulajdonosa megköti a MOL Petrolkémia Zrt.-vel a kötött funkciójú területek fenntartása érdekében az egyesített építési övezet (TVK Ipartelep) egészére vonatkozó megállapodást A megállapodás részét kell, hogy képezze a szabályozási tervlap TVK Ipartelep - telephelyre vonatkozó része. b) Amennyiben az a) pont nem teljesül, úgy a telek számára az övezeti paraméterek betartása lép elő kötelezettségként, telekalakítási tilalom életbe lépése mellett. A feltételhez kötött telekalakítási tilalom az a) pontban részletezett megállapodás aláírásával hatályát veszti. c) A beültetési kötelezettség szerinti növénytelepítés ütemezetten végrehajtható, de kialakítása legkésőbb a 40%-os beépítési lehetőséggel rendelkező területek igénybevételekor kötelezővé válik (a zöldfelületi megállapodás szerinti végrehajtással).",
+            "Forrás SHA-256": "027d4b09225b44233e0b56180f4e61560f3c2d0512138ddbbf7d66cfdeb86033",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "30. § (5)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ30.@BE(5)",
+            "Teljes rendelkezés": "(5) A MOL Finomító építési övezetére vonatkozó egyedi előírások: a) Az építési telekre megengedett beépítési mutatók érvényesítésének feltétele, hogy az építési telek tulajdonosa aláírja a kötött funkciójú zöldfelület területének kialakítására az egyesített építési övezeten belül született megállapodást. A megállapodás mellékletét kell, hogy képezze a szabályozási tervlap MOL Finomító telephelyre vonatkozó része. b) A MOL Finomító építési övezetének nyugati fejlesztési területén az építési telekre megengedett beépítési mutatók – az a) pont teljesülése esetén – azonnal érvényesíthetők. c) A külterületi, nyugati fejlesztési területek bevonása ütemezetten is végrehajtható. d) Az ütemek bevonása kizárólag sávosan, az övezet nyugati határáig bezárólag hajthatók végre. A bevonás során a sávot érintő kötött funkciójú zöldfelületnek az adott ütem részévé kell válnia. Az igénybevétellel egyidejűleg a beültetési kötelezettség kialakítása követelménnyé válik (a zöldfelületi megállapodás szerinti végrehajtással). e) A bővítés legkisebb szélességi mérete 100 m (első ütemben 120 m), amely sávnak közelítőleg téglalap alakúnak kell lennie. f) A bővítés a telephely északi, déli, vagy közbülső részén egyaránt megkezdhető, azonban a folytatásnak a megkezdett ütemhez kell csatlakoznia. g) A fejlesztési területekkel bevonásra került zöldfelületek az egyesített építési övezet telektulajdonosainak közös tulajdonába kell, hogy kerüljenek.",
+            "Forrás SHA-256": "027d4b09225b44233e0b56180f4e61560f3c2d0512138ddbbf7d66cfdeb86033",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          },
+          {
+            "Forrás": "30. § (6)",
+            "URL": "https://njt.jog.gov.hu/jogszabaly/2018-11-SP-5Y1228#SZ30.@BE(6)",
+            "Teljes rendelkezés": "(6) Az egyesített építési övezeten belüli telkekre vonatkozó beépítési mutatóban rögzített beépítettségi maximumot túllépő (túlépített), illetve zöldfelületi minimumot el nem érő telkekre vonatkozó egyedi előírások: a) A túlépített telkeken egyszeri 100 m² területű bővítés engedélyezhető. b) A beépítési mutatóban rögzített zöldfelületi minimumot el nem érő telkeknél a meglévő zöldfelületet meg kell tartani. Az előírás a 100 m² területű bővítés igénybevétele esetére is vonatkozik.",
+            "Forrás SHA-256": "027d4b09225b44233e0b56180f4e61560f3c2d0512138ddbbf7d66cfdeb86033",
+            "Forrás időállapota": "2024.10.10.",
+            "Állapot": "Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó"
+          }
+        ],
         "errors": [],
         "complete": false,
         "missing_evidence": [
@@ -5427,7 +6162,43 @@
         ],
         "source_url": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf",
         "source_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
-        "error": ""
+        "error": "",
+        "alternative_plan_search": [
+          {
+            "legal_url": "https://njt.jog.gov.hu/jogszabaly/2021-36-SP-5Y261",
+            "plan_url": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf",
+            "plan_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
+            "edition": "2026.06.08.",
+            "complete": true,
+            "exact_label_hits": [],
+            "search": {
+              "hits": [],
+              "complete": true,
+              "scanned": 6284,
+              "candidates": 6284,
+              "pages": 37,
+              "source_sha256": "9d2307d389babb511ff3fac1e0078589c37fc13fee2728c2ac4c465a98942490"
+            }
+          },
+          {
+            "legal_url": "https://njt.jog.gov.hu/jogszabaly/2020-26-SP-5Y261",
+            "plan_url": "https://njt.jog.gov.hu/document/2a/2afbLL_EJR_99704828-20250806__-Hegyvid_k_K_SZ_1_mell_klet.pdf",
+            "plan_hash": "5bfb7a610c6b4db26aef47e230e45240745b8cb23bb09d080f7517765078f079",
+            "edition": "2026.06.08.",
+            "complete": true,
+            "exact_label_hits": [],
+            "search": {
+              "hits": [],
+              "complete": true,
+              "scanned": 7705,
+              "candidates": 7705,
+              "pages": 78,
+              "source_sha256": "8dcbbd3f053914d816139274781566c811c578a58aa34ab1e03b7e81ed64b49f"
+            }
+          }
+        ],
+        "source_selection_ambiguous": false,
+        "supplementary_location_sources": []
       },
       "plan_result": {
         "zone": "",
@@ -5444,7 +6215,7 @@
             "plan_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
             "edition": "2026.06.08.",
             "ksh": "24697",
-            "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+            "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
           },
           "records": [
             {
@@ -6319,7 +7090,7 @@
           "plan_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
           "edition": "2026.06.08.",
           "ksh": "24697",
-          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
         },
         "records": [
           {
@@ -7148,6 +7919,15 @@
         "status": "not_identifiable",
         "zone": "",
         "intersection_verified": false,
+        "source": {
+          "source_url": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf",
+          "source_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
+          "plan_url": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf",
+          "plan_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
+          "edition": "2026.06.08.",
+          "ksh": "24697",
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
+        },
         "model": {
           "multimodal_api_configured": false,
           "credential_present": false,
@@ -7158,34 +7938,41 @@
           "reason": "Nincs ellenőrzött multimodális modellkapcsolat; képfeldolgozó útvonal."
         },
         "reasons": [
-          "Nincs igazolt telekgeometria a helyi vizuális kapcsolat ellenőrzéséhez."
+          "Nincs egyetlen, pontos és ellenőrizhető tervlapi HRSZ-hely."
         ],
-        "source": {
-          "source_url": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf",
-          "source_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
-          "plan_url": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf",
-          "plan_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
-          "edition": "2026.06.08.",
-          "ksh": "24697",
-          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
-        },
-        "nearby_parcel_labels": [],
-        "street_labels": [],
         "candidate_labels": [],
+        "location": {
+          "verified_preliminary": false,
+          "parcel_boundary_verified": false
+        },
+        "context_image_sha256": "7924c9f7456ad24b1ff53caadd73b7a5b43f627b07c55d9df656ad17117c3e27",
+        "overview_pdf_page": 1,
+        "overview_is_parcel_location": false,
+        "annotation_note": "Nem lokalizált forrásáttekintés: az első PDF-oldal. Nem telek- vagy övezeti bizonyíték.",
+        "legend_image_source_verified": true,
+        "annotated_image_sha256": "57c7e4212dc3b0270e1f8298cb31568cbdf357c514be9286b991f4c3fa783d40",
         "ai_review": {
           "status": "not_run",
           "external_ai_requests": 0,
           "external_ai_cost": 0,
           "intersection_verified": false,
           "reason": "Opcionális API nincs engedélyezve vagy nincs hozzáférés."
-        }
+        },
+        "illustration_file": "budapest-xii.-kerület-8448-46.png"
       },
       "minerva_detail": "MINERVA térbeli lekérdezés: HTTPError: HTTP Error 503: Service Unavailable",
       "label_search": {
         "status": "parcel_not_found",
         "candidates": [],
         "zone": "",
-        "scan": {}
+        "scan": {
+          "hits": [],
+          "complete": true,
+          "scanned": 6284,
+          "candidates": 6284,
+          "pages": 37,
+          "source_sha256": "9d2307d389babb511ff3fac1e0078589c37fc13fee2728c2ac4c465a98942490"
+        }
       },
       "label_hits": [],
       "gis_sources": {
@@ -7194,40 +7981,40 @@
         "catalog_receipts": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
-            "checked_at_utc": "2026-10-10T07:30:45.782830+00:00",
+            "checked_at_utc": "2026-10-10T08:51:26.671943+00:00",
             "status": 200,
-            "sha256": "76824d957ea5e2baf91988b2a5935d3266484049dc9dd23e12569a7420beac5b",
+            "sha256": "26d776b69910872fc5a6fbc279d721282f8bba3c5d38817de13885068cd7f787",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 312225
+            "bytes": 300552
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
-            "checked_at_utc": "2026-10-10T07:30:51.933219+00:00",
+            "checked_at_utc": "2026-10-10T08:51:32.740823+00:00",
             "status": 200,
-            "sha256": "aef21edd2d883272420177fcfb23399a4ff57b23a269bead13e03a1c612f4e1c",
+            "sha256": "50a8e7a9f2e6735122b9ae4e8bd8ccedb17662b6b24bec4af95dcfa1f39b90cd",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 262481
+            "bytes": 276980
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
-            "checked_at_utc": "2026-10-10T07:30:58.512371+00:00",
+            "checked_at_utc": "2026-10-10T08:51:40.400096+00:00",
             "status": 200,
-            "sha256": "fa4e7b36cf5144c7b2ed5562a749ccb54544eec8bda1bc36eafb32f887984ff3",
+            "sha256": "18c07b9fd46150b53ebc09095144b907bbecafd57fae2b5fb44644616b5c0a7e",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 270429
+            "bytes": 267603
           }
         ],
         "catalog_error": "",
         "entries": [
           {
             "url": "https://minerva.bp12ker.hu/minerva/bp12ker/internet.php",
-            "checked_at_utc": "2026-10-10T07:31:42.920189+00:00",
+            "checked_at_utc": "2026-10-10T08:53:35.555873+00:00",
             "status": 503,
             "sha256": "",
             "error": "HTTP Error 503: Service Unavailable",
@@ -7323,39 +8110,6 @@
               {
                 "protocol": "image/gif",
                 "url": "http://webgis.okir.hu/geonetwork/srv/api/records/MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c/attachments/nptkttte.gif"
-              }
-            ]
-          },
-          {
-            "identifier": [
-              "ProtectedAreaLine_HU_20160322"
-            ],
-            "title": [
-              "Protected Area Line"
-            ],
-            "abstract": [
-              "Designated waters for other protection."
-            ],
-            "subject": [
-              "Protected sites",
-              "protected area",
-              "freshwater",
-              "fish",
-              "Protected areas (Water Framework Directive)",
-              "inlandWaters"
-            ],
-            "rights": [
-              "otherRestrictions"
-            ],
-            "date": [
-              "2026-10-05T08:04:38.143Z"
-            ],
-            "links": [
-              {
-                "protocol": "OGC:WFS",
-                "name": "ProtectedAreaL",
-                "description": "ProtectedAreaL",
-                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
               }
             ]
           },
@@ -7619,12 +8373,45 @@
                 "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
               }
             ]
+          },
+          {
+            "identifier": [
+              "ProtectedAreaLine_HU_20160322"
+            ],
+            "title": [
+              "Protected Area Line"
+            ],
+            "abstract": [
+              "Designated waters for other protection."
+            ],
+            "subject": [
+              "Protected sites",
+              "protected area",
+              "freshwater",
+              "fish",
+              "Protected areas (Water Framework Directive)",
+              "inlandWaters"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-05T08:04:38.143Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WFS",
+                "name": "ProtectedAreaL",
+                "description": "ProtectedAreaL",
+                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
+              }
+            ]
           }
         ],
         "services": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:31:44.199199+00:00",
+            "checked_at_utc": "2026-10-10T08:53:36.515165+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -7651,16 +8438,8 @@
             ]
           },
           {
-            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
-            "checked_at_utc": "2026-10-10T07:31:45.238712+00:00",
-            "status": 400,
-            "sha256": "",
-            "error": "HTTP Error 400: Bad Request",
-            "zoning_verified": false
-          },
-          {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
-            "checked_at_utc": "2026-10-10T07:31:46.706766+00:00",
+            "checked_at_utc": "2026-10-10T08:53:37.543696+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -7688,7 +8467,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:31:47.590997+00:00",
+            "checked_at_utc": "2026-10-10T08:53:38.501257+00:00",
             "status": 200,
             "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
             "error": "",
@@ -7713,7 +8492,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:31:48.706930+00:00",
+            "checked_at_utc": "2026-10-10T08:53:39.868241+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
@@ -7738,7 +8517,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:31:49.363117+00:00",
+            "checked_at_utc": "2026-10-10T08:53:40.504197+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
@@ -7760,6 +8539,14 @@
                 "MetadataURL": "\n          "
               }
             ]
+          },
+          {
+            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
+            "checked_at_utc": "2026-10-10T08:53:40.831260+00:00",
+            "status": 400,
+            "sha256": "",
+            "error": "HTTP Error 400: Bad Request",
+            "zoning_verified": false
           }
         ],
         "zoning_verified": false,
@@ -7769,7 +8556,7 @@
         ],
         "heritage_snapshot": {
           "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
-          "checked_at_utc": "2026-10-10T07:31:09.142603+00:00",
+          "checked_at_utc": "2026-10-10T08:52:00.665209+00:00",
           "status": 200,
           "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
           "error": "",
@@ -7780,7 +8567,7 @@
           "reuse_evidence": {
             "receipt": {
               "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
-              "checked_at_utc": "2026-10-10T07:31:08.791818+00:00",
+              "checked_at_utc": "2026-10-10T08:52:00.069740+00:00",
               "status": 200,
               "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
               "error": "",
@@ -10431,7 +11218,8 @@
         ],
         "source_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
         "source_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
-        "error": ""
+        "error": "",
+        "supplementary_location_sources": []
       },
       "plan_result": {
         "zone": "",
@@ -10448,7 +11236,7 @@
             "plan_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
             "edition": "2025.12.22.",
             "ksh": "02167",
-            "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+            "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
           },
           "records": [
             {
@@ -10680,6 +11468,52 @@
               "PDF-oldal": 1
             },
             {
+              "label": "SZABALYOZASI JEL",
+              "role": "zone_code",
+              "rect": [
+                3035.338623046875,
+                881.0079345703125,
+                3122.6455078125,
+                923.5701293945312
+              ],
+              "recognition": "OCR candidate",
+              "sample_rect": [
+                2975.338623046875,
+                874.6236053466797,
+                3034.338623046875,
+                929.954458618164
+              ],
+              "styles": [
+                {
+                  "kind": "path",
+                  "stroke": null,
+                  "fill": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "width": 0,
+                  "dash": [],
+                  "closed": false
+                },
+                {
+                  "kind": "path",
+                  "stroke": null,
+                  "fill": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "width": 0,
+                  "dash": [],
+                  "closed": true
+                }
+              ],
+              "label_verified": false,
+              "ambiguous_sample": false,
+              "PDF-oldal": 1
+            },
+            {
               "label": "KOZLEKEDESITERULETEN   © KOu  \\   KOZLEKEDES!   TERULETEN",
               "role": "road_area",
               "rect": [
@@ -10821,18 +11655,6 @@
                   "width": 0,
                   "dash": [],
                   "closed": false
-                },
-                {
-                  "kind": "path",
-                  "stroke": null,
-                  "fill": [
-                    0.0,
-                    0.0,
-                    0.0
-                  ],
-                  "width": 0,
-                  "dash": [],
-                  "closed": true
                 }
               ],
               "label_verified": true,
@@ -11018,6 +11840,40 @@
               "label_verified": false,
               "ambiguous_sample": false,
               "PDF-oldal": 1
+            },
+            {
+              "label": "SZABALYOZASI JEL",
+              "role": "zone_code",
+              "rect": [
+                3036.2095192871093,
+                882.4864501953125,
+                3123.2273720703124,
+                902.9393920898438
+              ],
+              "recognition": "two-scale OCR",
+              "sample_rect": [
+                2976.2095192871093,
+                879.4185089111328,
+                3035.2095192871093,
+                906.0073333740235
+              ],
+              "styles": [
+                {
+                  "kind": "path",
+                  "stroke": null,
+                  "fill": [
+                    0.0,
+                    0.0,
+                    0.0
+                  ],
+                  "width": 0,
+                  "dash": [],
+                  "closed": false
+                }
+              ],
+              "label_verified": true,
+              "ambiguous_sample": false,
+              "PDF-oldal": 1
             }
           ],
           "cache_hit": true,
@@ -11075,7 +11931,7 @@
           "plan_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
           "edition": "2025.12.22.",
           "ksh": "02167",
-          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
         },
         "records": [
           {
@@ -11307,6 +12163,52 @@
             "PDF-oldal": 1
           },
           {
+            "label": "SZABALYOZASI JEL",
+            "role": "zone_code",
+            "rect": [
+              3035.338623046875,
+              881.0079345703125,
+              3122.6455078125,
+              923.5701293945312
+            ],
+            "recognition": "OCR candidate",
+            "sample_rect": [
+              2975.338623046875,
+              874.6236053466797,
+              3034.338623046875,
+              929.954458618164
+            ],
+            "styles": [
+              {
+                "kind": "path",
+                "stroke": null,
+                "fill": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "width": 0,
+                "dash": [],
+                "closed": false
+              },
+              {
+                "kind": "path",
+                "stroke": null,
+                "fill": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "width": 0,
+                "dash": [],
+                "closed": true
+              }
+            ],
+            "label_verified": false,
+            "ambiguous_sample": false,
+            "PDF-oldal": 1
+          },
+          {
             "label": "KOZLEKEDESITERULETEN   © KOu  \\   KOZLEKEDES!   TERULETEN",
             "role": "road_area",
             "rect": [
@@ -11448,18 +12350,6 @@
                 "width": 0,
                 "dash": [],
                 "closed": false
-              },
-              {
-                "kind": "path",
-                "stroke": null,
-                "fill": [
-                  0.0,
-                  0.0,
-                  0.0
-                ],
-                "width": 0,
-                "dash": [],
-                "closed": true
               }
             ],
             "label_verified": true,
@@ -11645,6 +12535,40 @@
             "label_verified": false,
             "ambiguous_sample": false,
             "PDF-oldal": 1
+          },
+          {
+            "label": "SZABALYOZASI JEL",
+            "role": "zone_code",
+            "rect": [
+              3036.2095192871093,
+              882.4864501953125,
+              3123.2273720703124,
+              902.9393920898438
+            ],
+            "recognition": "two-scale OCR",
+            "sample_rect": [
+              2976.2095192871093,
+              879.4185089111328,
+              3035.2095192871093,
+              906.0073333740235
+            ],
+            "styles": [
+              {
+                "kind": "path",
+                "stroke": null,
+                "fill": [
+                  0.0,
+                  0.0,
+                  0.0
+                ],
+                "width": 0,
+                "dash": [],
+                "closed": false
+              }
+            ],
+            "label_verified": true,
+            "ambiguous_sample": false,
+            "PDF-oldal": 1
           }
         ],
         "cache_hit": true,
@@ -11653,9 +12577,18 @@
         "zone_style_verified": true
       },
       "visual": {
-        "status": "not_identifiable",
-        "zone": "",
+        "status": "probable",
+        "zone": "Lke/1.2",
         "intersection_verified": false,
+        "source": {
+          "source_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+          "source_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+          "plan_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+          "plan_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+          "edition": "2025.12.22.",
+          "ksh": "02167",
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
+        },
         "model": {
           "multimodal_api_configured": false,
           "credential_present": false,
@@ -11666,77 +12599,759 @@
           "reason": "Nincs ellenőrzött multimodális modellkapcsolat; képfeldolgozó útvonal."
         },
         "reasons": [
-          "Nincs igazolt telekgeometria a helyi vizuális kapcsolat ellenőrzéséhez."
+          "Pontos forrástervi felirathely; a teljes telekgeometria és az övezeti fedés nincs igazolva.",
+          "A környezeti egyezés és a változó telekállapot további térképi ellenőrzést igényel."
         ],
-        "source": {
-          "source_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
-          "source_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+        "candidate_labels": [
+          {
+            "code": "Lke/1.2",
+            "label_rect_pdf": [
+              1471.75,
+              1809.75,
+              1492.5,
+              1830.75
+            ],
+            "clear_paths": 9,
+            "label_inside_target_parcel": false,
+            "tested_anchors": 9,
+            "paths": [
+              {
+                "start_pdf": [
+                  1482.125,
+                  1820.25
+                ],
+                "end_pdf": [
+                  1579.8799438476562,
+                  1791.1099853515625
+                ]
+              },
+              {
+                "start_pdf": [
+                  1482.125,
+                  1820.25
+                ],
+                "end_pdf": [
+                  1579.8799438476562,
+                  1792.1099853515625
+                ]
+              },
+              {
+                "start_pdf": [
+                  1482.125,
+                  1820.25
+                ],
+                "end_pdf": [
+                  1579.8799438476562,
+                  1793.1099853515625
+                ]
+              },
+              {
+                "start_pdf": [
+                  1482.125,
+                  1820.25
+                ],
+                "end_pdf": [
+                  1580.8799438476562,
+                  1791.1099853515625
+                ]
+              },
+              {
+                "start_pdf": [
+                  1482.125,
+                  1820.25
+                ],
+                "end_pdf": [
+                  1580.8799438476562,
+                  1792.1099853515625
+                ]
+              },
+              {
+                "start_pdf": [
+                  1482.125,
+                  1820.25
+                ],
+                "end_pdf": [
+                  1580.8799438476562,
+                  1793.1099853515625
+                ]
+              },
+              {
+                "start_pdf": [
+                  1482.125,
+                  1820.25
+                ],
+                "end_pdf": [
+                  1581.8799438476562,
+                  1791.1099853515625
+                ]
+              },
+              {
+                "start_pdf": [
+                  1482.125,
+                  1820.25
+                ],
+                "end_pdf": [
+                  1581.8799438476562,
+                  1792.1099853515625
+                ]
+              },
+              {
+                "start_pdf": [
+                  1482.125,
+                  1820.25
+                ],
+                "end_pdf": [
+                  1581.8799438476562,
+                  1793.1099853515625
+                ]
+              }
+            ]
+          }
+        ],
+        "location": {
+          "verified_preliminary": true,
+          "parcel_boundary_verified": false,
+          "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés",
+          "hrsz_rect_display_pdf": [
+            1577.8199462890625,
+            1790.280029296875,
+            1583.93994140625,
+            1793.93994140625
+          ],
           "plan_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
           "plan_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
-          "edition": "2025.12.22.",
-          "ksh": "02167",
-          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+          "hrsz": "1558",
+          "page_rotation": 90,
+          "coordinate_space": "display",
+          "geographic_registration_verified": false
         },
-        "nearby_parcel_labels": [],
-        "street_labels": [],
-        "candidate_labels": [],
+        "pdf_page": 1,
+        "clip_pdf": [
+          1427.8199462890625,
+          1640.280029296875,
+          1733.93994140625,
+          1943.93994140625
+        ],
+        "legend_bound": true,
+        "circle_layout_examples": [
+          {
+            "PDF-oldal": 1,
+            "rect_display_pdf": [
+              2933.0,
+              877.0,
+              2959.0,
+              903.0
+            ],
+            "circle_coverage": 0.9583333333333334,
+            "divider_verified": true,
+            "caption": "SZABALYOZASI JEL"
+          }
+        ],
+        "circle_layout_from_own_legend": true,
+        "context_text": "&s : ot at \\77 Ss o a J Cale a | 4 Pend ° Ly ™~« YX Ksz) UO my Re “A ~ oe ie 4 S - sen”*® & < ‘ \\ Os A LX ad yp ke °o % coy “ vo xoe Yo x »S @ o. 4 Yn ee” <n BE Ne ee 2 7 oo” ¥ 4 Loo Z w oe p 7 “oer* ie Zz Lo mony S \\_.% ooo 7 &’ AIX. 8 < oe GLX SO LCG NN & \\ ee JL ZN VL VS / . Wf AMA Lg, s\\S 2, % 2 2) GOT 4 7 7 , phy x ey 5 a = Lay Z - SaeAG LOZ Za x, g 728 <e , 4 y UO ZL oe UC YF UC UC WwW a 0 apt Zz a a 4 yoy 7 7 7 2? 4 \\ 2 ui / Lee/ C6 4 < oN 2) = U caw, os JM’ ne Jo Y e : / 7 i Zao oe a 3 LES / LE VLE. ae, \\ ey Me Y y c Jo A e SYA Sar we 7 OY CK y MEN 377 & YZ Loo x LA VOL Aa * Ls 77 LY 7 0 7 yo 4 AN Go 1 8L SL & LA % 5 oa ma UC Wa ra 7 “ Ue GW . “e eo? Pe ae yo UO 7 8 eo?” SOs 2 Za Z Tae UO 5 2 , See ee Ky . 44 \\/ VOL % ° $ Ny Lo ra 7 “ JK % ° est by L aon ZL a Bs Oo S37 Yo UL YX 4 ave BS DS 7 Ke a oe va Yih ye %, 4 oo 7 ene< p » OLS, ve OG, By rn ? ne Up. . 4 3 oe 6g We, ? a % . : oh oe A 2 fo\\ Loe y <f \\ ° et AK or , ; 677 ‘ “ap oh WG < ute? ° Lp | aves? =a ° d& fy Va 77 ba G yx” %y a ON ksz Yo 4 exe? ‘ ° 2 14 OL xe fi “ Y 4 xe = 156 *, O ASL \" : e e° q Van _— , *. on son — == 15657 ° . 4 oo Ae 1 “=. ‘e nee ween ae % iG LA 7 LE oor 62 e eee cn Ek=3 a 0 ae » & ° y —— — 5se 3; 3% °° } wea .. == =Ev> an cA Win \"48074 =3 Cd » < eo. _ ot ? \\ Nt Le",
+        "context_landmarks": [
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1457.875,
+              1674.8753757476807
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1647.875,
+              1642.376874923706
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1570.2156219482422,
+              1667.8831253051758
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "2",
+            "centre_display_pdf": [
+              1525.375,
+              1686.8751258850098
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1577.125,
+              1675.6261253356934
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1647.625,
+              1662.3753747940063
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1573.338752746582,
+              1672.1333751678467
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1624.75,
+              1675.7512493133545
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "8",
+            "centre_display_pdf": [
+              1478.6243743896484,
+              1706.1263732910156
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "2",
+            "centre_display_pdf": [
+              1513.375,
+              1710.0002517700195
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1632.2468719482422,
+              1688.126874923706
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1654.9925003051758,
+              1681.5034999847412
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1674.5,
+              1681.5034999847412
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "5",
+            "centre_display_pdf": [
+              1464.0,
+              1720.5002517700195
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "728",
+            "centre_display_pdf": [
+              1471.7481231689453,
+              1719.6353759765625
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1602.0912475585938,
+              1687.3871250152588
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "0",
+            "centre_display_pdf": [
+              1437.3324999809265,
+              1731.3841247558594
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1623.6149978637695,
+              1699.7552490234375
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1674.75,
+              1692.7509994506836
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1687.2431182861328,
+              1686.1298751831055
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1697.9931182861328,
+              1686.1298751831055
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1732.4931182861328,
+              1686.1298751831055
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "2",
+            "centre_display_pdf": [
+              1466.375,
+              1735.7502517700195
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1705.125,
+              1692.2525005340576
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1697.625,
+              1698.3761253356934
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "3",
+            "centre_display_pdf": [
+              1558.1237487792969,
+              1726.6263732910156
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1671.7468719482422,
+              1715.3768768310547
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "377",
+            "centre_display_pdf": [
+              1454.4987506866455,
+              1765.0052490234375
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "77",
+            "centre_display_pdf": [
+              1627.615005493164,
+              1735.001750946045
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1656.75,
+              1729.752498626709
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "0",
+            "centre_display_pdf": [
+              1667.5,
+              1729.752498626709
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1691.125,
+              1724.1261253356934
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1714.7468719482422,
+              1720.1268768310547
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "1",
+            "centre_display_pdf": [
+              1652.8637466430664,
+              1737.756748199463
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "5",
+            "centre_display_pdf": [
+              1584.75,
+              1749.5002517700195
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1682.6900024414062,
+              1735.1371231079102
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1725.229995727539,
+              1731.8801231384277
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "8",
+            "centre_display_pdf": [
+              1549.496250152588,
+              1761.379623413086
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "2",
+            "centre_display_pdf": [
+              1648.7431259155273,
+              1746.3798751831055
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "5",
+            "centre_display_pdf": [
+              1516.875,
+              1772.3781280517578
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "2",
+            "centre_display_pdf": [
+              1532.625,
+              1772.3781280517578
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "44",
+            "centre_display_pdf": [
+              1679.4725036621094,
+              1743.1301231384277
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1682.8674926757812,
+              1756.264503479004
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1705.927505493164,
+              1772.639877319336
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1652.8300018310547,
+              1774.8846282958984
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1652.3550033569336,
+              1786.7672500610352
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1687.354995727539,
+              1786.7672500610352
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1536.7468757629395,
+              1832.125877380371
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "3",
+            "centre_display_pdf": [
+              1552.5,
+              1827.8756256103516
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "2",
+            "centre_display_pdf": [
+              1507.7449989318848,
+              1844.126121520996
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "677",
+            "centre_display_pdf": [
+              1515.625,
+              1865.0037536621094
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "77",
+            "centre_display_pdf": [
+              1547.212501525879,
+              1874.3813781738281
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1732.5,
+              1845.0009994506836
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "2",
+            "centre_display_pdf": [
+              1612.4931259155273,
+              1874.6273727416992
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "14",
+            "centre_display_pdf": [
+              1642.375,
+              1868.2525024414062
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1704.984375,
+              1859.3793716430664
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "156",
+            "centre_display_pdf": [
+              1485.2299995422363,
+              1906.3791198730469
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "15657",
+            "centre_display_pdf": [
+              1527.6093711853027,
+              1910.3791198730469
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "4",
+            "centre_display_pdf": [
+              1626.3481216430664,
+              1894.381118774414
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "1",
+            "centre_display_pdf": [
+              1730.104995727539,
+              1877.2545013427734
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "7",
+            "centre_display_pdf": [
+              1712.25,
+              1885.254997253418
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "62",
+            "centre_display_pdf": [
+              1568.875,
+              1916.5012512207031
+            ],
+            "independent_map_match_verified": false
+          },
+          {
+            "text": "0",
+            "centre_display_pdf": [
+              1608.4850006103516,
+              1913.2542572021484
+            ],
+            "independent_map_match_verified": false
+          }
+        ],
+        "local_source_boundary_segments": 407,
+        "source_dot_clearance_pdf": 1.7492855684535784,
+        "anchor_role": "HRSZ-felirat környezete, nem telekpoligon",
+        "context_image_sha256": "2b0f19a08067a9f6ca99c21a5a108f10110237479b51beddf91f5461808f3999",
+        "annotation_note": "Cián: három felbontásban vagy natív szövegből ellenőrzött HRSZ-hely, nem igazolt telekhatár. Lila: felirat és ellenőrzött helyi jelöltkapcsolat. Az eredeti tervi határjelek változatlanok.",
+        "legend_image_source_verified": true,
+        "annotated_image_sha256": "778e0e19de96348d249bc17bd49a142f09a6c0feb5cb16de3836743befe3d0b2",
         "ai_review": {
           "status": "not_run",
           "external_ai_requests": 0,
           "external_ai_cost": 0,
           "intersection_verified": false,
           "reason": "Opcionális API nincs engedélyezve vagy nincs hozzáférés."
-        }
+        },
+        "illustration_file": "komádi-1558.png"
       },
       "label_search": {
-        "status": "parcel_not_found",
+        "status": "zone_not_found",
+        "spatial_evidence": {
+          "parcel_boundary_verified": false,
+          "zone_boundary_verified": false,
+          "intersection_verified": false,
+          "reason": "A tervlapi feliratokhoz nincs hitelesen összerendelt telek- és övezetpoligon."
+        },
         "candidates": [],
         "zone": "",
-        "scan": {}
+        "scan": {
+          "hits": [
+            {
+              "page_number": 0,
+              "pdf_rect": [
+                1577.8199462890625,
+                1790.280029296875,
+                1583.93994140625,
+                1793.93994140625
+              ],
+              "angle": -17.727852496532797,
+              "text": "1558",
+              "label_only": true,
+              "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés"
+            }
+          ],
+          "complete": true,
+          "scanned": 6371,
+          "candidates": 6371,
+          "pages": 4,
+          "source_sha256": "eec40a43417cdc8578b2b22c8917987adf4b038072cea696367e70147a5f3b0a"
+        }
       },
-      "label_hits": [],
+      "label_hits": [
+        {
+          "page": 1,
+          "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés"
+        }
+      ],
       "gis_sources": {
         "place": "Komádi",
         "catalog_complete": true,
         "catalog_receipts": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
-            "checked_at_utc": "2026-10-10T07:30:45.782830+00:00",
+            "checked_at_utc": "2026-10-10T08:51:26.671943+00:00",
             "status": 200,
-            "sha256": "76824d957ea5e2baf91988b2a5935d3266484049dc9dd23e12569a7420beac5b",
+            "sha256": "26d776b69910872fc5a6fbc279d721282f8bba3c5d38817de13885068cd7f787",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 312225
+            "bytes": 300552
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
-            "checked_at_utc": "2026-10-10T07:30:51.933219+00:00",
+            "checked_at_utc": "2026-10-10T08:51:32.740823+00:00",
             "status": 200,
-            "sha256": "aef21edd2d883272420177fcfb23399a4ff57b23a269bead13e03a1c612f4e1c",
+            "sha256": "50a8e7a9f2e6735122b9ae4e8bd8ccedb17662b6b24bec4af95dcfa1f39b90cd",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 262481
+            "bytes": 276980
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
-            "checked_at_utc": "2026-10-10T07:30:58.512371+00:00",
+            "checked_at_utc": "2026-10-10T08:51:40.400096+00:00",
             "status": 200,
-            "sha256": "fa4e7b36cf5144c7b2ed5562a749ccb54544eec8bda1bc36eafb32f887984ff3",
+            "sha256": "18c07b9fd46150b53ebc09095144b907bbecafd57fae2b5fb44644616b5c0a7e",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 270429
+            "bytes": 267603
           }
         ],
         "catalog_error": "",
         "entries": [
           {
             "url": "https://www.komadi.hu/",
-            "checked_at_utc": "2026-10-10T07:32:11.067607+00:00",
+            "checked_at_utc": "2026-10-10T08:54:36.320011+00:00",
             "status": 200,
-            "sha256": "165abf7a01e83e28cca767f54ed07fa0f38f4e928efebb6a8d1fa81b20836075",
+            "sha256": "8c4bbd1779be0a78433d93eff6f8ec06d8cd63ecf99080e6d22f44138bef72f3",
             "error": "",
             "final_url": "https://www.komadi.hu/",
             "content_type": "text/html; charset=utf-8",
@@ -11833,39 +13448,6 @@
               {
                 "protocol": "image/gif",
                 "url": "http://webgis.okir.hu/geonetwork/srv/api/records/MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c/attachments/nptkttte.gif"
-              }
-            ]
-          },
-          {
-            "identifier": [
-              "ProtectedAreaLine_HU_20160322"
-            ],
-            "title": [
-              "Protected Area Line"
-            ],
-            "abstract": [
-              "Designated waters for other protection."
-            ],
-            "subject": [
-              "Protected sites",
-              "protected area",
-              "freshwater",
-              "fish",
-              "Protected areas (Water Framework Directive)",
-              "inlandWaters"
-            ],
-            "rights": [
-              "otherRestrictions"
-            ],
-            "date": [
-              "2026-10-05T08:04:38.143Z"
-            ],
-            "links": [
-              {
-                "protocol": "OGC:WFS",
-                "name": "ProtectedAreaL",
-                "description": "ProtectedAreaL",
-                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
               }
             ]
           },
@@ -12129,12 +13711,45 @@
                 "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
               }
             ]
+          },
+          {
+            "identifier": [
+              "ProtectedAreaLine_HU_20160322"
+            ],
+            "title": [
+              "Protected Area Line"
+            ],
+            "abstract": [
+              "Designated waters for other protection."
+            ],
+            "subject": [
+              "Protected sites",
+              "protected area",
+              "freshwater",
+              "fish",
+              "Protected areas (Water Framework Directive)",
+              "inlandWaters"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-05T08:04:38.143Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WFS",
+                "name": "ProtectedAreaL",
+                "description": "ProtectedAreaL",
+                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
+              }
+            ]
           }
         ],
         "services": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:32:12.851965+00:00",
+            "checked_at_utc": "2026-10-10T08:54:37.853536+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -12161,16 +13776,8 @@
             ]
           },
           {
-            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
-            "checked_at_utc": "2026-10-10T07:32:13.488319+00:00",
-            "status": 400,
-            "sha256": "",
-            "error": "HTTP Error 400: Bad Request",
-            "zoning_verified": false
-          },
-          {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
-            "checked_at_utc": "2026-10-10T07:32:14.940660+00:00",
+            "checked_at_utc": "2026-10-10T08:54:38.645200+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -12198,7 +13805,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:32:15.495574+00:00",
+            "checked_at_utc": "2026-10-10T08:54:39.356706+00:00",
             "status": 200,
             "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
             "error": "",
@@ -12223,7 +13830,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:32:16.402091+00:00",
+            "checked_at_utc": "2026-10-10T08:54:40.203185+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
@@ -12248,7 +13855,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:32:16.728960+00:00",
+            "checked_at_utc": "2026-10-10T08:54:40.619898+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
@@ -12270,6 +13877,14 @@
                 "MetadataURL": "\n          "
               }
             ]
+          },
+          {
+            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
+            "checked_at_utc": "2026-10-10T08:54:40.823647+00:00",
+            "status": 400,
+            "sha256": "",
+            "error": "HTTP Error 400: Bad Request",
+            "zoning_verified": false
           }
         ],
         "zoning_verified": false,
@@ -12279,7 +13894,7 @@
         ],
         "heritage_snapshot": {
           "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
-          "checked_at_utc": "2026-10-10T07:31:09.142603+00:00",
+          "checked_at_utc": "2026-10-10T08:52:00.665209+00:00",
           "status": 200,
           "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
           "error": "",
@@ -12290,7 +13905,7 @@
           "reuse_evidence": {
             "receipt": {
               "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
-              "checked_at_utc": "2026-10-10T07:31:08.791818+00:00",
+              "checked_at_utc": "2026-10-10T08:52:00.069740+00:00",
               "status": 200,
               "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
               "error": "",
@@ -12980,14 +14595,14 @@
         "source_verified": true
       },
       "classification": {
-        "category": "C",
-        "title": "NEM AZONOSÍTHATÓ",
-        "zone": "",
+        "category": "B",
+        "title": "NAGY VALÓSZÍNŰSÉGGEL AZONOSÍTOTT BESOROLÁS",
+        "zone": "Lke/1.2",
         "zone_verified": false,
         "rules_conditional": true
       },
       "zone_rules": {
-        "zone": "",
+        "zone": "Lke/1.2",
         "zone_verified": false,
         "parameter_rows": [],
         "clause_rows": [],
@@ -13048,7 +14663,140 @@
         ],
         "source_url": "https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf",
         "source_hash": "a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca",
-        "error": ""
+        "error": "",
+        "supplementary_location_sources": [
+          {
+            "source_url": "https://www.gersekarat.hu/webimages/files/letoltheto_dokumentumok/Gersekarat_telepulesrendezesi_eszkozok_modositasa.pdf",
+            "current_plan_verified": false,
+            "zone_verified": false,
+            "mentions": [
+              {
+                "pdf_page": 10,
+                "rect_pdf": [
+                  135.12281799316406,
+                  348.78692626953125,
+                  168.8573760986328,
+                  363.989013671875
+                ],
+                "context": [
+                  "ben a Nap sugárzás intenzitásától és a hőmérséklettől függően 320-1000 V DC feszültség ingadozik terhelés alatt. A DC áramkört inverterbe kötik be, mely az egyen-áramot 3x400V/50Hz feszültségű váltakozó árammá alakítja át és egyúttal biztosítja a kompenzációt és a magasabb harmónikusok szűrését. A szerkezeteken elhelyezett inverterek földkábelen keresztül adják le kitermelt villamos energiájukat. 2.122 A Gersekarát külterületi ingatlanokon kialakításra kerülő naperőmű parkok, továbbá a 034/15 hrsz-ú ingatlanon telepíteni tervezett, az összes, beleértve a Sárfimizdó területén létesülő projektet is kiszolgáló állomás és vezénylő épület területének vizsgálata. A naperőmű telepítési területei zömében a község belterületétől északra, egy kisebb egység az igazgatási terület nyugati nyúlványában, egy pedig az előbbitől délre, a nyugati igazgatási határ mellett helyezkedik el. 1. ábra Tervezett fotovoltaikus kiserőművek elhelyezkedése"
+                ]
+              },
+              {
+                "pdf_page": 11,
+                "rect_pdf": [
+                  70.79925537109375,
+                  146.4121551513672,
+                  104.53382110595703,
+                  161.58111572265625
+                ],
+                "context": [
+                  "GERSEKARÁT 11 TELEPÜLÉSRENDEZÉSI ESZKÖZÖK MÓDOSÍTÁSA 2019 2.123 A felhasznált ingatlanok területe és területfelhasználási besorolása: Az igazgatási terület északi részén tervezett 3 egység 0205/86 hrsz- 29,4656 ha; általános mezőgazdasági terület (szántó) 0203/46, 57 és 0186/27 hrsz- 46,322 ha; gyepművelésű mezőgazdasági terület Az igazgatási terület nyugati nyúlványában tervezett egység, állomás és vezénylő épület 034/15 hrsz- 13,32 ha; gyepművelésű mezőgazdasági terület (állomás és vezénylő épület, transzformátor) Az igazgatási terület nyugati nyúlványától délre, a nyugati igazgatási határ mellett tervezett egység 020/7 hrsz- 17,44 ha; általános mezőgazdasági terület (szántó) Mindösszesen: 106,5476 ha 2.124 Tulajdonjogi vizsgálat A beruházó a naperőművek építéséhez és üzemeltetéséhez szükséges jogosultságokkal rendelkezik a beruházás helyszínén. 2.125 A naperőműpark építményei Műszaki l"
+                ]
+              },
+              {
+                "pdf_page": 14,
+                "rect_pdf": [
+                  151.08013916015625,
+                  675.132080078125,
+                  184.69467163085938,
+                  690.301025390625
+                ],
+                "context": [
+                  "t a földtani veszélyforrás terület övezete érinti. Vas Megye Közgyűlésének 193/2010.(XI.26.) sz. határozatának F) sz. mellékletét képező pontosító térkép Gersekarát igazgatási területén földtani veszélyforrást nem jelez. 2.129 Tájhasználat, tájszerkezet Tájhasználat értékelése Gersekarát igazgatási területén a tervezett naperőműparkok elhelyezkedése a következő: északon a 0186/27, a 0203/46, a 0203/57 és a 0205/86 hrsz-ú területeken (HSE Europa Solar projekt elnevezésű) délnyugaton a 034/15 és a 020/7 hrsz-ú területeken (Jupiter Flex SolarPark projekt elnevezésű) Az utóbbinak a szomszédos Sárfimizdó település igazgatási területére is esnek részei. Földtani veszélyforrás területe OTrT 25. § (1) A földtani veszélyforrás területének övezetét a településrendezési eszközökben kell a tényleges kiterjedésnek megfelelően lehatárolni. (2) Az övezet területén új beépítésre szánt terület csak akkor jelölhető ki, ha ahhoz a bányafelügyelet a településrendezési eszközök egyez"
+                ]
+              },
+              {
+                "pdf_page": 15,
+                "rect_pdf": [
+                  70.8013916015625,
+                  507.97216796875,
+                  104.53595733642578,
+                  523.14111328125
+                ],
+                "context": [
+                  "MÓDOSÍTÁSA 2019 4. ábra A tervezett fotovoltaikus kiserőművek elhelyezkedése A felhasznált ingatlanok területfelhasználási besorolása: Az igazgatási terület északi részén tervezett 3 egység 0205/86hrsz- általános mezőgazdasági terület (szántó) 0203/46 hrsz- gyepművelésű mezőgazdasági terület 0203/57 hrsz- gyepművelésű mezőgazdasági terület 0186/27 hrsz- gyepművelésű mezőgazdasági terület Az igazgatási terület nyugati nyúlványában tervezett egység, állomás és vezénylő épület 034/15 hrsz- gyepművelésű mezőgazdasági terület (állomás és vezénylő épület, transzformátor) Az igazgatási terület nyugati nyúlványától délre, a nyugati igazgatási határ mellett tervezett egység 020/7 hrsz- általános mezőgazdasági terület (szántó) Összesen 106,5476 ha területet érint Gersekaráton a beruházás. 5. ábra HSE Europa Solar Kft. beruházási helyszíne"
+                ]
+              },
+              {
+                "pdf_page": 16,
+                "rect_pdf": [
+                  282.9599304199219,
+                  497.05218505859375,
+                  316.5745849609375,
+                  512.2211303710938
+                ],
+                "context": [
+                  "), betyárkóró (Conyza canadensis), közönséges tarackbúza (Elymus repens), zöldes muhar (Setaria viridis), szőrös disznóparéj (Amaranthus retroflexus), fehér libatop (Chenopodium album), seprence (Stenactis annua), baracklevelű keserűfű (Polygonum persicaria), közönséges orbáncfű (Hypericum perforatum), siskanádtippan (Calamagrostis epigeios), közönséges oroszlánfog (Leontodon hispidus), közönséges gyújtoványfű (Linaria vulgaris).5 Néhányukat (205/86, 020/7 hrsz.) még szántóként művelik. A 034/15 hrsz-ú terület északi nyúlványán fiatal akácos (Robinia pseudoacacia) található. A 0186/27 hrsz-ú ingatlantól keletre, annak közvetlen szomszédságában telepített erdei fenyvesek (Pinus sylvestris) találhatók. A déli, Sárfimizdó közelében elhelyezkedő terület (020/7 hrsz.) közelében, a közút déli oldalán húzódik a Sárvíz-patak, amelyet ligetes, égeres, füzes (Salix sp., Alnus glutinosa) kísérő növényzet kísér. Védett növény az érintett területeken források alapján nem található.6"
+                ]
+              },
+              {
+                "pdf_page": 17,
+                "rect_pdf": [
+                  70.7999038696289,
+                  185.5320281982422,
+                  104.53446960449219,
+                  200.70098876953125
+                ],
+                "context": [
+                  "EKARÁT 17 TELEPÜLÉSRENDEZÉSI ESZKÖZÖK MÓDOSÍTÁSA 2019 nincs információ értékes fajról.7 Regisztrálták azonban egy Natura 2000 jelölőfajai közé nem tartozó védett faj (tövisszúró gébics) előfordulását. A hatályos rendezési terv szerint az érintett területek mezőgazdasági övezetbe soroltak. Művelés águkat tekintve: 0186/27 hrsz: szántó (Sz3, Sz4, Sz5 min.oszt.) 0203/46 hrsz: gyep (L4 min. oszt.) 0203/57 hrsz: gyep (L4 min. oszt.) 0205/86 hrsz: szántó (Sz3, Sz5, Sz6 min. oszt.) 034/15 hrsz: szántó (Sz5, Sz6 min. oszt.) 020/7 hrsz: szántó (Sz4, Sz5 min. oszt.) Jelenleg művelést nem folytatnak rajtuk, fiatal parlag területek (kivéve a 0205/86 és a 020/7 hrsz-ú területek, amelyek felszántottak voltak a terület bejárásakor 2019. február elején). A délnyugati részen lévő 0314/15 hrsz-ú terület északi nyúlványa szintén nem művelt terület, amelyen cserjés-fás terület alakult ki. 1. fotó: 0186/27hrsz-ú terület 2. fotó: 0203/57 hrsz-ú terület 3. fotó: 0203/46 hrsz",
+                  ", Sz6 min. oszt.) 020/7 hrsz: szántó (Sz4, Sz5 min. oszt.) Jelenleg művelést nem folytatnak rajtuk, fiatal parlag területek (kivéve a 0205/86 és a 020/7 hrsz-ú területek, amelyek felszántottak voltak a terület bejárásakor 2019. február elején). A délnyugati részen lévő 0314/15 hrsz-ú terület északi nyúlványa szintén nem művelt terület, amelyen cserjés-fás terület alakult ki. 1. fotó: 0186/27hrsz-ú terület 2. fotó: 0203/57 hrsz-ú terület 3. fotó: 0203/46 hrsz-ú terület 4. fotó: 034/15 hrsz-ú terület 5. fotó: Távvezetékre való csatlakozás területe 6. fotó: Tervezett transzformátor ház területe 7 Naperőmű környezet-, természet- és tájvédelmi hatásainak előzetes bemutatása"
+                ]
+              },
+              {
+                "pdf_page": 17,
+                "rect_pdf": [
+                  103.4394302368164,
+                  502.1431579589844,
+                  130.8805694580078,
+                  514.5811157226562
+                ],
+                "context": [
+                  "EKARÁT 17 TELEPÜLÉSRENDEZÉSI ESZKÖZÖK MÓDOSÍTÁSA 2019 nincs információ értékes fajról.7 Regisztrálták azonban egy Natura 2000 jelölőfajai közé nem tartozó védett faj (tövisszúró gébics) előfordulását. A hatályos rendezési terv szerint az érintett területek mezőgazdasági övezetbe soroltak. Művelés águkat tekintve: 0186/27 hrsz: szántó (Sz3, Sz4, Sz5 min.oszt.) 0203/46 hrsz: gyep (L4 min. oszt.) 0203/57 hrsz: gyep (L4 min. oszt.) 0205/86 hrsz: szántó (Sz3, Sz5, Sz6 min. oszt.) 034/15 hrsz: szántó (Sz5, Sz6 min. oszt.) 020/7 hrsz: szántó (Sz4, Sz5 min. oszt.) Jelenleg művelést nem folytatnak rajtuk, fiatal parlag területek (kivéve a 0205/86 és a 020/7 hrsz-ú területek, amelyek felszántottak voltak a terület bejárásakor 2019. február elején). A délnyugati részen lévő 0314/15 hrsz-ú terület északi nyúlványa szintén nem művelt terület, amelyen cserjés-fás terület alakult ki. 1. fotó: 0186/27hrsz-ú terület 2. fotó: 0203/57 hrsz-ú terület 3. fotó: 0203/46 hrsz",
+                  ", Sz6 min. oszt.) 020/7 hrsz: szántó (Sz4, Sz5 min. oszt.) Jelenleg művelést nem folytatnak rajtuk, fiatal parlag területek (kivéve a 0205/86 és a 020/7 hrsz-ú területek, amelyek felszántottak voltak a terület bejárásakor 2019. február elején). A délnyugati részen lévő 0314/15 hrsz-ú terület északi nyúlványa szintén nem művelt terület, amelyen cserjés-fás terület alakult ki. 1. fotó: 0186/27hrsz-ú terület 2. fotó: 0203/57 hrsz-ú terület 3. fotó: 0203/46 hrsz-ú terület 4. fotó: 034/15 hrsz-ú terület 5. fotó: Távvezetékre való csatlakozás területe 6. fotó: Tervezett transzformátor ház területe 7 Naperőmű környezet-, természet- és tájvédelmi hatásainak előzetes bemutatása"
+                ]
+              },
+              {
+                "pdf_page": 21,
+                "rect_pdf": [
+                  184.20037841796875,
+                  133.8121795654297,
+                  217.8148956298828,
+                  148.98114013671875
+                ],
+                "context": [
+                  "RENDEZÉSI ESZKÖZÖK MÓDOSÍTÁSA 2019 A tervezett beruházásokhoz az Uni-Terv 2005 Környezetvédelmi Kft. (Székhely: 6723 Szeged, Tabán u. 26. I/1.) „HSE Europa Solar Kft. (1051 Budapest, Sas u. 10-12. IV. em.), Gersekarát 0186/27, 0203/46, 0203/57, 0205/86 hrsz. alatti ingatlanokon létesítendő naperőmű környezet-, természet- és tájvédelmi hatásainak előzetes bemutatása”, valamint „Jupiter Flex SolarPark Kft. (1051 Budapest, Sas u. 10-12. IV. em.) Sárfimizdó 017/5-8 és Gersekarát 020/7 és 034/15 hrsz. alatti ingatlanokon létesítendő naperőmű környezet-, természet- és tájvédelmi hatásainak előzetes bemutatása” címmel készített anyagot. A hivatkozott dokumentumok az alábbiakat állapították meg: A közeli Natura 2000-es terület jelölő fajai között elsősorban rovarok, halak és kétéltűek szerepelnek néhány madárfaj mellett. A felmérések alapján legmagasabb egyedszámban a balin (Aspius aspius) és a halványfoltú küllő (Gobio albipinnatus) van jelen a Natura 2000-es területen. A be"
+                ]
+              },
+              {
+                "pdf_page": 30,
+                "rect_pdf": [
+                  368.4002380371094,
+                  558.8521118164062,
+                  402.1348876953125,
+                  574.0210571289062
+                ],
+                "context": [
+                  "t területét egységesen 8m-ben határoztuk meg, a jelenlegi telekhatárok nyugati irányú bővítését előirányozva. Az utat déli irányba a napelem park tervezett bejáratáig bővíteni szükséges. Az útszakasz a létesítmény fenntartási munkái kapcsán szükséges a terület megközelítéséhez, forgalma inkább eseti, alkalmankénti nagysága (eltekintve az építés alatti időszaktól) nem lesz jelentős mértékű. 4.4 KÖZMŰFEJLESZTÉSI JAVASLAT Gersekarát külterületén tervezett kiserőműtől É-i irányban, a 034/15 hrsz.-ú területre települő alállomással egyidejűleg egy vezérlő épület is létesül. Az épületben kialakításra kerülő mosdó és WC ivóvízigénye alapján, kommunális szennyvizet bocsát ki. Az épületek külső oltóvíz igényét is biztosítani szükséges. Felmerül még a csapadékvizek elvezetésének kérdése is. 4.41 Vízellátás A vízigény biztosítására figyelembe vehető hálózat több száz méter távolságban található, ezért – tekintettel a várható vízigényekre – ésszerűbb megoldás – a területen b"
+                ]
+              },
+              {
+                "pdf_page": 33,
+                "rect_pdf": [
+                  401.75958251953125,
+                  233.8273468017578,
+                  435.37420654296875,
+                  248.77549743652344
+                ],
+                "context": [
+                  "mail: kissge01@gmail.com FŐÉPÍTÉSZI FELJEGYZÉS GERSEKARÁT KÖZSÉG HELYI ÉPÍTÉSI SZABÁLYZATÁNAK MÓDOSÍTÁSÁHOZ SZÜKSÉGES TARTALMI KÖVETELMÉNYEIRŐL Tervező: Archigraf Bt. A település képviselő-testülete az igazgatási terület északi részén tervezett 3 egység 0205/86 hrsz- 29,4656 ha; általános mezőgazdasági terület (szántó) 0203/46, 57 és 0186/27 hrsz- 46,322 ha; gyepművelésű mezőgazdasági terület; -az igazgatási terület nyugati nyúlványában tervezett egység, állomás és vezénylő épület 034/15 hrsz 13,32 ha; gyepművelésű mezőgazdasági terület (állomás és vezénylő épület, transzformátor); -az igazgatási terület nyugati nyúlványától délre, a nyugati igazgatási határ mellett tervezett egység 020/7 hrsz- 17,44 ha; általános mezőgazdasági terület (szántó); mindösszesen: 106,5476 ha ingatlanok a jelenleg hatályos területfelhasználási módból beépítésre nem szánt különleges terület övezetbe sorolása miatt szükségessé vált településrendezési eszközök módosítása fejlesztési cél kie"
+                ]
+              }
+            ],
+            "source_hash": "0dcb4afc45f93ad02ba86f3d5ee6ce0812cdc83e47128d4872aec9461baea385",
+            "note": "Települési tanulmányban szereplő HRSZ-említés; nem igazolt mai telekhely vagy hatályos övezet."
+          }
+        ]
       },
       "plan_result": {
         "zone": "",
@@ -13107,7 +14855,7 @@
           "plan_hash": "a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca",
           "edition": "2019.06.01.",
           "ksh": "30942",
-          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
         },
         "records": [
           {
@@ -13216,7 +14964,7 @@
             "PDF-oldal": 1
           },
           {
-            "label": "VEDOTERULET ESVEDOSAV HATARA",
+            "label": "SZABALYOZASI VEDOTERULET ESVEDOSAV HATARA",
             "role": "restriction",
             "rect": [
               165.649658203125,
@@ -13435,7 +15183,7 @@
             "PDF-oldal": 1
           },
           {
-            "label": "SZABALYOZASI  VONAL",
+            "label": "SZABALYOZASI VONAL",
             "role": "regulatory_line",
             "rect": [
               166.286453125,
@@ -13705,6 +15453,15 @@
         "status": "not_identifiable",
         "zone": "",
         "intersection_verified": false,
+        "source": {
+          "source_url": "https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf",
+          "source_hash": "a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca",
+          "plan_url": "https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf",
+          "plan_hash": "a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca",
+          "edition": "2019.06.01.",
+          "ksh": "30942",
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
+        },
         "model": {
           "multimodal_api_configured": false,
           "credential_present": false,
@@ -13715,33 +15472,40 @@
           "reason": "Nincs ellenőrzött multimodális modellkapcsolat; képfeldolgozó útvonal."
         },
         "reasons": [
-          "Nincs igazolt telekgeometria a helyi vizuális kapcsolat ellenőrzéséhez."
+          "Nincs egyetlen, pontos és ellenőrizhető tervlapi HRSZ-hely."
         ],
-        "source": {
-          "source_url": "https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf",
-          "source_hash": "a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca",
-          "plan_url": "https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf",
-          "plan_hash": "a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca",
-          "edition": "2019.06.01.",
-          "ksh": "30942",
-          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
-        },
-        "nearby_parcel_labels": [],
-        "street_labels": [],
         "candidate_labels": [],
+        "location": {
+          "verified_preliminary": false,
+          "parcel_boundary_verified": false
+        },
+        "context_image_sha256": "1a8591d1c60b73d49041725c0d1325acb83890f2e4ec63dbc14eb4c9d11d4e01",
+        "overview_pdf_page": 1,
+        "overview_is_parcel_location": false,
+        "annotation_note": "Nem lokalizált forrásáttekintés: az első PDF-oldal. Nem telek- vagy övezeti bizonyíték.",
+        "legend_image_source_verified": true,
+        "annotated_image_sha256": "55498791e16e9860b6224edebbda8d7b448aa6a558ec27d12b9202529099811d",
         "ai_review": {
           "status": "not_run",
           "external_ai_requests": 0,
           "external_ai_cost": 0,
           "intersection_verified": false,
           "reason": "Opcionális API nincs engedélyezve vagy nincs hozzáférés."
-        }
+        },
+        "illustration_file": "gersekarát-034-15.png"
       },
       "label_search": {
         "status": "parcel_not_found",
         "candidates": [],
         "zone": "",
-        "scan": {}
+        "scan": {
+          "hits": [],
+          "complete": true,
+          "scanned": 6145,
+          "candidates": 6145,
+          "pages": 1,
+          "source_sha256": "45da73cffaba42013aa926ab6ba333fe9fb363b89e10932117f12b053ea33271"
+        }
       },
       "label_hits": [],
       "gis_sources": {
@@ -13750,40 +15514,40 @@
         "catalog_receipts": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
-            "checked_at_utc": "2026-10-10T07:30:45.782830+00:00",
+            "checked_at_utc": "2026-10-10T08:51:26.671943+00:00",
             "status": 200,
-            "sha256": "76824d957ea5e2baf91988b2a5935d3266484049dc9dd23e12569a7420beac5b",
+            "sha256": "26d776b69910872fc5a6fbc279d721282f8bba3c5d38817de13885068cd7f787",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 312225
+            "bytes": 300552
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
-            "checked_at_utc": "2026-10-10T07:30:51.933219+00:00",
+            "checked_at_utc": "2026-10-10T08:51:32.740823+00:00",
             "status": 200,
-            "sha256": "aef21edd2d883272420177fcfb23399a4ff57b23a269bead13e03a1c612f4e1c",
+            "sha256": "50a8e7a9f2e6735122b9ae4e8bd8ccedb17662b6b24bec4af95dcfa1f39b90cd",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 262481
+            "bytes": 276980
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
-            "checked_at_utc": "2026-10-10T07:30:58.512371+00:00",
+            "checked_at_utc": "2026-10-10T08:51:40.400096+00:00",
             "status": 200,
-            "sha256": "fa4e7b36cf5144c7b2ed5562a749ccb54544eec8bda1bc36eafb32f887984ff3",
+            "sha256": "18c07b9fd46150b53ebc09095144b907bbecafd57fae2b5fb44644616b5c0a7e",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 270429
+            "bytes": 267603
           }
         ],
         "catalog_error": "",
         "entries": [
           {
             "url": "https://www.gersekarat.hu/hu/onkormanyzat/letoltheto-dokumentumok",
-            "checked_at_utc": "2026-10-10T07:33:36.418760+00:00",
+            "checked_at_utc": "2026-10-10T08:56:07.206089+00:00",
             "status": 200,
             "sha256": "1fe6621e696fe880dffcae6d650dd6f4bd129f6f182ddaccce2d46ed4a7f72f1",
             "error": "",
@@ -13882,39 +15646,6 @@
               {
                 "protocol": "image/gif",
                 "url": "http://webgis.okir.hu/geonetwork/srv/api/records/MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c/attachments/nptkttte.gif"
-              }
-            ]
-          },
-          {
-            "identifier": [
-              "ProtectedAreaLine_HU_20160322"
-            ],
-            "title": [
-              "Protected Area Line"
-            ],
-            "abstract": [
-              "Designated waters for other protection."
-            ],
-            "subject": [
-              "Protected sites",
-              "protected area",
-              "freshwater",
-              "fish",
-              "Protected areas (Water Framework Directive)",
-              "inlandWaters"
-            ],
-            "rights": [
-              "otherRestrictions"
-            ],
-            "date": [
-              "2026-10-05T08:04:38.143Z"
-            ],
-            "links": [
-              {
-                "protocol": "OGC:WFS",
-                "name": "ProtectedAreaL",
-                "description": "ProtectedAreaL",
-                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
               }
             ]
           },
@@ -14178,12 +15909,45 @@
                 "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
               }
             ]
+          },
+          {
+            "identifier": [
+              "ProtectedAreaLine_HU_20160322"
+            ],
+            "title": [
+              "Protected Area Line"
+            ],
+            "abstract": [
+              "Designated waters for other protection."
+            ],
+            "subject": [
+              "Protected sites",
+              "protected area",
+              "freshwater",
+              "fish",
+              "Protected areas (Water Framework Directive)",
+              "inlandWaters"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-05T08:04:38.143Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WFS",
+                "name": "ProtectedAreaL",
+                "description": "ProtectedAreaL",
+                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
+              }
+            ]
           }
         ],
         "services": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:33:38.583201+00:00",
+            "checked_at_utc": "2026-10-10T08:56:09.135894+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -14210,16 +15974,8 @@
             ]
           },
           {
-            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
-            "checked_at_utc": "2026-10-10T07:33:39.130936+00:00",
-            "status": 400,
-            "sha256": "",
-            "error": "HTTP Error 400: Bad Request",
-            "zoning_verified": false
-          },
-          {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
-            "checked_at_utc": "2026-10-10T07:33:40.410805+00:00",
+            "checked_at_utc": "2026-10-10T08:56:09.700039+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -14247,7 +16003,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:33:40.936090+00:00",
+            "checked_at_utc": "2026-10-10T08:56:09.913735+00:00",
             "status": 200,
             "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
             "error": "",
@@ -14272,7 +16028,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:33:41.440022+00:00",
+            "checked_at_utc": "2026-10-10T08:56:10.949586+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
@@ -14297,7 +16053,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:33:41.705983+00:00",
+            "checked_at_utc": "2026-10-10T08:56:11.290356+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
@@ -14319,6 +16075,14 @@
                 "MetadataURL": "\n          "
               }
             ]
+          },
+          {
+            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
+            "checked_at_utc": "2026-10-10T08:56:11.520447+00:00",
+            "status": 400,
+            "sha256": "",
+            "error": "HTTP Error 400: Bad Request",
+            "zoning_verified": false
           }
         ],
         "zoning_verified": false,
@@ -14626,7 +16390,8 @@
         ],
         "source_url": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
         "source_hash": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc",
-        "error": ""
+        "error": "",
+        "supplementary_location_sources": []
       },
       "plan_result": {
         "zone": "",
@@ -14650,7 +16415,7 @@
             "plan_hash": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc",
             "edition": "2026.09.26.",
             "ksh": "30456",
-            "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+            "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
           },
           "records": [
             {
@@ -17726,7 +19491,7 @@
           "plan_hash": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc",
           "edition": "2026.09.26.",
           "ksh": "30456",
-          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
         },
         "records": [
           {
@@ -20498,7 +22263,7 @@
           "plan_hash": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc",
           "edition": "2026.09.26.",
           "ksh": "30456",
-          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
         },
         "nearby_parcel_labels": [
           {
@@ -21037,7 +22802,8 @@
           "external_ai_cost": 0,
           "intersection_verified": false,
           "reason": "Opcionális API nincs engedélyezve vagy nincs hozzáférés."
-        }
+        },
+        "illustration_file": "miskolc-plan-context.png"
       },
       "gis_sources": {
         "place": "Miskolc",
@@ -21045,40 +22811,40 @@
         "catalog_receipts": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
-            "checked_at_utc": "2026-10-10T07:30:45.782830+00:00",
+            "checked_at_utc": "2026-10-10T08:51:26.671943+00:00",
             "status": 200,
-            "sha256": "76824d957ea5e2baf91988b2a5935d3266484049dc9dd23e12569a7420beac5b",
+            "sha256": "26d776b69910872fc5a6fbc279d721282f8bba3c5d38817de13885068cd7f787",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 312225
+            "bytes": 300552
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
-            "checked_at_utc": "2026-10-10T07:30:51.933219+00:00",
+            "checked_at_utc": "2026-10-10T08:51:32.740823+00:00",
             "status": 200,
-            "sha256": "aef21edd2d883272420177fcfb23399a4ff57b23a269bead13e03a1c612f4e1c",
+            "sha256": "50a8e7a9f2e6735122b9ae4e8bd8ccedb17662b6b24bec4af95dcfa1f39b90cd",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 262481
+            "bytes": 276980
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
-            "checked_at_utc": "2026-10-10T07:30:58.512371+00:00",
+            "checked_at_utc": "2026-10-10T08:51:40.400096+00:00",
             "status": 200,
-            "sha256": "fa4e7b36cf5144c7b2ed5562a749ccb54544eec8bda1bc36eafb32f887984ff3",
+            "sha256": "18c07b9fd46150b53ebc09095144b907bbecafd57fae2b5fb44644616b5c0a7e",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 270429
+            "bytes": 267603
           }
         ],
         "catalog_error": "",
         "entries": [
           {
             "url": "https://www.miskolc.hu/varoshaza/onkormanyzat/strategiak-koncepciok/miskolc-megyei-jogu-varos-epitesi-szabalyzata",
-            "checked_at_utc": "2026-10-10T07:35:42.351936+00:00",
+            "checked_at_utc": "2026-10-10T08:58:10.980835+00:00",
             "status": 200,
             "sha256": "ba87d5b47f8b379b22d1550418c365ebb2ac28990566deeea9295b3f2ed15d11",
             "error": "",
@@ -21177,39 +22943,6 @@
               {
                 "protocol": "image/gif",
                 "url": "http://webgis.okir.hu/geonetwork/srv/api/records/MDweb-5c61fb6c-5ce7-4fdf-b645-a675a549710c/attachments/nptkttte.gif"
-              }
-            ]
-          },
-          {
-            "identifier": [
-              "ProtectedAreaLine_HU_20160322"
-            ],
-            "title": [
-              "Protected Area Line"
-            ],
-            "abstract": [
-              "Designated waters for other protection."
-            ],
-            "subject": [
-              "Protected sites",
-              "protected area",
-              "freshwater",
-              "fish",
-              "Protected areas (Water Framework Directive)",
-              "inlandWaters"
-            ],
-            "rights": [
-              "otherRestrictions"
-            ],
-            "date": [
-              "2026-10-05T08:04:38.143Z"
-            ],
-            "links": [
-              {
-                "protocol": "OGC:WFS",
-                "name": "ProtectedAreaL",
-                "description": "ProtectedAreaL",
-                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
               }
             ]
           },
@@ -21473,12 +23206,45 @@
                 "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
               }
             ]
+          },
+          {
+            "identifier": [
+              "ProtectedAreaLine_HU_20160322"
+            ],
+            "title": [
+              "Protected Area Line"
+            ],
+            "abstract": [
+              "Designated waters for other protection."
+            ],
+            "subject": [
+              "Protected sites",
+              "protected area",
+              "freshwater",
+              "fish",
+              "Protected areas (Water Framework Directive)",
+              "inlandWaters"
+            ],
+            "rights": [
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-05T08:04:38.143Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WFS",
+                "name": "ProtectedAreaL",
+                "description": "ProtectedAreaL",
+                "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS"
+              }
+            ]
           }
         ],
         "services": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:35:44.169252+00:00",
+            "checked_at_utc": "2026-10-10T08:58:12.962212+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -21505,16 +23271,8 @@
             ]
           },
           {
-            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
-            "checked_at_utc": "2026-10-10T07:35:45.154881+00:00",
-            "status": 400,
-            "sha256": "",
-            "error": "HTTP Error 400: Bad Request",
-            "zoning_verified": false
-          },
-          {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
-            "checked_at_utc": "2026-10-10T07:35:46.521974+00:00",
+            "checked_at_utc": "2026-10-10T08:58:14.003184+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -21542,7 +23300,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:35:47.609400+00:00",
+            "checked_at_utc": "2026-10-10T08:58:15.130476+00:00",
             "status": 200,
             "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
             "error": "",
@@ -21567,7 +23325,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:35:48.792533+00:00",
+            "checked_at_utc": "2026-10-10T08:58:16.077318+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
@@ -21592,7 +23350,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-10T07:35:49.246282+00:00",
+            "checked_at_utc": "2026-10-10T08:58:16.513472+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
@@ -21614,6 +23372,14 @@
                 "MetadataURL": "\n          "
               }
             ]
+          },
+          {
+            "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
+            "checked_at_utc": "2026-10-10T08:58:17.045304+00:00",
+            "status": 400,
+            "sha256": "",
+            "error": "HTTP Error 400: Bad Request",
+            "zoning_verified": false
           }
         ],
         "zoning_verified": false,
@@ -21623,7 +23389,7 @@
         ],
         "heritage_snapshot": {
           "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
-          "checked_at_utc": "2026-10-10T07:31:09.142603+00:00",
+          "checked_at_utc": "2026-10-10T08:52:00.665209+00:00",
           "status": 200,
           "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
           "error": "",
@@ -21634,7 +23400,7 @@
           "reuse_evidence": {
             "receipt": {
               "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
-              "checked_at_utc": "2026-10-10T07:31:08.791818+00:00",
+              "checked_at_utc": "2026-10-10T08:52:00.069740+00:00",
               "status": 200,
               "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
               "error": "",

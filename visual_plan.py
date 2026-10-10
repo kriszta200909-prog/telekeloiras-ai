@@ -8,6 +8,8 @@ import base64
 import urllib.request
 import urllib.error
 import copy
+import shutil
+import subprocess
 import fitz
 import numpy as np
 from PIL import Image, ImageDraw
@@ -35,7 +37,8 @@ def classification_result(identification, visual):
         return {'category':'A','title':'IGAZOLT BESOROLÁS','zone':identification['zone'],
                 'zone_verified':True,'rules_conditional':True}
     if (visual.get('status')=='probable' and visual.get('zone') and
-            visual.get('legend_bound') and visual.get('exact_hrsz_in_parcel')):
+            visual.get('legend_bound') and
+            (visual.get('exact_hrsz_in_parcel') or visual.get('location',{}).get('verified_preliminary'))):
         return {'category':'B','title':'NAGY VALÓSZÍNŰSÉGGEL AZONOSÍTOTT BESOROLÁS',
                 'zone':visual['zone'],'zone_verified':False,'rules_conditional':True}
     return {'category':'C','title':'NEM AZONOSÍTHATÓ','zone':'',
@@ -112,6 +115,205 @@ def optional_vision_review(visual, hrsz):
     return out
 
 
+def circle_labels(page, clip, ocr, components):
+    """Read source two-tier inscriptions at independent resolutions, no answer supplied."""
+    scale=4
+    pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+    rgb=np.frombuffer(pix.samples,dtype=np.uint8).reshape(pix.height,pix.width,3)
+    ink=(rgb.max(axis=2)<190)&(rgb.max(axis=2).astype(int)-rgb.min(axis=2)<25)
+    result=[]
+    for x0,y0,x1,y1 in components(ink):
+        w,h=(x1-x0)/scale,(y1-y0)/scale
+        if not (6<min(w,h)<60 and .85<w/h<1.15):continue
+        cx,cy=(x0+x1)/2,(y0+y1)/2
+        angles=np.linspace(0,2*np.pi,72,endpoint=False)
+        found=np.zeros(72,dtype=bool)
+        for dr in (-1.5,0,1.5):
+            xs=np.rint(cx+(x1-x0)/2*np.cos(angles)+dr*np.cos(angles)).astype(int)
+            ys=np.rint(cy+(y1-y0)/2*np.sin(angles)+dr*np.sin(angles)).astype(int)
+            valid=(xs>=0)&(ys>=0)&(xs<rgb.shape[1])&(ys<rgb.shape[0])
+            found[valid]|=ink[ys[valid],xs[valid]]
+        if found.mean()<.6:continue
+        rect=fitz.Rect((pix.x+x0)/scale,(pix.y+y0)/scale,(pix.x+x1)/scale,(pix.y+y1)/scale)
+        readings=[]
+        for resolution in (12,16):
+            # Remove only the detected circle contour, keeping its inscriptions.
+            crop=page.get_pixmap(matrix=fitz.Matrix(resolution,resolution),clip=rect,alpha=False)
+            data=np.frombuffer(crop.samples,dtype=np.uint8).reshape(crop.height,crop.width,3).copy()
+            yy,xx=np.indices(data.shape[:2]);rad=((xx-data.shape[1]/2)/(data.shape[1]/2))**2+((yy-data.shape[0]/2)/(data.shape[0]/2))**2
+            words=[]
+            for start,end,radius in ((.10,.49,.92),(.53,.9,.78)):
+                part=data.copy();part[rad>radius**2]=255
+                image=io.BytesIO();Image.fromarray(part[int(start*crop.height):int(end*crop.height)]).save(image,format='PNG')
+                if shutil.which('tesseract'):
+                    try:
+                        run=subprocess.run(['tesseract','stdin','stdout','--psm','7','-l','eng'],
+                            input=image.getvalue(),capture_output=True,timeout=15,check=True)
+                        word=run.stdout.decode().strip()
+                    except (OSError,subprocess.SubprocessError):word=''
+                else:
+                    temporary=fitz.open();field=temporary.new_page(width=w,height=(end-start)*h)
+                    field.insert_image(field.rect,stream=image.getvalue())
+                    word=ocr(field,field.rect,resolution)[0];temporary.close()
+                words.append(word)
+            top=re.sub(r'\s+','',words[0]).strip(' |“”"-~\\()[]')
+            bottom=words[1].strip(' |“”"-~\\()[]')
+            if not re.fullmatch(r'[A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]{1,6}',top) or not re.fullmatch(r'\d+(?:\.\d+)*',bottom):break
+            readings.append(top+'/'+bottom)
+        if len(readings)==2 and readings[0]==readings[1]:result.append((readings[0],rect))
+    return result
+
+
+def source_circle_layout(doc, profile):
+    """Verify the two-tier shape in this source legend, not its caption alone."""
+    if profile.get('identity',{}).get('source_url')!=profile.get('identity',{}).get('plan_url'):return []
+    examples=[]
+    for record in profile.get('records',[]):
+        if record.get('role')!='zone_code' or not record.get('label_verified'):continue
+        page=doc[record['PDF-oldal']-1]
+        clip=(fitz.Rect(record['rect'])+(-160,-30,60,90))&page.rect
+        pix=page.get_pixmap(matrix=fitz.Matrix(2,2),clip=clip,alpha=False)
+        rgb=np.frombuffer(pix.samples,dtype=np.uint8).reshape(pix.height,pix.width,3)
+        ink=(rgb.max(2)<245)&(rgb.max(2).astype(int)-rgb.min(2)<25)
+        yy,xx=np.mgrid[8:pix.height-8:2,8:pix.width-8:2];cx=xx.ravel();cy=yy.ravel()
+        angles=np.linspace(0,2*np.pi,48,endpoint=False)
+        best=None
+        for radius in range(12,65,2):
+            valid=(cx>=radius)&(cy>=radius)&(cx+radius<pix.width)&(cy+radius<pix.height)
+            xs=cx[valid];ys=cy[valid]
+            if not len(xs):continue
+            scores=np.zeros((len(xs),48),dtype=bool)
+            for offset in (-2,-1,0,1,2):
+                px=np.rint(xs[:,None]+(radius+offset)*np.cos(angles)).astype(int)
+                py=np.rint(ys[:,None]+(radius+offset)*np.sin(angles)).astype(int)
+                inside=(px>=0)&(py>=0)&(px<pix.width)&(py<pix.height)
+                scores|=inside&ink[np.clip(py,0,pix.height-1),np.clip(px,0,pix.width-1)]
+            for index in np.flatnonzero(scores.mean(1)>.75):
+                x,y=int(xs[index]),int(ys[index]);span=int(radius*.65)
+                circle=fitz.Rect((pix.x+x-radius)/2,(pix.y+y-radius)/2,(pix.x+x+radius)/2,(pix.y+y+radius)/2)
+                if circle.intersects(fitz.Rect(record['rect'])):continue
+                if np.max([ink[y+dy,x-span:x+span].mean() for dy in (-1,0,1)])<.7:continue
+                score=float(scores[index].mean())
+                if best is None or score>best[0]:best=(score,x,y,radius)
+        if best:
+            score,x,y,radius=best
+            examples.append({'PDF-oldal':page.number+1,'rect_display_pdf':
+                [(pix.x+x-radius)/2,(pix.y+y-radius)/2,(pix.x+x+radius)/2,(pix.y+y+radius)/2],
+                'circle_coverage':score,'divider_verified':True,'caption':record['label']})
+    return examples
+
+
+def unlocated_plan_image(doc, out):
+    """Source overview is evidence of the attempted source, not parcel location."""
+    if doc is None or not len(doc):return out
+    page=doc[0];scale=min(2,1200/max(page.rect.width,page.rect.height))
+    pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),alpha=False)
+    raw=pix.tobytes('png');canvas=Image.new('RGB',(pix.width,pix.height+45),'white')
+    canvas.paste(Image.open(io.BytesIO(raw)),(0,45))
+    ImageDraw.Draw(canvas).text((10,12),'C: HRSZ helye nem igazolt. Forras-attekintes, nem lokalizalt telek.',fill='black')
+    buf=io.BytesIO();canvas.save(buf,format='PNG')
+    out.update(annotated_png=buf.getvalue(),context_image_sha256=hashlib.sha256(raw).hexdigest(),
+        overview_pdf_page=1,overview_is_parcel_location=False,
+        annotation_note='Nem lokalizált forrásáttekintés: az első PDF-oldal. Nem telek- vagy övezeti bizonyíték.')
+    return out
+
+
+def inspect_label_location(doc, spatial, profile, zone_pattern, hrsz, identity, ocr, components):
+    """Preliminary source-label localisation, independent of a proven parcel polygon.
+
+    Boundary clearance is a conservative local visual test, not full-parcel
+    coverage. Nearby inscriptions alone never qualify. No lines are joined.
+    """
+    out={'status':'not_identifiable','zone':'','intersection_verified':False,'source':profile.get('identity',{}),
+         'model':model_availability(),'reasons':[],'candidate_labels':[],
+         'location':{'verified_preliminary':False,'parcel_boundary_verified':False}}
+    hits=spatial.get('hits',[])
+    if len(hits)!=1:
+        out['reasons']=['Nincs egyetlen, pontos és ellenőrizhető tervlapi HRSZ-hely.'];return unlocated_plan_image(doc,out)
+    hit=hits[0];scan=spatial.get('scan',{})
+    if scan and not scan.get('complete'):
+        out['reasons']=['A HRSZ-keresés nem teljes; további azonos felirat nem zárható ki.'];return unlocated_plan_image(doc,out)
+    page=doc[hit['page_number']]
+    rect=fitz.Rect(hit['pdf_rect'])
+    if hit.get('coordinate_space')!='display':rect=rect*page.rotation_matrix
+    center=rect.tl+(rect.br-rect.tl)*.5
+    clip=(rect+(-150,-150,150,150))&page.rect
+    bound=profile.get('identity',{})
+    legend_bound=bool(styles_for(profile,'zone_boundary') and bound.get('source_hash') and
+        all(bound.get(k)==identity.get(k) for k in ('plan_url','plan_hash','edition','ksh')))
+    out.update(pdf_page=page.number+1,clip_pdf=list(clip),legend_bound=legend_bound,
+        location={'verified_preliminary':True,'parcel_boundary_verified':False,
+            'method':hit.get('method',''),'hrsz_rect_display_pdf':list(rect),
+            'plan_url':identity.get('plan_url'),'plan_hash':identity.get('plan_hash'),
+            'hrsz':hrsz,'page_rotation':page.rotation,
+            'coordinate_space':'display','geographic_registration_verified':False})
+    scale=min(5,1800/max(clip.width,clip.height));pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+    rgb=np.frombuffer(pix.samples,dtype=np.uint8).reshape(pix.height,pix.width,3)
+    labels=[(w[4],fitz.Rect(w[:4])*page.rotation_matrix) for w in page.get_text('words')
+        if zone_pattern.fullmatch(w[4]) and clip.contains(fitz.Rect(w[:4])*page.rotation_matrix)]
+    # Circle fields are only candidates. Their local boundary relationship and
+    # the municipality's own legend remain mandatory below.
+    out['circle_layout_examples']=source_circle_layout(doc,profile)
+    out['circle_layout_from_own_legend']=bool(out['circle_layout_examples'])
+    if out['circle_layout_from_own_legend']:labels.extend((code,rect) for code,rect in circle_labels(page,clip,ocr,components) if zone_pattern.fullmatch(code))
+    styles=styles_for(profile,'zone_boundary')+styles_for(profile,'regulatory_line')
+    from geopdf import legend_layer_paths
+    from shapely.affinity import affine_transform
+    m=page.rotation_matrix
+    barriers=[];local=box(*clip)
+    for role in ('zone_boundary','regulatory_line'):
+        for path in legend_layer_paths(page,profile,role):
+            for line in path['segments']:
+                transformed=affine_transform(line,[m.a,m.c,m.b,m.d,m.e,m.f])
+                if transformed.intersects(local):barriers.append(transformed)
+    # Cover actual dotted ink in a corridor, rather than treating white gaps as
+    # openings. Width comes from source ink component spacing, never a colour default.
+    zone_colours=[np.asarray(v)*255 for s in styles_for(profile,'zone_boundary') for k in ('fill','stroke')
+        if (v:=s.get(k)) is not None and max(v)-min(v)>.08]
+    dots=[]
+    for colour in zone_colours:
+        mask=np.linalg.norm(rgb.astype(float)-colour,axis=2)<35
+        for x0,y0,x1,y1 in components(mask):
+            if 1<min(x1-x0,y1-y0) and max(x1-x0,y1-y0)<scale*6 and .65<(x1-x0)/(y1-y0)<1.5:
+                dots.append(((pix.x+(x0+x1)/2)/scale,(pix.y+(y0+y1)/2)/scale))
+    clearance=0.
+    if len(dots)>3:
+        points=np.asarray(dots);nearest=[]
+        for start in range(0,len(points),256):
+            distance=np.linalg.norm(points[start:start+256,None,:]-points[None,:,:],axis=2)
+            distance[np.arange(len(distance)),np.arange(start,start+len(distance))]=np.inf
+            nearest.extend(distance.min(axis=1))
+        clearance=float(np.median(nearest)/2)
+        if 0<clearance<12:barriers.extend(Point(p).buffer(clearance) for p in dots)
+        else:clearance=0.
+    # Small anchor patch means labelled location only, never invented parcel extent.
+    patch=box(center.x-2,center.y-2,center.x+2,center.y+2)
+    associations=supported_labels(rgb,(pix.x/scale,pix.y/scale),scale,patch,labels,styles,barriers)
+    supported={r['code'] for r in associations if r['clear_paths']>=7}
+    if legend_bound and len(supported)==1 and styles:
+        out.update(status='probable',zone=next(iter(supported)))
+    context_text,context_words=ocr(page,clip,4)
+    out['context_text']=context_text
+    out['context_landmarks']=[{'text':word,'centre_display_pdf':list(point),'independent_map_match_verified':False}
+        for word,point in context_words if word.lower() in ('utca','út','ut','útja','utja','tér','ter','körút','korut')
+        or re.fullmatch(r'\d+(?:/\d+)?',word)]
+    out.update(candidate_labels=associations,local_source_boundary_segments=len(barriers),
+        source_dot_clearance_pdf=clearance,anchor_role='HRSZ-felirat környezete, nem telekpoligon',
+        context_image_sha256=hashlib.sha256(pix.tobytes('png')).hexdigest(),context_png=pix.tobytes('png'))
+    canvas=Image.fromarray(rgb.copy());draw=ImageDraw.Draw(canvas)
+    def xy(p):return ((p[0]-pix.x/scale)*scale,(p[1]-pix.y/scale)*scale)
+    draw.rectangle([xy(rect.tl),xy(rect.br)],outline=(0,160,220),width=4)
+    for row in associations:
+        r=fitz.Rect(row['label_rect_pdf']);draw.rectangle([xy(r.tl),xy(r.br)],outline=(180,0,220),width=3)
+        for path in row['paths'][:1]:draw.line([xy(path['start_pdf']),xy(path['end_pdf'])],fill=(180,0,220),width=2)
+    buffer=io.BytesIO();canvas.save(buffer,format='PNG');out['annotated_png']=buffer.getvalue()
+    out['annotation_note']='Cián: három felbontásban vagy natív szövegből ellenőrzött HRSZ-hely, nem igazolt telekhatár. Lila: felirat és ellenőrzött helyi jelöltkapcsolat. Az eredeti tervi határjelek változatlanok.'
+    if not barriers:out['native_boundary_absence_is_not_zone_proof']=True
+    out['reasons']=['Pontos forrástervi felirathely; a teljes telekgeometria és az övezeti fedés nincs igazolva.',
+        'A környezeti egyezés és a változó telekállapot további térképi ellenőrzést igényel.']
+    return out
+
+
 def supported_labels(rgb, origin, scale, parcel, labels, styles, source_barriers=()):
     """Compare every local code against several parcel-interior visual paths.
 
@@ -121,11 +323,14 @@ def supported_labels(rgb, origin, scale, parcel, labels, styles, source_barriers
     """
     colours=[]
     for style in styles:
+        # Colour alone cannot establish a closed symbol's shape. Its native
+        # source geometry is checked through source_barriers instead.
+        if style.get('closed'):continue
         for field in ('colour','stroke','fill'):
             value=style.get(field)
             if value is not None and (max(value)<.98 or max(value)-min(value)>.08):
                 colours.append(np.array(value)*255)
-    if not colours:return []
+    if not colours and not source_barriers:return []
     anchors=[]
     xmin,ymin,xmax,ymax=parcel.bounds
     for a in (.25,.5,.75):
@@ -242,10 +447,11 @@ def add_source_legend(result, profile, cache):
     excerpts=[]
     with fitz.open(path) as legend:
         for record in profile.get('records',[]):
-            if record.get('role') not in ('zone_boundary','regulatory_line','road_area','parcel_boundary','building_line'):continue
+            if record.get('role') not in ('zone_boundary','regulatory_line','road_area','parcel_boundary','building_line','zone_code'):continue
             number=record.get('PDF-oldal',0)-1
             if not 0<=number<len(legend):continue
             rect=fitz.Rect(record['rect']) | fitz.Rect(record['sample_rect'])
+            if record.get('role')=='zone_code':rect=rect+(-160,-30,60,90)
             pix=legend[number].get_pixmap(matrix=fitz.Matrix(3,3),clip=rect+(-3,-3,3,3),alpha=False)
             excerpts.append(Image.open(io.BytesIO(pix.tobytes('png'))).convert('RGB'))
     if not excerpts:return result

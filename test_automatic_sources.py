@@ -233,3 +233,39 @@ with geo_document() as source, tempfile.TemporaryDirectory() as folder:
 
 if __name__=='__main__':
     unittest.main()
+
+
+class AlternativePlanTests(unittest.TestCase):
+    def test_only_unique_complete_source_match_selects_alternative_law(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=str(Path(folder)/'plan.pdf');doc=fitz.open();doc.new_page();doc.save(path);doc.close()
+            meta={'url':'https://njt.jog.gov.hu/primary','alternative_sources':[{'url':'https://njt.jog.gov.hu/alternative'}]}
+            inputs={'path':path,'current_verified':True,'source_url':'primary.pdf'}
+            other=dict(inputs,source_url='alternative.pdf')
+            hit={'page_number':0,'pdf_rect':fitz.Rect(1,1,3,3),'text':'999/7'}
+            for second_count,expected in ((1,'alternative.pdf'),(0,'primary.pdf')):
+                scans=[{'hits':[],'scan':{'complete':True}},
+                       {'hits':[hit]*second_count,'scan':{'complete':True}}]
+                with patch.object(app,'fetch_njt_page',return_value={}),patch.object(app,'load_official_plan',return_value=other),patch.object(app,'locate_parcel',side_effect=scans):
+                    chosen,page,plan=app.select_plan_by_exact_label(meta,{},inputs,'999/7')
+                self.assertEqual(plan['source_url'],expected)
+                self.assertEqual(len(plan['alternative_plan_search']),2)
+
+    def test_two_plan_matches_preserve_ambiguity(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=str(Path(folder)/'plan.pdf');doc=fitz.open();doc.new_page();doc.save(path);doc.close()
+            meta={'url':'primary','alternative_sources':[{'url':'alternative'}]}
+            inputs={'path':path,'current_verified':True,'source_url':'primary.pdf'}
+            hit={'page_number':0,'pdf_rect':fitz.Rect(1,1,3,3)}
+            with patch.object(app,'fetch_njt_page',return_value={}),patch.object(app,'load_official_plan',return_value=inputs),patch.object(app,'locate_parcel',return_value={'hits':[hit],'scan':{'complete':True}}):
+                _,_,plan=app.select_plan_by_exact_label(meta,{},inputs,'999/7')
+            self.assertTrue(plan['source_selection_ambiguous'])
+
+    def test_ambiguous_law_never_promotes_a_closed_geometry_to_A(self):
+        polygon=box(600000,250000,600100,250100)
+        result=app.connect_automatic_zone(None,
+            {'parcel_boundary_verified':True,'parcel_wkt':polygon.wkt,'zone_wkt':polygon.wkt,
+             'zone':'Lke/7','hrsz_method':'source label'},
+            {'current_verified':True,'source_selection_ambiguous':True,'edition':'2026.01.01.',
+             'source_url':'https://njt.jog.gov.hu/document/plan.pdf','source_hash':'a'*64},'00001','999/7')
+        self.assertFalse(result['intersection_verified']);self.assertFalse(result['zone'])

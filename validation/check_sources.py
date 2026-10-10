@@ -72,6 +72,10 @@ def check_report(report, cache, history=None):
                   and heritage.get('current_legal_protection_verified') is not True)
         visual=case.get('visual')
         if visual:
+            if visual.get('illustration_file'):
+                illustration=Path('validation')/visual['illustration_file']
+                check(name+': megőrzött képi bizonyíték lenyomata',
+                    illustration.is_file() and app.source_digest(illustration.read_bytes())==visual.get('annotated_image_sha256'))
             check(name+': képi kapcsolat nem övezeti bizonyítás',
                   visual['intersection_verified'] is False)
             check(name+': vizuális vizsgálat forráskötése megőrizve',
@@ -82,6 +86,38 @@ def check_report(report, cache, history=None):
             check(name+': élő ellenőrzésben nincs kitalált modellhívás vagy API-költség',
                   visual.get('ai_review',{}).get('external_ai_requests')==0 and
                   visual.get('ai_review',{}).get('external_ai_cost')==0)
+            if visual.get('location',{}).get('verified_preliminary'):
+                import fitz
+                with fitz.open(path) as doc:
+                    located=app.locate_parcel(doc,case['hrsz'],outlined=True)
+                    rebuilt=app.visual_plan_evidence(doc,case['plan_result'],profile,inputs,
+                        case['ksh'],case['hrsz'],spatial=located)
+                check(name+': előzetes hely és képi besorolás eredeti tervből újraszámítva',
+                    rebuilt.get('zone')==visual.get('zone') and
+                    rebuilt.get('candidate_labels')==visual.get('candidate_labels') and
+                    rebuilt.get('annotated_image_sha256')==visual.get('annotated_image_sha256'))
+                check(name+': előzetes HRSZ-hely nem igazolt teljes telekgeometria',
+                    visual['location']['parcel_boundary_verified'] is False and
+                    visual['intersection_verified'] is False)
+                if visual.get('circle_layout_from_own_legend'):
+                    check(name+': kör alakú kódmező a saját jelmagyarázatból igazolt',
+                        visual.get('circle_layout_examples')==rebuilt.get('circle_layout_examples') and
+                        all(e.get('divider_verified') for e in visual['circle_layout_examples']))
+            elif visual.get('overview_pdf_page'):
+                check(name+': C áttekintőkép nem állít lokalizált telket',
+                    visual['overview_is_parcel_location'] is False and case['classification']['category']=='C')
+            for alternative in inputs.get('alternative_plan_search',[]):
+                if not alternative.get('plan_hash'):continue
+                alternative_path=cache/(hashlib.sha256(alternative['plan_url'].encode()).hexdigest()+'.pdf')
+                check(name+': alternatív hivatalos terv eredeti bájtjai',
+                    alternative_path.is_file() and app.source_digest(alternative_path.read_bytes())==alternative['plan_hash'])
+            for supplement in inputs.get('supplementary_location_sources',[]):
+                if not supplement.get('source_hash'):continue
+                supplement_path=cache/(hashlib.sha256(supplement['source_url'].encode()).hexdigest()+'.pdf')
+                check(name+': kiegészítő önkormányzati tanulmány eredeti bájtjai',
+                    supplement_path.is_file() and app.source_digest(supplement_path.read_bytes())==supplement['source_hash'])
+                check(name+': történeti nyom nem hatályos övezeti bizonyítás',
+                    supplement['current_plan_verified'] is False and supplement['zone_verified'] is False)
     miskolc=report['cases'][-1]
     check('Miskolc: önállóan azonosított 4755/11 telekhatár',
           miskolc['identification']['parcel_boundary_verified'] is True)

@@ -83,6 +83,32 @@ class VisualPlanTests(unittest.TestCase):
         self.assertEqual(identification['candidate_zone'],'Wrong/1')
         self.assertEqual(classification['category'],'B')
 
+    def test_preliminary_label_location_can_be_B_without_polygon_but_never_A(self):
+        visual={'status':'probable','zone':'Lke/7','legend_bound':True,
+                'location':{'verified_preliminary':True,'parcel_boundary_verified':False}}
+        result=classification_result({},visual)
+        self.assertEqual(result['category'],'B');self.assertFalse(result['zone_verified'])
+        visual['location']['verified_preliminary']=False
+        self.assertEqual(classification_result({},visual)['category'],'C')
+
+    def test_incomplete_or_ambiguous_label_search_does_not_select_location(self):
+        from visual_plan import inspect_label_location
+        for spatial in ({'hits':[{},{}]}, {'hits':[{}],'scan':{'complete':False}}):
+            result=inspect_label_location(None,spatial,{},None,'999/7',{},None,None)
+            self.assertFalse(result['location']['verified_preliminary'])
+            self.assertEqual(result['status'],'not_identifiable')
+
+    def test_caption_alone_does_not_establish_circle_code_layout(self):
+        from visual_plan import source_circle_layout
+        doc=fitz.open();p=doc.new_page();p.insert_text((180,100),'SZABALYOZASI JEL')
+        profile={'identity':{'source_url':'same','plan_url':'same'},'records':[
+            {'label':'SZABALYOZASI JEL','role':'zone_code','label_verified':True,'PDF-oldal':1,'rect':[180,88,290,102]}]}
+        self.assertEqual(source_circle_layout(doc,profile),[])
+        p.draw_circle((140,95),12,color=(0,0,0),width=.6)
+        p.draw_line((128,95),(152,95),color=(0,0,0),width=.6)
+        examples=source_circle_layout(doc,profile)
+        self.assertTrue(examples);self.assertTrue(examples[0]['divider_verified'])
+
     def test_api_payload_contains_original_images_but_no_reference_answer(self):
         payload=vision_request([b'source plan',b'source legend'],'999/7')
         self.assertFalse(payload['store']);self.assertEqual(payload['max_output_tokens'],1200)
