@@ -2988,11 +2988,10 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
             # tervlapjelöltként, ha a CAD-exportban minden felirat görbe.
             # A pontos HRSZ és övezet igazolása későbbi, külön lépés.
             if title_ok or named_plan:
-                # Prefer the official plan containing the exact requested parcel label.
-                if exact_hits:
-                    if fallback_doc is not None:
-                        fallback_doc.close()
-                    return doc, final_url, ""
+                # An HRSZ text hit does not identify the governing map sheet:
+            # a reference index, overview or superseded detail may repeat it.
+            # Prefer the actual plan annex identity and inspect its own sheets
+            # spatially after loading. Never use label presence as plan ranking.
                 if fallback_doc is None:
                     fallback_doc, fallback_url = doc, final_url
                 else:
