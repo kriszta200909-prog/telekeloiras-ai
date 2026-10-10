@@ -5743,6 +5743,19 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
 
         if plan_doc:
             st.success("A szabályozási terv PDF automatikusan betöltődött.")
+            # Never draw the public HRSZ service's display/bounding-box outline
+            # as if it were an independently verified cadastral parcel.
+            cadastral_overlay=cadastral_plan_overlay(plan_doc,parcel_api)
+            if cadastral_overlay['status']=='georeferenced':
+                preview=render_cadastral_overlay_png(plan_doc,cadastral_overlay)
+                if preview:
+                    st.image(preview,caption='Hivatalos tervlap + igazolt kataszteri telekhatár (piros)',
+                             use_container_width=True)
+                    st.caption('GeoPDF illesztési bizonytalanság: '
+                        +str(cadastral_overlay['overlays'][0]['registration_uncertainty_m'])+' m')
+            else:
+                st.caption('Kataszteri telekhatár ráillesztése: '
+                           +cadastral_overlay['reason'])
         elif auto_plan_error:
             st.caption(f"A szabályozási terv automatikus feldolgozása nem sikerült: {auto_plan_error}")
 
