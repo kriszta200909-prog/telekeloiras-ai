@@ -630,6 +630,9 @@ def discover_njt_source(town, hrsz, selected_district=""):
         if district:
             place = f"Budapest {district}"
 
+    # Normalize once using the existing parcel identifier helper; do not
+    # introduce a second HRSZ normalization path in legal-source discovery.
+    from plan_labels import normalize_hrsz
     queries = [
         # A municipality may have several separate KÉSZ documents. Prefer
         # exact-HRSZ hits in official annexes before generic title matches;
