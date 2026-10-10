@@ -44,6 +44,20 @@ class ParcelZoneTests(unittest.TestCase):
         self.assertFalse(app.parcel_outline_match(box(1, 0, 11, 10), reference))
         self.assertFalse(app.parcel_outline_match(box(0, 0, 0, 10), reference))
 
+    def test_search_methods_preserve_independent_provenance(self):
+        methods=app.parcel_search_method_evidence(
+            {'id':'123','search_url':'https://example.invalid/search',
+             'parcel_boundary_verified':False},
+            {'hrsz_method':'georeferenced PDF','parcel_boundary_verified':True},
+            [{'page':2,'method':'native text'},{'page':3,'method':'visual OCR'}],
+            'MINERVA: layer inspected')
+        self.assertEqual([m['method'] for m in methods],
+                         ['public_hrsz','pdf_label','pdf_label','plan_geometry','municipal_gis'])
+        self.assertFalse(methods[0]['boundary_verified'])
+        self.assertFalse(methods[1]['boundary_verified'])
+        self.assertTrue(methods[3]['boundary_verified'])
+        self.assertFalse(methods[4]['found'])
+
     def test_cadastral_overlay_requires_independent_verified_polygon(self):
         import fitz
         from shapely.geometry import mapping,box
