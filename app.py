@@ -1682,20 +1682,30 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
     try:
         if inputs.get('path'):
             doc=fitz.open(inputs['path'])
-            if result['ksh']=='28352' and result['parcel_api']:
-                from pathlib import Path
-                plan_result=tiszaujvaros_plan_zone(original_plan_bytes(doc,inputs),
-                    result['parcel_api']['geometry'],hrsz)
-            elif result['ksh']=='24697' and result['parcel_api']:
-                diag=minerva_xii_status_for_parcel(result['parcel_api'])
-                result['minerva_detail']=diag.get('detail','')
-                snapshot=next((item for item in diag.get('geometry_snapshots',[])
-                    if '20250806_DEL_HEGYVIDEK_KESZ' in item.get('resource','')),None)
-                if snapshot:
+            # A failed specialised adapter must not suppress the generic
+            # GeoPDF, label-localisation and legend/zone-boundary methods.
+            try:
+                if result['ksh']=='28352' and result['parcel_api']:
                     from pathlib import Path
-                    plan_result=georeferenced_plan_zone(original_plan_bytes(doc,inputs),snapshot,hrsz)
+                    plan_result=tiszaujvaros_plan_zone(original_plan_bytes(doc,inputs),
+                        result['parcel_api']['geometry'],hrsz)
+                elif result['ksh']=='24697' and result['parcel_api']:
+                    diag=minerva_xii_status_for_parcel(result['parcel_api'])
+                    result['minerva_detail']=diag.get('detail','')
+                    snapshot=next((item for item in diag.get('geometry_snapshots',[])
+                        if '20250806_DEL_HEGYVIDEK_KESZ' in item.get('resource','')),None)
+                    if snapshot:
+                        from pathlib import Path
+                        plan_result=georeferenced_plan_zone(original_plan_bytes(doc,inputs),snapshot,hrsz)
+                    else:plan_result=geopdf_parcel_zone(doc,result['parcel_api'],hrsz,legend_profile)
                 else:plan_result=geopdf_parcel_zone(doc,result['parcel_api'],hrsz,legend_profile)
-            else:plan_result=geopdf_parcel_zone(doc,result['parcel_api'],hrsz,legend_profile)
+            except Exception as specialised_error:
+                result['errors'].append('Speciális tervillesztés: '+str(specialised_error))
+                try:
+                    plan_result=geopdf_parcel_zone(doc,result['parcel_api'],hrsz,legend_profile)
+                except Exception as generic_error:
+                    result['errors'].append('Általános GeoPDF: '+str(generic_error))
+                    plan_result={'zone':''}
             # Geometry methods confirm their own label. Other sources still get
             # bounded, resumable label inspection rather than a nearest-zone rule.
             if not plan_result.get('hrsz_method'):
