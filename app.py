@@ -1055,6 +1055,44 @@ def cadastral_plan_overlay(doc, parcel_api):
     return result
 
 
+def render_cadastral_overlay_png(doc, overlay, *, margin_pt=35, zoom=1.5):
+    """Render an actual source-plan crop with cadastral outline overlaid.
+
+    The caller must pass the output of cadastral_plan_overlay, not an inferred
+    PDF parcel. This returns PNG bytes without changing the source document.
+    """
+    import fitz
+    if overlay.get('status')!='georeferenced' or not overlay.get('overlays'):
+        return None
+    entry=overlay['overlays'][0]
+    page_number=entry['page']-1
+    if page_number<0 or page_number>=len(doc):
+        return None
+    rings=entry['rings']
+    vertices=[point for poly in rings for point in poly['exterior']]
+    if not vertices:return None
+    bounds=fitz.Rect(min(p[0] for p in vertices),min(p[1] for p in vertices),
+                     max(p[0] for p in vertices),max(p[1] for p in vertices))
+    page=doc[page_number]
+    clip=(bounds+(-margin_pt,-margin_pt,margin_pt,margin_pt)) & page.rect
+    if clip.is_empty:return None
+    # Render the actual official plan first, then draw only the independent
+    # cadastral geometry in the exact same PDF coordinate frame.
+    pix=page.get_pixmap(matrix=fitz.Matrix(zoom,zoom),clip=clip,alpha=False)
+    from PIL import Image,ImageDraw
+    from io import BytesIO
+    image=Image.open(BytesIO(pix.tobytes('png'))).convert('RGB')
+    painter=ImageDraw.Draw(image)
+    def pixels(coords):
+        return [((x-clip.x0)*zoom,(y-clip.y0)*zoom) for x,y in coords]
+    for poly in rings:
+        painter.line(pixels(poly['exterior']),fill=(230,30,30),width=max(2,round(3*zoom)),joint='curve')
+        for hole in poly['holes']:
+            painter.line(pixels(hole),fill=(230,30,30),width=max(2,round(3*zoom)),joint='curve')
+    out=BytesIO();image.save(out,format='PNG')
+    return out.getvalue()
+
+
 def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
     """Read the parcel boundary from a georeferenced official source layer.
 
