@@ -433,12 +433,11 @@ def inspect_visual_plan(doc, plan_result, profile, zone_pattern, hrsz, *, identi
     # Transfer only source-closed faces through the already verified GeoPDF
     # registration. The same features feed the normal multi-zone coverage
     # engine; no parcel-specific code or expected zone is consulted.
-    from shapely.ops import transform as shapely_transform
+    from shapely.affinity import affine_transform
     from shapely.geometry import mapping
-    from geopdf import to_world
+    coefficients=[float(matrix[0,0]),float(matrix[1,0]),float(matrix[0,1]),float(matrix[1,1]),float(matrix[2,0]),float(matrix[2,1])]
     out['source_zone_features']=[
-        {'code':code,'geometry':mapping(shapely_transform(
-            lambda x,y,z=None:to_world((x,y),matrix),face)),
+        {'code':code,'geometry':mapping(affine_transform(face,coefficients)),
          'crs':'EPSG:23700'}
         for code,face in closed['faces']
     ]
@@ -446,8 +445,7 @@ def inspect_visual_plan(doc, plan_result, profile, zone_pattern, hrsz, *, identi
     for path in legend_layer_paths(page,profile,'regulatory_line',clip):
         for line in path['segments']:
             out['source_regulatory_lines'].append({
-                'geometry':mapping(shapely_transform(
-                    lambda x,y,z=None:to_world((x,y),matrix),line)),
+                'geometry':mapping(affine_transform(line,coefficients)),
                 'crs':'EPSG:23700','status':'unspecified',
                 'legend_verified':True})
 
