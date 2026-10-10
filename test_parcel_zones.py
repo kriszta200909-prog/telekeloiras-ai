@@ -37,6 +37,7 @@ class ParcelZoneTests(unittest.TestCase):
         from shapely.geometry import box
         reference = box(0, 0, 10, 10)
         self.assertTrue(app.parcel_outline_match(box(0, 0, 10, 10), reference))
+        self.assertTrue(app.parcel_outline_match(reference,reference.buffer(.2)))
         # Contains the same parcel centre and passes the former 50%-area
         # threshold, but represents only part of the cadastral parcel.
         self.assertFalse(app.parcel_outline_match(box(0, 0, 6, 10), reference))
