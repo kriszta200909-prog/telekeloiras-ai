@@ -88,6 +88,24 @@ def main():
             result['visual']['illustration_file']=name
         if png and args.visual_image and (place,hrsz)==('Miskolc','4755/11'):
             Path(args.visual_image).write_bytes(png)
+        # Preserve the exact already-downloaded official source, not a crop.
+        # Copy only a hash-verified PDF from the engine's selected plan.
+        if (place,hrsz)==('Kondoros','1570'):
+            import hashlib, shutil
+            source=result.get('plan_inputs',{})
+            source_path=Path(source.get('path',''))
+            if (source.get('current_verified') and source_path.is_file()
+                    and hashlib.sha256(source_path.read_bytes()).hexdigest()==source.get('source_hash')):
+                full_pdf=destination.parent/'kondoros-1570-official-plan.pdf'
+                shutil.copyfile(source_path,full_pdf)
+                with __import__('fitz').open(full_pdf) as original:
+                    result['official_pdf_structure']={
+                        'file':full_pdf.name,'pdf_page_count':len(original),
+                        'pages':[{'pdf_page':i+1,'width':round(page.rect.width,2),
+                                  'height':round(page.rect.height,2),
+                                  'text_head':page.get_text('text')[:240]}
+                                 for i,page in enumerate(original)]}
+                print('Verified original NJT PDF preserved:',full_pdf,flush=True)
         result['benchmark'] = KNOWN_EVIDENCE.get((place, hrsz), {})
         # Benchmark is attached only AFTER the full independent live run.
         # Do not mistake the stored human evidence for a program finding.
