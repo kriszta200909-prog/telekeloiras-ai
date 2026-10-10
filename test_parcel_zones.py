@@ -44,6 +44,34 @@ class ParcelZoneTests(unittest.TestCase):
         self.assertFalse(app.parcel_outline_match(box(1, 0, 11, 10), reference))
         self.assertFalse(app.parcel_outline_match(box(0, 0, 0, 10), reference))
 
+    def test_cadastral_overlay_requires_independent_verified_polygon(self):
+        import fitz
+        from shapely.geometry import mapping,box
+        with fitz.open() as doc:
+            doc.new_page()
+            parcel={'parcel_boundary_verified':True,'geometry_crs':'EPSG:23700',
+                    'cadastral_geometry':mapping(box(0,0,10,10))}
+            result=app.cadastral_plan_overlay(doc,parcel)
+            self.assertEqual(result['status'],'unavailable')
+            self.assertEqual(result['overlays'],[])
+            self.assertEqual(app.cadastral_plan_overlay(doc,{
+                **parcel,'parcel_boundary_verified':False})['overlays'],[])
+            self.assertEqual(app.cadastral_plan_overlay(doc,{
+                **parcel,'geometry_crs':'EPSG:4326'})['overlays'],[])
+
+    def test_cadastral_overlay_on_georeferenced_source(self):
+        from test_automatic_sources import geo_document
+        from shapely.geometry import mapping,box
+        with geo_document() as doc:
+            parcel={'parcel_boundary_verified':True,'geometry_crs':'EPSG:23700',
+                    'cadastral_geometry':mapping(box(600300,249600,600400,249700))}
+            result=app.cadastral_plan_overlay(doc,parcel)
+        self.assertEqual(result['status'],'georeferenced')
+        self.assertEqual(result['overlays'][0]['page'],1)
+        ring=result['overlays'][0]['rings'][0]['exterior']
+        self.assertAlmostEqual(ring[0][0],300,places=1)
+        self.assertAlmostEqual(ring[0][1],400,places=1)
+
     def test_full_coverage_returns_code_and_source_evidence(self):
         before = copy.deepcopy((self.parcel, self.source))
         result = self.identify()
