@@ -1,10 +1,10 @@
-# Hivatalos források és saját jelmagyarázatok – 2026. október 9.
+# Hivatalos források és saját jelmagyarázatok – 2026. október 10.
 
 **A fő cél még nem teljesült: 0/5 teleknek van teljesen bizonyított, hatályos építési előíráslistája.**
 
-109/109 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
+117/117 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
 Streamlit vizsgálati útvonalát. Az öt mintatelek élő forrásvizsgálata után
-132/132 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
+147/147 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
 időállapotok, jelmagyarázat–tervlap kötés, feldolgozólenyomatok,
 bizonyítottsági állapotok és a miskolci paraméterkód feloldása.
 Ez a forráskezelés helyességét ellenőrzi; nem állít sikeres telekbesorolást.
@@ -16,6 +16,59 @@ Ez a forráskezelés helyességét ellenőrzi; nem állít sikeres telekbesorol�
 | Komádi 1558 | igen | nem | nem | nem |
 | Gersekarát 034/15 | nincs pontos találat | nem | nem | nem |
 | Miskolc 4755/11 | igen | igen, rajzi bizonytalanság: 1,07014 m | nem | nem |
+
+## Helyi vizuális vizsgálat – 2026. október 10.
+
+A program új, helyi képfeldolgozó útvonala az igazolt tervlapi telek
+környezetét vizsgálja. A telek EOV-geometriáját a terv saját GEO-illesztésével
+helyezi a képre, és a telekbelsőben levő pontos HRSZ-felirattal ellenőrzi.
+A környező telekfeliratok pozícióit kigyűjti; ezek **szomszédsági jelöltek**,
+nem bizonyított szomszédos földrészletek. A környezet utcafeliratait is keresi;
+a miskolci kivágásban teljes utcanevet nem sikerült automatikusan kiolvasni.
+Önálló kataszteri–tervi utcahálózat- és épületalaprajz-egyeztetés még nincs.
+
+A saját hivatalos jelmagyarázat színeiből és jelalakjaiból olvas akadályokat,
+és valamennyi helyi övezeti felirat kapcsolatát több, a telekbelsőben levő
+ponthoz vizsgálja. A natív pontozott jel forrásbeli sorrendjét is ellenőrzi:
+a fehér képpontok miatt nem lehet átmenni a saját jelmagyarázat szerinti
+határon. Más sorok végét, sarkokat és a képkivágás szélét nem köti össze.
+Fekete, színes, folytonos és pontozott helyi minták nem országos alapértékek.
+
+**Miskolc 4755/11:** a `Gipe-60.63.5` felirat 5/9 telekbelső ponthoz ad
+helyi, akadálymentes jelöltkapcsolatot. A túloldali `Gksz-71.62.6` felirat
+0/9 ponthoz: a forrásból felismert határ blokkolja. A Gipe-felirat ténylegesen
+**a vizsgált teleken kívül** található. A kapcsolata ezért **valószínű,
+nem bizonyított**; nem helyettesíti a teljes telek övezeti hozzárendelését.
+A vizuális állapot a Streamlitben az igazolt geometriai besorolástól külön
+jelenik meg, és nem teszi alkalmazhatóvá a feltételes előírásokat.
+
+[Képi bizonyíték](miskolc-plan-context.png): cián a vizsgált telek; zöld a
+saját jelmagyarázathoz illesztett eredeti szakasz; lila a felirat és a
+jelöltkapcsolat; kék kör az eredeti nyitott csatlakozás. Ezek az alkalmazás
+magyarázó jelölései. A kép alatt a hivatalos jelmagyarázat eredeti kivágásai
+láthatók. Az eredeti tervrészlet és a magyarázó ábra külön SHA-256 lenyomatot
+kap; a jelmagyarázat forrásbájtjait megjelenítés előtt ellenőrzi.
+A meglévő képi bizonyítékot frissítettem, nem új tervváltozatot hoztam létre.
+
+**AI és költség:** működő helyi PDF-feldolgozás, Tesseract OCR és numpy/Pillow
+képfeldolgozás. Az új képi kapcsolatvizsgálat determinisztikus, nem LLM.
+Nem található OpenAI API-kulcs, .env vagy Streamlit titokbeállítás; a
+rendelkezésre álló eszközök között nem volt az alkalmazásba köthető
+multimodális következtető API. Modellnevet és elérhetőséget nem feltételeztem.
+Külső AI-hívás: 0; külső AI API-költség: 0. Az alkalmazás tárhelyének
+költségére ez nem tesz állítást.
+
+Az [e-közmű hozzáférési feltételeit](https://www.e-epites.hu/gyik?temakor=177)
+október 10-én újra ellenőriztem: KAÜ-azonosításhoz kötött. Új, igazolt,
+hitelesítés nélküli kataszteri adatkapcsolat nem került elő; az OÉNY és a
+hatályos NJT-források maradnak az ellenőrzött alternatívák.
+
+A vizuális módszer országos övezeti kódot, települést vagy HRSZ-eredményt
+nem éget be. Jelenlegi korlátja az igazolt, koordinátával összekapcsolható
+tervlapi telekgeometria; forgatott lap vagy hiányzó illesztés esetén elutasítja
+a következtetést. A másik négy telek teljes vizuális egyeztetése és a teljes
+telekspecifikus építési előíráslista továbbra sem kész. A bizonyítás akadályait
+a korábbi tervi geometriai audit változatlanul megőrzi.
 
 ## Hivatalos GIS-források – élő vizsgálat
 
@@ -266,13 +319,13 @@ valódi tervlap; a korábbi téves mellékletválasztás javítva.
 
 ```sh
 python -m unittest discover
-python reference_checks.py --output work/reference-results.json
+python reference_checks.py --output work/reference-results.json --visual-image work/miskolc-plan-context.png
 python validation/check_sources.py work/reference-results.json --history-report validation/miskolc-legend-history.json --output work/source-check-results.json
 python reference_checks.py --outlined --output work/reference-outlined-results.json
 ```
 
 reference-results.json: aktuális öttelekes vizsgálat és forrásreceiptek.
-source-check-results.json: 132 sikeres ellenőrzés, a jelentés lenyomatával.
+source-check-results.json: 147 sikeres ellenőrzés, a jelentés lenyomatával.
 reference-outlined-results.json: külön HRSZ-feliratpróba, saját forrás- és
 feliratfeldolgozó-lenyomatokkal; nem övezeti bizonyíték.
 conditional-zone-parameters.json: a Gip/3 forrássor feltételes ellenőrzése.

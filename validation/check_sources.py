@@ -70,9 +70,32 @@ def check_report(report, cache, history=None):
             check(name+': GIS-pillanatkép nem teljes jogi korlátozáslista',
                   heritage.get('complete_restrictions_verified') is not True
                   and heritage.get('current_legal_protection_verified') is not True)
+        visual=case.get('visual')
+        if visual:
+            check(name+': képi kapcsolat nem övezeti bizonyítás',
+                  visual['intersection_verified'] is False)
+            check(name+': vizuális vizsgálat forráskötése megőrizve',
+                  visual.get('source',{})==case['legend'].get('identity',{}))
     miskolc=report['cases'][-1]
     check('Miskolc: önállóan azonosított 4755/11 telekhatár',
           miskolc['identification']['parcel_boundary_verified'] is True)
+    if miskolc.get('visual',{}).get('candidate_labels'):
+        import fitz
+        path=cache/(hashlib.sha256(miskolc['plan_inputs']['source_url'].encode()).hexdigest()+'.pdf')
+        with fitz.open(path) as doc:
+            rebuilt_visual=app.visual_plan_evidence(doc,miskolc['plan_result'],miskolc['legend'],
+                miskolc['plan_inputs'],miskolc['ksh'],miskolc['hrsz'])
+        visual=miskolc['visual']
+        check('Miskolc: eredeti tervrészlet és saját jelmagyarázat képe újraszámítva',
+              rebuilt_visual['annotated_image_sha256']==visual['annotated_image_sha256']
+              and rebuilt_visual['legend_image_source_verified'])
+        check('Miskolc: helyi képi kapcsolat újraszámítása nem közeli feliratválasztás',
+              rebuilt_visual['candidate_labels']==visual['candidate_labels'])
+        check('Miskolc: Gipe vizuálisan valószínű, továbbra sem bizonyított',
+              visual['status']=='probable' and visual['zone']=='Gipe-60.63.5'
+              and visual['legend_bound'] and visual['exact_hrsz_in_parcel'])
+        check('Miskolc: túloldali felirat nem halad át a saját jelmagyarázat szerinti határon',
+              any(r['code']=='Gksz-71.62.6' and r['clear_paths']==0 for r in visual['candidate_labels']))
     if miskolc.get('gis_sources',{}).get('heritage_snapshot',{}).get('spatial_snapshot_checked'):
         from gis_sources import shapefile_intersections
         from shapely import wkt

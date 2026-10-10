@@ -1,10 +1,10 @@
 {
-  "checked_at_utc": "2026-10-09T21:06:22.611206+00:00",
+  "checked_at_utc": "2026-10-10T07:00:45.546411+00:00",
   "command": "python -m unittest discover -q",
   "python": "3.12.14",
-  "tests_run": 109,
+  "tests_run": 117,
   "failures": 0,
   "errors": 0,
   "result": "OK",
-  "note": "A 96 korábbi teszt és 13 új GIS-forrás-/geometriaellenőrzés; valódi forráspróbák külön jelentésben."
+  "note": "Az egyesített PR-ágon 117/117 teszt; 109 korábbi és 8 helyi vizuális regresszió. Élő forrásellenőrzés: 147/147."
 }

@@ -1387,6 +1387,8 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
     if legend_profile.get('error'):result['errors'].append(legend_profile['error'])
     if inputs.get('error'):result['errors'].append(inputs['error'])
     doc=None;plan_result={'zone':''};hits=[]
+    result['visual']={'status':'not_identifiable','zone':'','intersection_verified':False,
+                      'reasons':['Nincs vizsgálható hivatalos tervrészlet.']}
     try:
         if inputs.get('path'):
             doc=fitz.open(inputs['path'])
@@ -1411,6 +1413,7 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
                 hits=spatial.get('hits',[])
                 result['label_search']={k:v for k,v in spatial.items() if k not in ('hit','hits')}
                 result['label_hits']=[{'page':h['page_number']+1,'method':h.get('method','')} for h in hits]
+            result['visual']=visual_plan_evidence(doc,plan_result,legend_profile,inputs,result['ksh'],hrsz)
     except Exception as exc:
         result['errors'].append('Tervgeometria: '+str(exc))
     finally:
@@ -1438,6 +1441,19 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
     result['evidence']=automatic_evidence_rows(result['parcel_api'],inputs,result['identification'],
                                               rules_available=bool(inventory['rows']))
     return result
+
+
+def visual_plan_evidence(doc, plan_result, profile, inputs, ksh, hrsz):
+    from pathlib import Path
+    import tempfile
+    from visual_plan import inspect_visual_plan,add_source_legend
+    result=inspect_visual_plan(doc,plan_result,profile,ZONE_PATTERN,normalize_hrsz(hrsz),
+        identity={'plan_url':inputs.get('source_url'),'plan_hash':inputs.get('source_hash'),
+                  'edition':inputs.get('edition'),'ksh':ksh})
+    if not inputs.get('current_verified'):
+        result.update(status='not_identifiable',zone='')
+        result['reasons'].append('A terv hatályos kiadása nincs igazolva.')
+    return add_source_legend(result,profile,Path(tempfile.gettempdir())/'telekeloiras_pdf_cache')
 
 
 def geometry_summary(geom):
@@ -5815,6 +5831,16 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
                                              rules_available=bool(source_inventory['rows']))
     st.subheader('Automatikus azonosítás – négy külön bizonyítottsági állapot')
     st.dataframe(automatic_rows,hide_index=True,use_container_width=True)
+    if plan_doc is not None:
+        visual=visual_plan_evidence(plan_doc,plan_zone,legend_profile,plan_inputs,ksh,hrsz)
+        with st.expander('Helyi vizuális övezetvizsgálat – tervrészlet és saját jelmagyarázat',expanded=True):
+            st.write({'Állapot':{'probable':'valószínű, nem bizonyított',
+                'not_identifiable':'nem megállapítható'}.get(visual['status'],visual['status']),
+                'Vizuális jelölt':visual['zone']})
+            st.caption('A vizuális jelölt önmagában nem igazolt övezeti besorolás és nem ad teljes előíráslistát.')
+            png=visual.pop('annotated_png',None)
+            if png:st.image(png,caption=visual['annotation_note'])
+            st.json(visual)
     from gis_sources import automatic_gis_evidence
     from shapely.geometry import mapping
     from shapely import wkt

@@ -1,15 +1,16 @@
 {
-  "checked_at_utc": "2026-10-09T21:02:18.441688+00:00",
+  "checked_at_utc": "2026-10-10T06:53:31.158263+00:00",
   "outlined_label_search": false,
   "code_sha256": {
-    "app.py": "ad15fea55b14c9f4621c5b6d454d56914e35ca1f1114be1cb67137e35fa98953",
+    "app.py": "4f15c2376e2b50a289c6eb164a103591d51fc3de677ececfa4b698172d398b06",
     "geopdf.py": "fb1be96afdd386834bc0ad1e476c7f7be5c72269c114cedb122998b6e6a2b8f8",
     "plan_legend.py": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6",
     "plan_connections.py": "944e6dfac09ba97c748cecefc52c0c9ff1b1a9931d11139852bb63941a890487",
     "plan_geometry_audit.py": "c8ba17190a62963fb1d44c0c7a8ae69503c82c66235e5178d6665c3a6a46e2b5",
     "zone_parameters.py": "38cc96cdffa44d089870e9306185b7f8b46fc2152db3dbe13e6b24e16fddfb69",
     "gis_sources.py": "8244b7e5ba281d9aaedf6b7e3f9c92caf72d9859d3796062dabfbe793bf3103f",
-    "reference_checks.py": "e5777fa67efd465cdc2c16df95a0a93d640b92b4f3457a9666fd2ead32324a7b"
+    "visual_plan.py": "ab2db5694596d872a3278abd50e169c916308468f868fcba4647ec7526cc44fc",
+    "reference_checks.py": "2a600de1630d3d74d5c7b48cb7dc2698990163ce8e7395d8444716bdc891dbdc"
   },
   "cases": [
     {
@@ -3015,6 +3016,35 @@
         "scan_complete": false,
         "zone_style_verified": true
       },
+      "visual": {
+        "status": "not_identifiable",
+        "zone": "",
+        "intersection_verified": false,
+        "model": {
+          "multimodal_api_configured": false,
+          "credential_present": false,
+          "multimodal_model_verified": false,
+          "external_ai_requests": 0,
+          "external_ai_cost": 0,
+          "method": "PDF natív szöveg + Tesseract OCR + helyi képfeldolgozás",
+          "reason": "Nincs ellenőrzött multimodális modellkapcsolat; képfeldolgozó útvonal."
+        },
+        "reasons": [
+          "Nincs igazolt telekgeometria a helyi vizuális kapcsolat ellenőrzéséhez."
+        ],
+        "source": {
+          "source_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+          "source_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+          "plan_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+          "plan_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+          "edition": "2024.10.10.",
+          "ksh": "28352",
+          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+        },
+        "nearby_parcel_labels": [],
+        "street_labels": [],
+        "candidate_labels": []
+      },
       "label_search": {
         "status": "parcel_not_found",
         "candidates": [],
@@ -3028,9 +3058,9 @@
         "catalog_receipts": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
-            "checked_at_utc": "2026-10-09T21:03:19.292241+00:00",
+            "checked_at_utc": "2026-10-10T06:54:13.714881+00:00",
             "status": 200,
-            "sha256": "39d7a7f59ed216015b539f5d08d2732f163d0e81c088107d3298be0ac3c16046",
+            "sha256": "38e4d12eff2286be6a9c57635622f03842cf79dd2afa23984cdb6f7ede8af5da",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
             "content_type": "application/xml;charset=UTF-8",
@@ -3038,19 +3068,19 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
-            "checked_at_utc": "2026-10-09T21:03:31.002367+00:00",
+            "checked_at_utc": "2026-10-10T06:54:19.855610+00:00",
             "status": 200,
-            "sha256": "79612431a82e1d27d0cf1376c698b10fc5a4f9ae5b6c61e670ce547a6fe21089",
+            "sha256": "3bc144eb16997c65207a1470cacf617198d9d7d25439386a083c699e901afb70",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 262481
+            "bytes": 262480
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
-            "checked_at_utc": "2026-10-09T21:03:40.991083+00:00",
+            "checked_at_utc": "2026-10-10T06:54:26.396501+00:00",
             "status": 200,
-            "sha256": "a637b9ed45864cf2ec7fc218937ce85ceadbf21936492a8332fa3d448e047308",
+            "sha256": "207362f3e1e9612cb39c95a9868146490773eee60094019a57aa53381d9d974f",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
             "content_type": "application/xml;charset=UTF-8",
@@ -3061,9 +3091,9 @@
         "entries": [
           {
             "url": "https://map.tiszaujvaros.hu/",
-            "checked_at_utc": "2026-10-09T21:03:47.312091+00:00",
+            "checked_at_utc": "2026-10-10T06:54:33.282943+00:00",
             "status": 200,
-            "sha256": "dff2e347a5538d4e636bea5f8579360559a49b30bdd496e5cf621244ecd813ac",
+            "sha256": "9a826e63c825c578671c863f37bfb60cfcd1e4c38f377efa541edc48a6ca0a79",
             "error": "",
             "final_url": "https://map.tiszaujvaros.hu/",
             "content_type": "text/html; charset=utf-8",
@@ -3371,6 +3401,44 @@
           },
           {
             "identifier": [
+              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
+            ],
+            "abstract": [
+              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "INSPIRE",
+              "infoMapAccessService",
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:47.228Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          },
+          {
+            "identifier": [
               "NTA_m344-ec2b-4449-bfe6-087cd3d22ac8"
             ],
             "title": [
@@ -3418,50 +3486,12 @@
                 "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
               }
             ]
-          },
-          {
-            "identifier": [
-              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
-            ],
-            "title": [
-              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
-            ],
-            "abstract": [
-              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
-            ],
-            "subject": [
-              "infoMapAccessService",
-              "INSPIRE",
-              "infoMapAccessService",
-              "Land use",
-              "Adresses",
-              "Buildings",
-              "Administrative units",
-              "Hydrography",
-              "Geographical names",
-              "Transport networks"
-            ],
-            "rights": [
-              "otherRestrictions",
-              "otherRestrictions"
-            ],
-            "date": [
-              "2026-10-07T08:42:47.228Z"
-            ],
-            "links": [
-              {
-                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
-                "name": "LU.NGMHU:LandUse2023",
-                "description": "WMS GetCapabilities request providing machine readable service metadata",
-                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
-              }
-            ]
           }
         ],
         "services": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:03:48.799828+00:00",
+            "checked_at_utc": "2026-10-10T06:54:34.773301+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -3489,7 +3519,7 @@
           },
           {
             "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
-            "checked_at_utc": "2026-10-09T21:03:49.032370+00:00",
+            "checked_at_utc": "2026-10-10T06:54:35.445264+00:00",
             "status": 400,
             "sha256": "",
             "error": "HTTP Error 400: Bad Request",
@@ -3497,7 +3527,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
-            "checked_at_utc": "2026-10-09T21:03:50.747664+00:00",
+            "checked_at_utc": "2026-10-10T06:54:36.901660+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -3525,7 +3555,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:03:51.432549+00:00",
+            "checked_at_utc": "2026-10-10T06:54:37.368834+00:00",
             "status": 200,
             "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
             "error": "",
@@ -3549,12 +3579,12 @@
             ]
           },
           {
-            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:03:52.178245+00:00",
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-10T06:54:38.333850+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
-            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
             "content_type": "text/xml;charset=UTF-8",
             "bytes": 7960,
             "zoning_verified": false,
@@ -3574,12 +3604,12 @@
             ]
           },
           {
-            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:03:52.749662+00:00",
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-10T06:54:38.553010+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
-            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
             "content_type": "text/xml;charset=UTF-8",
             "bytes": 7960,
             "zoning_verified": false,
@@ -3606,7 +3636,7 @@
         ],
         "heritage_snapshot": {
           "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
-          "checked_at_utc": "2026-10-09T21:03:53.598712+00:00",
+          "checked_at_utc": "2026-10-10T06:54:39.355764+00:00",
           "status": 200,
           "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
           "error": "",
@@ -3617,7 +3647,7 @@
           "reuse_evidence": {
             "receipt": {
               "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
-              "checked_at_utc": "2026-10-09T21:03:53.085771+00:00",
+              "checked_at_utc": "2026-10-10T06:54:38.867601+00:00",
               "status": 200,
               "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
               "error": "",
@@ -7100,6 +7130,35 @@
         "scan_complete": false,
         "zone_style_verified": true
       },
+      "visual": {
+        "status": "not_identifiable",
+        "zone": "",
+        "intersection_verified": false,
+        "model": {
+          "multimodal_api_configured": false,
+          "credential_present": false,
+          "multimodal_model_verified": false,
+          "external_ai_requests": 0,
+          "external_ai_cost": 0,
+          "method": "PDF natív szöveg + Tesseract OCR + helyi képfeldolgozás",
+          "reason": "Nincs ellenőrzött multimodális modellkapcsolat; képfeldolgozó útvonal."
+        },
+        "reasons": [
+          "Nincs igazolt telekgeometria a helyi vizuális kapcsolat ellenőrzéséhez."
+        ],
+        "source": {
+          "source_url": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf",
+          "source_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
+          "plan_url": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf",
+          "plan_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
+          "edition": "2026.06.08.",
+          "ksh": "24697",
+          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+        },
+        "nearby_parcel_labels": [],
+        "street_labels": [],
+        "candidate_labels": []
+      },
       "minerva_detail": "MINERVA térbeli lekérdezés: HTTPError: HTTP Error 503: Service Unavailable",
       "label_search": {
         "status": "parcel_not_found",
@@ -7114,9 +7173,9 @@
         "catalog_receipts": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
-            "checked_at_utc": "2026-10-09T21:03:19.292241+00:00",
+            "checked_at_utc": "2026-10-10T06:54:13.714881+00:00",
             "status": 200,
-            "sha256": "39d7a7f59ed216015b539f5d08d2732f163d0e81c088107d3298be0ac3c16046",
+            "sha256": "38e4d12eff2286be6a9c57635622f03842cf79dd2afa23984cdb6f7ede8af5da",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
             "content_type": "application/xml;charset=UTF-8",
@@ -7124,19 +7183,19 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
-            "checked_at_utc": "2026-10-09T21:03:31.002367+00:00",
+            "checked_at_utc": "2026-10-10T06:54:19.855610+00:00",
             "status": 200,
-            "sha256": "79612431a82e1d27d0cf1376c698b10fc5a4f9ae5b6c61e670ce547a6fe21089",
+            "sha256": "3bc144eb16997c65207a1470cacf617198d9d7d25439386a083c699e901afb70",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 262481
+            "bytes": 262480
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
-            "checked_at_utc": "2026-10-09T21:03:40.991083+00:00",
+            "checked_at_utc": "2026-10-10T06:54:26.396501+00:00",
             "status": 200,
-            "sha256": "a637b9ed45864cf2ec7fc218937ce85ceadbf21936492a8332fa3d448e047308",
+            "sha256": "207362f3e1e9612cb39c95a9868146490773eee60094019a57aa53381d9d974f",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
             "content_type": "application/xml;charset=UTF-8",
@@ -7147,7 +7206,7 @@
         "entries": [
           {
             "url": "https://minerva.bp12ker.hu/minerva/bp12ker/internet.php",
-            "checked_at_utc": "2026-10-09T21:04:25.290104+00:00",
+            "checked_at_utc": "2026-10-10T06:55:13.938657+00:00",
             "status": 503,
             "sha256": "",
             "error": "HTTP Error 503: Service Unavailable",
@@ -7454,6 +7513,44 @@
           },
           {
             "identifier": [
+              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
+            ],
+            "abstract": [
+              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "INSPIRE",
+              "infoMapAccessService",
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:47.228Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          },
+          {
+            "identifier": [
               "NTA_m344-ec2b-4449-bfe6-087cd3d22ac8"
             ],
             "title": [
@@ -7501,50 +7598,12 @@
                 "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
               }
             ]
-          },
-          {
-            "identifier": [
-              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
-            ],
-            "title": [
-              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
-            ],
-            "abstract": [
-              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
-            ],
-            "subject": [
-              "infoMapAccessService",
-              "INSPIRE",
-              "infoMapAccessService",
-              "Land use",
-              "Adresses",
-              "Buildings",
-              "Administrative units",
-              "Hydrography",
-              "Geographical names",
-              "Transport networks"
-            ],
-            "rights": [
-              "otherRestrictions",
-              "otherRestrictions"
-            ],
-            "date": [
-              "2026-10-07T08:42:47.228Z"
-            ],
-            "links": [
-              {
-                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
-                "name": "LU.NGMHU:LandUse2023",
-                "description": "WMS GetCapabilities request providing machine readable service metadata",
-                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
-              }
-            ]
           }
         ],
         "services": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:04:29.907992+00:00",
+            "checked_at_utc": "2026-10-10T06:55:14.674563+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -7572,7 +7631,7 @@
           },
           {
             "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
-            "checked_at_utc": "2026-10-09T21:04:30.605350+00:00",
+            "checked_at_utc": "2026-10-10T06:55:15.786265+00:00",
             "status": 400,
             "sha256": "",
             "error": "HTTP Error 400: Bad Request",
@@ -7580,7 +7639,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
-            "checked_at_utc": "2026-10-09T21:04:31.959062+00:00",
+            "checked_at_utc": "2026-10-10T06:55:17.217135+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -7608,7 +7667,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:04:32.537600+00:00",
+            "checked_at_utc": "2026-10-10T06:55:18.129236+00:00",
             "status": 200,
             "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
             "error": "",
@@ -7632,12 +7691,12 @@
             ]
           },
           {
-            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:04:33.182731+00:00",
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-10T06:55:19.193589+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
-            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
             "content_type": "text/xml;charset=UTF-8",
             "bytes": 7960,
             "zoning_verified": false,
@@ -7657,12 +7716,12 @@
             ]
           },
           {
-            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:04:33.406376+00:00",
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-10T06:55:19.696314+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
-            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
             "content_type": "text/xml;charset=UTF-8",
             "bytes": 7960,
             "zoning_verified": false,
@@ -7689,7 +7748,7 @@
         ],
         "heritage_snapshot": {
           "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
-          "checked_at_utc": "2026-10-09T21:03:53.598712+00:00",
+          "checked_at_utc": "2026-10-10T06:54:39.355764+00:00",
           "status": 200,
           "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
           "error": "",
@@ -7700,7 +7759,7 @@
           "reuse_evidence": {
             "receipt": {
               "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
-              "checked_at_utc": "2026-10-09T21:03:53.085771+00:00",
+              "checked_at_utc": "2026-10-10T06:54:38.867601+00:00",
               "status": 200,
               "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
               "error": "",
@@ -11565,6 +11624,35 @@
         "scan_complete": false,
         "zone_style_verified": true
       },
+      "visual": {
+        "status": "not_identifiable",
+        "zone": "",
+        "intersection_verified": false,
+        "model": {
+          "multimodal_api_configured": false,
+          "credential_present": false,
+          "multimodal_model_verified": false,
+          "external_ai_requests": 0,
+          "external_ai_cost": 0,
+          "method": "PDF natív szöveg + Tesseract OCR + helyi képfeldolgozás",
+          "reason": "Nincs ellenőrzött multimodális modellkapcsolat; képfeldolgozó útvonal."
+        },
+        "reasons": [
+          "Nincs igazolt telekgeometria a helyi vizuális kapcsolat ellenőrzéséhez."
+        ],
+        "source": {
+          "source_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+          "source_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+          "plan_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+          "plan_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+          "edition": "2025.12.22.",
+          "ksh": "02167",
+          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+        },
+        "nearby_parcel_labels": [],
+        "street_labels": [],
+        "candidate_labels": []
+      },
       "label_search": {
         "status": "parcel_not_found",
         "candidates": [],
@@ -11578,9 +11666,9 @@
         "catalog_receipts": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
-            "checked_at_utc": "2026-10-09T21:03:19.292241+00:00",
+            "checked_at_utc": "2026-10-10T06:54:13.714881+00:00",
             "status": 200,
-            "sha256": "39d7a7f59ed216015b539f5d08d2732f163d0e81c088107d3298be0ac3c16046",
+            "sha256": "38e4d12eff2286be6a9c57635622f03842cf79dd2afa23984cdb6f7ede8af5da",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
             "content_type": "application/xml;charset=UTF-8",
@@ -11588,19 +11676,19 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
-            "checked_at_utc": "2026-10-09T21:03:31.002367+00:00",
+            "checked_at_utc": "2026-10-10T06:54:19.855610+00:00",
             "status": 200,
-            "sha256": "79612431a82e1d27d0cf1376c698b10fc5a4f9ae5b6c61e670ce547a6fe21089",
+            "sha256": "3bc144eb16997c65207a1470cacf617198d9d7d25439386a083c699e901afb70",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 262481
+            "bytes": 262480
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
-            "checked_at_utc": "2026-10-09T21:03:40.991083+00:00",
+            "checked_at_utc": "2026-10-10T06:54:26.396501+00:00",
             "status": 200,
-            "sha256": "a637b9ed45864cf2ec7fc218937ce85ceadbf21936492a8332fa3d448e047308",
+            "sha256": "207362f3e1e9612cb39c95a9868146490773eee60094019a57aa53381d9d974f",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
             "content_type": "application/xml;charset=UTF-8",
@@ -11611,9 +11699,9 @@
         "entries": [
           {
             "url": "https://www.komadi.hu/",
-            "checked_at_utc": "2026-10-09T21:05:01.813814+00:00",
+            "checked_at_utc": "2026-10-10T06:55:42.750096+00:00",
             "status": 200,
-            "sha256": "6ea2e0b0f5b24a7fecbe552da36f84237636313d30ade53fa49aa1e355958bfd",
+            "sha256": "ff687567f4f237ce73286733254d464e1b92d3d636a118285f5d0014c9b0890e",
             "error": "",
             "final_url": "https://www.komadi.hu/",
             "content_type": "text/html; charset=utf-8",
@@ -11921,6 +12009,44 @@
           },
           {
             "identifier": [
+              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
+            ],
+            "abstract": [
+              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "INSPIRE",
+              "infoMapAccessService",
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:47.228Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          },
+          {
+            "identifier": [
               "NTA_m344-ec2b-4449-bfe6-087cd3d22ac8"
             ],
             "title": [
@@ -11968,50 +12094,12 @@
                 "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
               }
             ]
-          },
-          {
-            "identifier": [
-              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
-            ],
-            "title": [
-              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
-            ],
-            "abstract": [
-              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
-            ],
-            "subject": [
-              "infoMapAccessService",
-              "INSPIRE",
-              "infoMapAccessService",
-              "Land use",
-              "Adresses",
-              "Buildings",
-              "Administrative units",
-              "Hydrography",
-              "Geographical names",
-              "Transport networks"
-            ],
-            "rights": [
-              "otherRestrictions",
-              "otherRestrictions"
-            ],
-            "date": [
-              "2026-10-07T08:42:47.228Z"
-            ],
-            "links": [
-              {
-                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
-                "name": "LU.NGMHU:LandUse2023",
-                "description": "WMS GetCapabilities request providing machine readable service metadata",
-                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
-              }
-            ]
           }
         ],
         "services": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:05:03.538883+00:00",
+            "checked_at_utc": "2026-10-10T06:55:44.257107+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -12039,7 +12127,7 @@
           },
           {
             "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
-            "checked_at_utc": "2026-10-09T21:05:04.120105+00:00",
+            "checked_at_utc": "2026-10-10T06:55:45.268142+00:00",
             "status": 400,
             "sha256": "",
             "error": "HTTP Error 400: Bad Request",
@@ -12047,7 +12135,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
-            "checked_at_utc": "2026-10-09T21:05:05.394974+00:00",
+            "checked_at_utc": "2026-10-10T06:55:46.661481+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -12075,7 +12163,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:05:06.054586+00:00",
+            "checked_at_utc": "2026-10-10T06:55:47.193125+00:00",
             "status": 200,
             "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
             "error": "",
@@ -12099,12 +12187,12 @@
             ]
           },
           {
-            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:05:06.582875+00:00",
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-10T06:55:47.783423+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
-            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
             "content_type": "text/xml;charset=UTF-8",
             "bytes": 7960,
             "zoning_verified": false,
@@ -12124,12 +12212,12 @@
             ]
           },
           {
-            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:05:06.816761+00:00",
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-10T06:55:48.014730+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
-            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
             "content_type": "text/xml;charset=UTF-8",
             "bytes": 7960,
             "zoning_verified": false,
@@ -12156,7 +12244,7 @@
         ],
         "heritage_snapshot": {
           "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
-          "checked_at_utc": "2026-10-09T21:03:53.598712+00:00",
+          "checked_at_utc": "2026-10-10T06:54:39.355764+00:00",
           "status": 200,
           "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
           "error": "",
@@ -12167,7 +12255,7 @@
           "reuse_evidence": {
             "receipt": {
               "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
-              "checked_at_utc": "2026-10-09T21:03:53.085771+00:00",
+              "checked_at_utc": "2026-10-10T06:54:38.867601+00:00",
               "status": 200,
               "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
               "error": "",
@@ -13571,6 +13659,35 @@
         "zone_style_verified": false,
         "error": "Nem sikerült a saját jelmagyarázat övezethatár-mintáját egyértelműen feldolgozni."
       },
+      "visual": {
+        "status": "not_identifiable",
+        "zone": "",
+        "intersection_verified": false,
+        "model": {
+          "multimodal_api_configured": false,
+          "credential_present": false,
+          "multimodal_model_verified": false,
+          "external_ai_requests": 0,
+          "external_ai_cost": 0,
+          "method": "PDF natív szöveg + Tesseract OCR + helyi képfeldolgozás",
+          "reason": "Nincs ellenőrzött multimodális modellkapcsolat; képfeldolgozó útvonal."
+        },
+        "reasons": [
+          "Nincs igazolt telekgeometria a helyi vizuális kapcsolat ellenőrzéséhez."
+        ],
+        "source": {
+          "source_url": "https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf",
+          "source_hash": "a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca",
+          "plan_url": "https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf",
+          "plan_hash": "a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca",
+          "edition": "2019.06.01.",
+          "ksh": "30942",
+          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+        },
+        "nearby_parcel_labels": [],
+        "street_labels": [],
+        "candidate_labels": []
+      },
       "label_search": {
         "status": "parcel_not_found",
         "candidates": [],
@@ -13584,9 +13701,9 @@
         "catalog_receipts": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
-            "checked_at_utc": "2026-10-09T21:03:19.292241+00:00",
+            "checked_at_utc": "2026-10-10T06:54:13.714881+00:00",
             "status": 200,
-            "sha256": "39d7a7f59ed216015b539f5d08d2732f163d0e81c088107d3298be0ac3c16046",
+            "sha256": "38e4d12eff2286be6a9c57635622f03842cf79dd2afa23984cdb6f7ede8af5da",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
             "content_type": "application/xml;charset=UTF-8",
@@ -13594,19 +13711,19 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
-            "checked_at_utc": "2026-10-09T21:03:31.002367+00:00",
+            "checked_at_utc": "2026-10-10T06:54:19.855610+00:00",
             "status": 200,
-            "sha256": "79612431a82e1d27d0cf1376c698b10fc5a4f9ae5b6c61e670ce547a6fe21089",
+            "sha256": "3bc144eb16997c65207a1470cacf617198d9d7d25439386a083c699e901afb70",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 262481
+            "bytes": 262480
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
-            "checked_at_utc": "2026-10-09T21:03:40.991083+00:00",
+            "checked_at_utc": "2026-10-10T06:54:26.396501+00:00",
             "status": 200,
-            "sha256": "a637b9ed45864cf2ec7fc218937ce85ceadbf21936492a8332fa3d448e047308",
+            "sha256": "207362f3e1e9612cb39c95a9868146490773eee60094019a57aa53381d9d974f",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
             "content_type": "application/xml;charset=UTF-8",
@@ -13617,7 +13734,7 @@
         "entries": [
           {
             "url": "https://www.gersekarat.hu/hu/onkormanyzat/letoltheto-dokumentumok",
-            "checked_at_utc": "2026-10-09T21:06:28.275922+00:00",
+            "checked_at_utc": "2026-10-10T06:57:07.435074+00:00",
             "status": 200,
             "sha256": "1fe6621e696fe880dffcae6d650dd6f4bd129f6f182ddaccce2d46ed4a7f72f1",
             "error": "",
@@ -13927,6 +14044,44 @@
           },
           {
             "identifier": [
+              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
+            ],
+            "abstract": [
+              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "INSPIRE",
+              "infoMapAccessService",
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:47.228Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          },
+          {
+            "identifier": [
               "NTA_m344-ec2b-4449-bfe6-087cd3d22ac8"
             ],
             "title": [
@@ -13974,50 +14129,12 @@
                 "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
               }
             ]
-          },
-          {
-            "identifier": [
-              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
-            ],
-            "title": [
-              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
-            ],
-            "abstract": [
-              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
-            ],
-            "subject": [
-              "infoMapAccessService",
-              "INSPIRE",
-              "infoMapAccessService",
-              "Land use",
-              "Adresses",
-              "Buildings",
-              "Administrative units",
-              "Hydrography",
-              "Geographical names",
-              "Transport networks"
-            ],
-            "rights": [
-              "otherRestrictions",
-              "otherRestrictions"
-            ],
-            "date": [
-              "2026-10-07T08:42:47.228Z"
-            ],
-            "links": [
-              {
-                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
-                "name": "LU.NGMHU:LandUse2023",
-                "description": "WMS GetCapabilities request providing machine readable service metadata",
-                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
-              }
-            ]
           }
         ],
         "services": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:06:35.113782+00:00",
+            "checked_at_utc": "2026-10-10T06:57:12.975181+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -14045,7 +14162,7 @@
           },
           {
             "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
-            "checked_at_utc": "2026-10-09T21:06:36.421882+00:00",
+            "checked_at_utc": "2026-10-10T06:57:13.676838+00:00",
             "status": 400,
             "sha256": "",
             "error": "HTTP Error 400: Bad Request",
@@ -14053,7 +14170,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
-            "checked_at_utc": "2026-10-09T21:06:38.205652+00:00",
+            "checked_at_utc": "2026-10-10T06:57:15.018309+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -14081,7 +14198,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:06:39.562531+00:00",
+            "checked_at_utc": "2026-10-10T06:57:15.328030+00:00",
             "status": 200,
             "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
             "error": "",
@@ -14105,12 +14222,12 @@
             ]
           },
           {
-            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:06:40.313907+00:00",
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-10T06:57:15.845165+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
-            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
             "content_type": "text/xml;charset=UTF-8",
             "bytes": 7960,
             "zoning_verified": false,
@@ -14130,12 +14247,12 @@
             ]
           },
           {
-            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:06:40.922227+00:00",
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-10T06:57:16.473069+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
-            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
             "content_type": "text/xml;charset=UTF-8",
             "bytes": 7960,
             "zoning_verified": false,
@@ -20300,15 +20417,574 @@
         "scan_complete": true,
         "zone_style_verified": true
       },
+      "visual": {
+        "status": "probable",
+        "zone": "Gipe-60.63.5",
+        "intersection_verified": false,
+        "model": {
+          "multimodal_api_configured": false,
+          "credential_present": false,
+          "multimodal_model_verified": false,
+          "external_ai_requests": 0,
+          "external_ai_cost": 0,
+          "method": "PDF natív szöveg + Tesseract OCR + helyi képfeldolgozás",
+          "reason": "Nincs ellenőrzött multimodális modellkapcsolat; képfeldolgozó útvonal."
+        },
+        "reasons": [
+          "A helyi képi kapcsolat nem zárt övezeti terület bizonyítéka.",
+          "A szaggatott/pontozott jelek közti fehér képpontok nem igazolják az átjárhatóságot.",
+          "A közeli telekfeliratok szomszédsága és a kataszteri–tervi környezet egyezése külön igazolandó."
+        ],
+        "source": {
+          "source_url": "https://njt.jog.gov.hu/document/03/0366LL_EJR_83921015-Jelmagyarazat_modositasa.pdf",
+          "source_hash": "6d40152ff111712a5a139926e7c23e5acf6736106e6bc81d7277e2beb696f24a",
+          "plan_url": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
+          "plan_hash": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc",
+          "edition": "2026.09.26.",
+          "ksh": "30456",
+          "implementation": "f160e691a655af708474e76d8c85e63d365864a2f4d0f10178ec9e98408be0f6"
+        },
+        "nearby_parcel_labels": [
+          {
+            "text": "2",
+            "rect_pdf": [
+              377.746826171875,
+              596.2389526367188,
+              381.316162109375,
+              606.91259765625
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              382.1042785644531,
+              595.6279296875,
+              385.6736145019531,
+              606.3015747070312
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              386.46173095703125,
+              595.0169067382812,
+              390.03106689453125,
+              605.6905517578125
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              390.8191833496094,
+              594.4058837890625,
+              394.3885192871094,
+              605.0795288085938
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              395.1766357421875,
+              593.794921875,
+              398.7459716796875,
+              604.4685668945312
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              399.5340881347656,
+              593.1838989257812,
+              403.1034240722656,
+              603.8575439453125
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              403.89154052734375,
+              592.5728759765625,
+              407.46087646484375,
+              603.2465209960938
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              405.7574157714844,
+              594.0631103515625,
+              414.8966064453125,
+              602.749267578125
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              409.1900329589844,
+              596.744140625,
+              417.490966796875,
+              606.196533203125
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              441.1178283691406,
+              596.2377319335938,
+              448.65264892578125,
+              606.169677734375
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              442.6133728027344,
+              594.1480712890625,
+              452.38787841796875,
+              601.966552734375
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              450.80926513671875,
+              599.858642578125,
+              461.33038330078125,
+              602.2073974609375
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              486.3119201660156,
+              593.3084106445312,
+              488.82415771484375,
+              603.8571166992188
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              481.914794921875,
+              593.1492919921875,
+              484.4270324707031,
+              603.697998046875
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              477.51751708984375,
+              592.990234375,
+              480.0297546386719,
+              603.5389404296875
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              473.1204528808594,
+              592.8311157226562,
+              475.6326904296875,
+              603.3798217773438
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              468.72332763671875,
+              592.6720581054688,
+              471.2355651855469,
+              603.2207641601562
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              464.3262023925781,
+              592.5130004882812,
+              466.83843994140625,
+              603.0617065429688
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              459.92901611328125,
+              592.3539428710938,
+              462.4412536621094,
+              602.9026489257812
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              455.5318908691406,
+              592.19482421875,
+              458.04412841796875,
+              602.7435302734375
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "2",
+            "rect_pdf": [
+              451.13482666015625,
+              592.035888671875,
+              453.6470642089844,
+              602.5845947265625
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "1",
+            "rect_pdf": [
+              446.33624267578125,
+              400.6255798339844,
+              450.0602111816406,
+              403.8261413574219
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "1",
+            "rect_pdf": [
+              470.5243225097656,
+              470.3175048828125,
+              474.1601867675781,
+              472.6827087402344
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "1",
+            "rect_pdf": [
+              484.4252624511719,
+              543.73486328125,
+              488.0134582519531,
+              545.9553833007812
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "11509/7",
+            "rect_pdf": [
+              305.5865173339844,
+              396.39031982421875,
+              312.67291259765625,
+              398.6265563964844
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "4757/2",
+            "rect_pdf": [
+              469.0815734863281,
+              445.0968017578125,
+              475.20361328125,
+              447.3330383300781
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "(4755/4)",
+            "rect_pdf": [
+              419.4395751953125,
+              522.5037231445312,
+              426.8949279785156,
+              524.739990234375
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "4757/1",
+            "rect_pdf": [
+              337.7735900878906,
+              463.06878662109375,
+              343.8956298828125,
+              465.3050231933594
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "(11508)",
+            "rect_pdf": [
+              385.616455078125,
+              408.4052429199219,
+              392.6814880371094,
+              411.97467041015625
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "(4752/2)",
+            "rect_pdf": [
+              298.4429626464844,
+              575.5885620117188,
+              305.8983154296875,
+              577.8248291015625
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "(4755/9)",
+            "rect_pdf": [
+              407.5619812011719,
+              571.2945556640625,
+              415.017333984375,
+              573.5308227539062
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "(4749)",
+            "rect_pdf": [
+              318.53070068359375,
+              594.5158081054688,
+              324.4587097167969,
+              597.1504516601562
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "(4755/7)",
+            "rect_pdf": [
+              445.7099609375,
+              565.4840698242188,
+              453.1653137207031,
+              567.7203369140625
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "4755/11",
+            "rect_pdf": [
+              361.7195739746094,
+              494.851806640625,
+              368.80596923828125,
+              497.0880432128906
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "4755/10",
+            "rect_pdf": [
+              365.5035705566406,
+              541.8927612304688,
+              372.73870849609375,
+              544.1290283203125
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "4752/4",
+            "rect_pdf": [
+              259.3184509277344,
+              520.47705078125,
+              265.44049072265625,
+              522.7133178710938
+            ],
+            "adjacency_verified": false
+          },
+          {
+            "text": "3",
+            "rect_pdf": [
+              236.51194763183594,
+              577.6951293945312,
+              237.62506103515625,
+              579.931396484375
+            ],
+            "adjacency_verified": false
+          }
+        ],
+        "street_labels": [],
+        "candidate_labels": [
+          {
+            "code": "Gipe-60.63.5",
+            "label_rect_pdf": [
+              352.8024597167969,
+              522.082275390625,
+              382.26251220703125,
+              527.6672973632812
+            ],
+            "clear_paths": 5,
+            "label_inside_target_parcel": false,
+            "tested_anchors": 9,
+            "paths": [
+              {
+                "start_pdf": [
+                  367.53248596191406,
+                  524.8747863769531
+                ],
+                "end_pdf": [
+                  337.7448717970508,
+                  497.01728752109705
+                ]
+              },
+              {
+                "start_pdf": [
+                  367.53248596191406,
+                  524.8747863769531
+                ],
+                "end_pdf": [
+                  362.93475091829777,
+                  497.01728752109705
+                ]
+              },
+              {
+                "start_pdf": [
+                  367.53248596191406,
+                  524.8747863769531
+                ],
+                "end_pdf": [
+                  362.93475091829777,
+                  511.4472308324362
+                ]
+              },
+              {
+                "start_pdf": [
+                  367.53248596191406,
+                  524.8747863769531
+                ],
+                "end_pdf": [
+                  388.12463003954474,
+                  482.5873442097579
+                ]
+              },
+              {
+                "start_pdf": [
+                  367.53248596191406,
+                  524.8747863769531
+                ],
+                "end_pdf": [
+                  388.12463003954474,
+                  511.4472308324362
+                ]
+              }
+            ]
+          },
+          {
+            "code": "Gksz-71.62.6",
+            "label_rect_pdf": [
+              257.886474609375,
+              508.4264221191406,
+              288.1815185546875,
+              514.0114135742188
+            ],
+            "clear_paths": 0,
+            "label_inside_target_parcel": false,
+            "tested_anchors": 9,
+            "paths": []
+          }
+        ],
+        "pdf_page": 31,
+        "clip_pdf": [
+          236.9853515625,
+          392.5877685546875,
+          488.8841552734375,
+          601.4468383789062
+        ],
+        "scale": 5,
+        "parcel_pdf_wkt": "POLYGON ((413.3145091607918 525.8771741437754, 400.83454086811423 468.1574008984187, 312.55499267580376 478.3973388671731, 320.8349650571857 516.8372187559978, 373.7949523925786 510.63720703124403, 373.79497896577357 510.63732956331495, 373.79498291014204 510.6373291015506, 376.6749613674096 523.9172365469943, 413.3145091607918 525.8771741437754))",
+        "legend_bound": true,
+        "exact_hrsz_in_parcel": true,
+        "local_source_boundary_segments": 252,
+        "marker_variant_supported": true,
+        "context_image_sha256": "7c87670b7b5514eba5227e3283b0c2f7aeed6f9b5281a556e4a3ae50a36dca45",
+        "source_gaps": [
+          {
+            "point_pdf": [
+              309.627815104371,
+              476.3347477136761
+            ],
+            "distance_to_parcel_points": 3.5808729104941284,
+            "run_wkt": "LINESTRING (309.627815104371 476.3347477136761, 306.64130387390225 476.61822549687923, 303.654670573121 476.9017337976605, 300.66806778991787 477.1850895105511, 297.68146500671475 477.46859781133236, 294.6949842938241 477.7521061121136, 293.59693547116643 477.8563391814379)",
+            "connection_verified": false,
+            "nearest_source_point_pdf": [
+              309.62751867853837,
+              476.3316311308177
+            ],
+            "gap_points": 0.003130648013998237,
+            "gap_m": 0.00441668306245104
+          },
+          {
+            "point_pdf": [
+              312.67487277469064,
+              478.9885195754251
+            ],
+            "distance_to_parcel_points": 0.007293291278106038,
+            "run_wkt": "LINESTRING (329.77878512820627 558.1620120070656, 329.1453927942219 555.2296389601906, 328.51190890750314 552.2973879836281, 327.87839450320627 549.3649539015969, 327.2450021692219 546.4326418898781, 326.61151828250314 543.5002688430031, 325.9780343957844 540.5679568312844, 325.3445199914875 537.6355227492531, 324.711097139925 534.7031497023781, 324.07761325320627 531.7708987258156, 323.4440988489094 528.8385256789406, 322.81073703250314 525.9061526320656, 322.17722262820627 522.9737795851906, 321.5437387414875 520.0415286086281, 320.91034640750314 517.1090945265969, 320.27683200320627 514.1767214797219, 319.6433481164875 511.2444399855813, 319.00983371219064 508.3120364211282, 318.3763498254719 505.37972440940945, 317.742835421175 502.4473208449563, 317.10932101687814 499.5150698683938, 316.4758676477375 496.5826357863626, 315.84235324344064 493.6503237746438, 315.2088693567219 490.7179202101907, 314.575354952425 487.78560819847195, 313.94187106570627 484.85323515159695, 313.3083566614094 481.9209231398782, 312.67487277469064 478.9885195754251)",
+            "connection_verified": false,
+            "nearest_source_point_pdf": [
+              312.6056770147602,
+              478.39197588130247
+            ],
+            "gap_points": 0.6005434473789396,
+            "gap_m": 0.8472415655956627
+          },
+          {
+            "point_pdf": [
+              400.3422941507252,
+              468.20726607435347
+            ],
+            "distance_to_parcel_points": 0.007184541653453212,
+            "run_wkt": "LINESTRING (400.3422941507252 468.20726607435347, 397.36228316439707 468.5528776466191, 394.38230269564707 468.8985807716191, 391.40220015658457 469.2441923438847, 388.42218917025644 469.58980391615034, 385.4421781839283 469.93541548841597, 382.4621671976002 470.28111861341597, 379.48212569369394 470.6267301856816, 376.5021147073658 470.97237227552534, 373.5221037210377 471.3179228126347, 370.5421232522877 471.6636259376347, 367.56211226595957 472.00923750990034, 364.58200972689707 472.3547880470097, 361.60199874056894 472.70039961927534, 358.62201827181894 473.04613326185347, 355.64203780306894 473.39168379896284, 352.6619047464283 473.7373258888066, 349.6818937601002 474.0829374610722, 346.70188277377207 474.42854903333784, 343.72187178744394 474.77425215833784, 340.74176924838144 475.1198942481816, 337.7617582620533 475.4655058204472, 334.7817472757252 475.81111739271284, 331.80173628939707 476.15682051771284, 328.8216947854908 476.5024626075566, 325.8416837991627 476.84801314466597, 322.86167281283457 477.1936552345097, 319.88169234408457 477.5393278419316, 316.90155928744394 477.8849394141972, 313.9215483011158 478.23055098646284)",
+            "connection_verified": false,
+            "nearest_source_point_pdf": [
+              400.3431810391366,
+              468.2149120296801
+            ],
+            "gap_points": 0.007697220531518808,
+            "gap_m": 0.010859172947265266
+          },
+          {
+            "point_pdf": [
+              313.9215483011158,
+              478.23055098646284
+            ],
+            "distance_to_parcel_points": 0.008219894067018257,
+            "run_wkt": "LINESTRING (400.3422941507252 468.20726607435347, 397.36228316439707 468.5528776466191, 394.38230269564707 468.8985807716191, 391.40220015658457 469.2441923438847, 388.42218917025644 469.58980391615034, 385.4421781839283 469.93541548841597, 382.4621671976002 470.28111861341597, 379.48212569369394 470.6267301856816, 376.5021147073658 470.97237227552534, 373.5221037210377 471.3179228126347, 370.5421232522877 471.6636259376347, 367.56211226595957 472.00923750990034, 364.58200972689707 472.3547880470097, 361.60199874056894 472.70039961927534, 358.62201827181894 473.04613326185347, 355.64203780306894 473.39168379896284, 352.6619047464283 473.7373258888066, 349.6818937601002 474.0829374610722, 346.70188277377207 474.42854903333784, 343.72187178744394 474.77425215833784, 340.74176924838144 475.1198942481816, 337.7617582620533 475.4655058204472, 334.7817472757252 475.81111739271284, 331.80173628939707 476.15682051771284, 328.8216947854908 476.5024626075566, 325.8416837991627 476.84801314466597, 322.86167281283457 477.1936552345097, 319.88169234408457 477.5393278419316, 316.90155928744394 477.8849394141972, 313.9215483011158 478.23055098646284)",
+            "connection_verified": false,
+            "nearest_source_point_pdf": [
+              313.9225544848045,
+              478.23922539852515
+            ],
+            "gap_points": 0.00873257294510394,
+            "gap_m": 0.012319839323792495
+          }
+        ],
+        "annotation_note": "Cián: igazolt telek. Zöld: saját jelmagyarázathoz illesztett forrásszakasz. Lila: felirat és vizuális jelöltkapcsolat. Kék kör: eredeti nyitott csatlakozás. Nem hivatalos jelölések.",
+        "legend_image_source_verified": true,
+        "annotated_image_sha256": "7fe4c8eb30c080bc93115fc629b0b7dac8a26906c053b58c44c91796ad4fd01b"
+      },
       "gis_sources": {
         "place": "Miskolc",
         "catalog_complete": true,
         "catalog_receipts": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
-            "checked_at_utc": "2026-10-09T21:03:19.292241+00:00",
+            "checked_at_utc": "2026-10-10T06:54:13.714881+00:00",
             "status": 200,
-            "sha256": "39d7a7f59ed216015b539f5d08d2732f163d0e81c088107d3298be0ac3c16046",
+            "sha256": "38e4d12eff2286be6a9c57635622f03842cf79dd2afa23984cdb6f7ede8af5da",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=1",
             "content_type": "application/xml;charset=UTF-8",
@@ -20316,19 +20992,19 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
-            "checked_at_utc": "2026-10-09T21:03:31.002367+00:00",
+            "checked_at_utc": "2026-10-10T06:54:19.855610+00:00",
             "status": 200,
-            "sha256": "79612431a82e1d27d0cf1376c698b10fc5a4f9ae5b6c61e670ce547a6fe21089",
+            "sha256": "3bc144eb16997c65207a1470cacf617198d9d7d25439386a083c699e901afb70",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=101",
             "content_type": "application/xml;charset=UTF-8",
-            "bytes": 262481
+            "bytes": 262480
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
-            "checked_at_utc": "2026-10-09T21:03:40.991083+00:00",
+            "checked_at_utc": "2026-10-10T06:54:26.396501+00:00",
             "status": 200,
-            "sha256": "a637b9ed45864cf2ec7fc218937ce85ceadbf21936492a8332fa3d448e047308",
+            "sha256": "207362f3e1e9612cb39c95a9868146490773eee60094019a57aa53381d9d974f",
             "error": "",
             "final_url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecords&resultType=results&typeNames=csw%3ARecord&elementSetName=full&maxRecords=100&startPosition=201",
             "content_type": "application/xml;charset=UTF-8",
@@ -20339,9 +21015,9 @@
         "entries": [
           {
             "url": "https://www.miskolc.hu/varoshaza/onkormanyzat/strategiak-koncepciok/miskolc-megyei-jogu-varos-epitesi-szabalyzata",
-            "checked_at_utc": "2026-10-09T21:08:44.754535+00:00",
+            "checked_at_utc": "2026-10-10T06:59:13.066580+00:00",
             "status": 200,
-            "sha256": "e50b85f94b1fac159cde5cd96805f2a67e1c8295550b8c79e08c7cada7179beb",
+            "sha256": "ba87d5b47f8b379b22d1550418c365ebb2ac28990566deeea9295b3f2ed15d11",
             "error": "",
             "final_url": "https://www.miskolc.hu/varoshaza/onkormanyzat/strategiak-koncepciok/miskolc-megyei-jogu-varos-epitesi-szabalyzata",
             "content_type": "text/html; charset=UTF-8",
@@ -20649,6 +21325,44 @@
           },
           {
             "identifier": [
+              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
+            ],
+            "title": [
+              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
+            ],
+            "abstract": [
+              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
+            ],
+            "subject": [
+              "infoMapAccessService",
+              "INSPIRE",
+              "infoMapAccessService",
+              "Land use",
+              "Adresses",
+              "Buildings",
+              "Administrative units",
+              "Hydrography",
+              "Geographical names",
+              "Transport networks"
+            ],
+            "rights": [
+              "otherRestrictions",
+              "otherRestrictions"
+            ],
+            "date": [
+              "2026-10-07T08:42:47.228Z"
+            ],
+            "links": [
+              {
+                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
+                "name": "LU.NGMHU:LandUse2023",
+                "description": "WMS GetCapabilities request providing machine readable service metadata",
+                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
+              }
+            ]
+          },
+          {
+            "identifier": [
               "NTA_m344-ec2b-4449-bfe6-087cd3d22ac8"
             ],
             "title": [
@@ -20696,50 +21410,12 @@
                 "url": "https://nta.lechnerkozpont.hu/sites/default/files/2023-05/mo.png"
               }
             ]
-          },
-          {
-            "identifier": [
-              "NTA_vs13e7-c43a-43b0-b663-8296d249ac46"
-            ],
-            "title": [
-              "INSPIRE Annex III Theme Land use - National Geospatial Map of Hungary (NGMHu) view service - NGMHu 2023"
-            ],
-            "abstract": [
-              "Web Map Service providing access to The National Geospatial Map of Hungary (NGMHu) of Hungary. INSPIRE - Annex III Theme Land use, NGMHu 2023, Spatial resolution 1:100"
-            ],
-            "subject": [
-              "infoMapAccessService",
-              "INSPIRE",
-              "infoMapAccessService",
-              "Land use",
-              "Adresses",
-              "Buildings",
-              "Administrative units",
-              "Hydrography",
-              "Geographical names",
-              "Transport networks"
-            ],
-            "rights": [
-              "otherRestrictions",
-              "otherRestrictions"
-            ],
-            "date": [
-              "2026-10-07T08:42:47.228Z"
-            ],
-            "links": [
-              {
-                "protocol": "OGC:WMS-1.3.0-http-get-capabilities",
-                "name": "LU.NGMHU:LandUse2023",
-                "description": "WMS GetCapabilities request providing machine readable service metadata",
-                "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities"
-              }
-            ]
           }
         ],
         "services": [
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:08:46.986598+00:00",
+            "checked_at_utc": "2026-10-10T06:59:15.006039+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -20767,7 +21443,7 @@
           },
           {
             "url": "https://geoportal.vizugy.hu/arcgis/services/INSPIRE/Inspire/MapServer/WFSServer?request=GetCapabilities&service=WFS",
-            "checked_at_utc": "2026-10-09T21:08:47.712266+00:00",
+            "checked_at_utc": "2026-10-10T06:59:16.189701+00:00",
             "status": 400,
             "sha256": "",
             "error": "HTTP Error 400: Bad Request",
@@ -20775,7 +21451,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/wms?SERVICE=WMS&request=GetCapabilities&version=1.3.0",
-            "checked_at_utc": "2026-10-09T21:08:49.072064+00:00",
+            "checked_at_utc": "2026-10-10T06:59:17.327994+00:00",
             "status": 200,
             "sha256": "a49d435d06681032cbc83e08fdf53fa46a4a12152ef2e3ce069b5fe9c08fe482",
             "error": "",
@@ -20803,7 +21479,7 @@
           },
           {
             "url": "https://inspire.lechnerkozpont.hu/geoserver/CP/ows?service=WFS&acceptversions=2.0.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:08:49.401332+00:00",
+            "checked_at_utc": "2026-10-10T06:59:17.672340+00:00",
             "status": 200,
             "sha256": "91303871c48e0325561385892af6b5693a31e03c07b164d600f683627276076f",
             "error": "",
@@ -20827,12 +21503,12 @@
             ]
           },
           {
-            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:08:50.167908+00:00",
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "checked_at_utc": "2026-10-10T06:59:18.754720+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
-            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
             "content_type": "text/xml;charset=UTF-8",
             "bytes": 7960,
             "zoning_verified": false,
@@ -20852,12 +21528,12 @@
             ]
           },
           {
-            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
-            "checked_at_utc": "2026-10-09T21:08:50.730293+00:00",
+            "url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
+            "checked_at_utc": "2026-10-10T06:59:19.393713+00:00",
             "status": 200,
             "sha256": "fd54729e278da07faf45061ee7ad146cc508278ff82a279899b6f55672d7f8fe",
             "error": "",
-            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?VERSION=1.3.0&SERVICE=WMS&REQUEST=GetCapabilities",
+            "final_url": "https://inspire.lechnerkozpont.hu/geoserver/LU.NGMHU/wms?SERVICE=WMS&version=1.3.0&request=GetCapabilities",
             "content_type": "text/xml;charset=UTF-8",
             "bytes": 7960,
             "zoning_verified": false,
@@ -20884,7 +21560,7 @@
         ],
         "heritage_snapshot": {
           "url": "https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip",
-          "checked_at_utc": "2026-10-09T21:03:53.598712+00:00",
+          "checked_at_utc": "2026-10-10T06:54:39.355764+00:00",
           "status": 200,
           "sha256": "f6bbddf26721f5225306ab792148243ff1716de7954c8730dba4e57290b7246c",
           "error": "",
@@ -20895,7 +21571,7 @@
           "reuse_evidence": {
             "receipt": {
               "url": "https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw?service=CSW&version=2.0.2&request=GetRecordById&id=cultural_heritage_md-148717d9-7a91-4fc5-b8f4-fddc28a1b615&elementSetName=full&outputSchema=http%3A%2F%2Fwww.isotc211.org%2F2005%2Fgmd",
-              "checked_at_utc": "2026-10-09T21:03:53.085771+00:00",
+              "checked_at_utc": "2026-10-10T06:54:38.867601+00:00",
               "status": 200,
               "sha256": "604c9a9379eb85db5c3846e6e655712653ba873b23fe29e7899f1f2a8a0addb4",
               "error": "",

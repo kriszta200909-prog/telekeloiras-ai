@@ -39,18 +39,22 @@ def main():
     parser.add_argument('--output', default='work/reference-results.json')
     parser.add_argument('--outlined', action='store_true',
                         help='Run bounded/resumable outlined-label recognition when needed.')
+    parser.add_argument('--visual-image',help='Save the Miskolc reference illustration with its original legend.')
     args = parser.parse_args()
     destination = Path(args.output)
     destination.parent.mkdir(parents=True, exist_ok=True)
     report = {'checked_at_utc': datetime.now(timezone.utc).isoformat(),
               'outlined_label_search': args.outlined,
               'code_sha256': {name:app.source_digest(Path(name).read_bytes())
-                              for name in ('app.py','geopdf.py','plan_legend.py','plan_connections.py','plan_geometry_audit.py','zone_parameters.py','gis_sources.py','reference_checks.py')}, 'cases': []}
+                              for name in ('app.py','geopdf.py','plan_legend.py','plan_connections.py','plan_geometry_audit.py','zone_parameters.py','gis_sources.py','visual_plan.py','reference_checks.py')}, 'cases': []}
     for place, hrsz in CASES:
         print(place + ' ' + hrsz + ': hivatalos forráslekérés…', flush=True)
         def progress(page, pages, scanned, labels):
             print(f'  OCR: {page}/{pages} oldal; {scanned} feliratcsoport; {labels} jelölt', flush=True)
         result = app.inspect_official_parcel(place, hrsz, outlined=args.outlined, on_progress=progress)
+        png=result.get('visual',{}).pop('annotated_png',None)
+        if png and args.visual_image and (place,hrsz)==('Miskolc','4755/11'):
+            Path(args.visual_image).write_bytes(png)
         report['cases'].append(public_result(result))
         destination.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
         for row in result['evidence']:
