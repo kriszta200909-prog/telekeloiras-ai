@@ -130,6 +130,7 @@ jobs:
           path: |
             work/kondoros-1570.json
             work/kondoros-1570.png
+            work/kondoros-1570-official-plan.pdf
           if-no-files-found: warn
 
   live-six-parcel-check:
