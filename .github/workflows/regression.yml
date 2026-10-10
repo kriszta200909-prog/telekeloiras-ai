@@ -46,8 +46,8 @@ jobs:
           STREAMLIT_SERVER_HEADLESS: 'true'
         run: |
           mkdir -p work
-          for i in 1 2 3 4 5 6; do
-            echo "::group::Official-source parcel $i of 6"
+          for i in 1 2 3 4 5 6 7; do
+            echo "::group::Official-source parcel $i of 7"
             timeout --signal=TERM --kill-after=15s 600s python -u reference_checks.py --case-index "$i" --resume-attempts 1 --output "work/parcel-$i.json" || echo "Parcel $i incomplete (timeout or source error); no automatic match asserted." | tee "work/parcel-$i.error.txt"
             echo "::endgroup::"
           done
