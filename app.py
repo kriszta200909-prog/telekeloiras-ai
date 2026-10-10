@@ -1309,6 +1309,29 @@ def automatic_zone_rule_evidence(meta, page, inputs, identification):
     Reviewed section profiles bind legal categories, never parcels to codes.
     """
     from zone_parameters import legend_tables,decode_zone
+    if (identification.get('status') == 'multiple_zones'
+            and identification.get('intersection_verified') is True):
+        # A split parcel has no single zone. Retrieve and keep the rules for
+        # every spatially proven code separately; never silently pick one.
+        zones=identification.get('zones',[])
+        if not zones or any(not isinstance(z,dict) or not isinstance(z.get('code'),str)
+                            or not z['code'].strip() for z in zones):
+            return {'zone':'','zone_verified':False,'per_zone':[],
+                    'parameter_rows':[],'clause_rows':[],'errors':[],
+                    'complete':False,'missing_evidence':['Érvénytelen többövezetes besorolás']}
+        per_zone=[]
+        for zone in zones:
+            scoped=dict(identification,zone=zone['code'],candidate_zone='',
+                        status='single_zone_spatial')
+            rules=automatic_zone_rule_evidence(meta,page,inputs,scoped)
+            per_zone.append({'code':zone['code'],'fraction':zone.get('fraction'),
+                             'rules':rules})
+        return {'zone':'','zone_verified':True,'per_zone':per_zone,
+                'parameter_rows':[],'clause_rows':[],
+                'errors':[err for entry in per_zone for err in entry['rules']['errors']],
+                'complete':False,'missing_evidence':[
+                    'Övezethatár érinti a telket; az előírásokat övezetenként kell alkalmazni.',
+                    'A teljes telek valamennyi korlátozásának és általános szabályának ellenőrzése']}
     code=identification.get('zone') or identification.get('candidate_zone','')
     verified=identification.get('intersection_verified') is True
     out={'zone':code,'zone_verified':verified,'parameter_rows':[], 'clause_rows':[],
@@ -6074,6 +6097,19 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
                 st.dataframe(zone_rule_evidence['parameter_rows'],hide_index=True,use_container_width=True)
             if zone_rule_evidence['clause_rows']:
                 st.dataframe(zone_rule_evidence['clause_rows'],hide_index=True,use_container_width=True)
+    if zone_rule_evidence.get('per_zone'):
+        st.warning('A telken övezethatár halad át. Az alábbi szabályok külön-külön az érintett övezetekre vonatkoznak.')
+        for entry in zone_rule_evidence['per_zone']:
+            with st.expander('Érintett övezet: '+entry['code']+' (telekrész: '+
+                             str(round(100*(entry['fraction'] or 0),2))+'%)',expanded=True):
+                rules=entry['rules']
+                st.caption('Övezetspecifikus forrásadatok; a teljes építési jogosultság még nem igazolt.')
+                if rules['parameter_rows']:
+                    st.dataframe(rules['parameter_rows'],hide_index=True,use_container_width=True)
+                if rules['clause_rows']:
+                    st.dataframe(rules['clause_rows'],hide_index=True,use_container_width=True)
+                if not rules['parameter_rows'] and not rules['clause_rows']:
+                    st.info('Ehhez az övezethez még nem sikerült forrásolt rendelkezést kinyerni.')
     for error in zone_rule_evidence['errors']:st.warning(error)
     automatic_evidence = {'place':parcel_place,'hrsz':normalize_hrsz(hrsz),'ksh':ksh,
         'evidence':automatic_rows,'identification':geometric_identification,
