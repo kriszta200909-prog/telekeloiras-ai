@@ -632,12 +632,16 @@ def discover_njt_source(town, hrsz, selected_district=""):
 
     # Normalize once using the existing parcel identifier helper; do not
     # introduce a second HRSZ normalization path in legal-source discovery.
+    # This function is also executed standalone by source-discovery checks.
+    # Use the same whitespace-only HRSZ normalization without relying on
+    # another global symbol in the extracted execution scope.
+    exact_hrsz = re.sub(r"\\s+", "", str(hrsz or "").strip())
     queries = [
         # A municipality may have several separate KÉSZ documents. Prefer
         # exact-HRSZ hits in official annexes before generic title matches;
         # any candidate still needs the existing content/source validation.
-        f'site:or.njt.hu "{normalize_hrsz(hrsz)}" "{place}"',
-        f'site:ujpest.hu/rendeletek "{normalize_hrsz(hrsz)}" "szabályozási"',
+        f'site:or.njt.hu "{exact_hrsz}" "{place}"',
+        f'site:ujpest.hu/rendeletek "{exact_hrsz}" "szabályozási"',
         f'site:njt.jog.gov.hu/jogszabaly "{place}" "építési szabályzat"',
         f'site:or.njt.hu/eli "{place}" "helyi építési szabályzat"',
         f'site:or.njt.hu "{place}" "kerületi építési szabályzat"',
