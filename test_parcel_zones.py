@@ -51,6 +51,14 @@ class ParcelZoneTests(unittest.TestCase):
         self.assertEqual(result['zones'], [{'code': 'A', 'fraction': .4},
                                           {'code': 'B', 'fraction': .6}])
 
+    def test_narrow_overlap_between_distinct_zones_is_not_verified(self):
+        # A 0.00005% overlap previously passed as a valid multi-zone parcel.
+        self.source['features'] = [self.feature('A', 0, 5.000005),
+                                   self.feature('B', 5, 10)]
+        result = self.identify()
+        self.assertEqual(result['status'], 'overlapping_zones')
+        self.assert_unverified(result)
+
     def test_tiny_uncovered_strip_is_not_rounded_into_verified_coverage(self):
         # Previously a gap of 0.00005% was accepted as complete coverage.
         self.source['features'] = [self.feature('A', 0, 9.999995)]
