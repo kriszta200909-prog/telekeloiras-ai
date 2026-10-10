@@ -51,6 +51,13 @@ class ParcelZoneTests(unittest.TestCase):
         self.assertEqual(result['zones'], [{'code': 'A', 'fraction': .4},
                                           {'code': 'B', 'fraction': .6}])
 
+    def test_tiny_uncovered_strip_is_not_rounded_into_verified_coverage(self):
+        # Previously a gap of 0.00005% was accepted as complete coverage.
+        self.source['features'] = [self.feature('A', 0, 9.999995)]
+        result = self.identify()
+        self.assertEqual(result['status'], 'partial_coverage')
+        self.assert_unverified(result)
+
     def test_same_code_is_merged_before_coverage(self):
         self.source['features'] = [self.feature('A', 0, 6), self.feature('A', 4, 10)]
         self.assertEqual(self.identify()['zone'], 'A')
