@@ -417,7 +417,27 @@ def inspect_visual_plan(doc, plan_result, profile, zone_pattern, hrsz, *, identi
     for role in ('zone_boundary','regulatory_line'):
         source_barriers.extend(line for path in legend_layer_paths(page,profile,role)
             for line in path['segments'] if line.intersects(local))
-    associations=supported_labels(rgb,(pix.x/scale,pix.y/scale),scale,parcel,labels,obstacle_styles,source_barriers)
+    # Close actual source-coordinate faces from the legend-matched vector paths.
+    # A short clear line of sight is NOT a substitute for a closed zoning face.
+    # Do not snap missing endpoints or manufacture boundaries at image edges.
+    from plan_connections import closed_zone_faces
+    from geopdf import source_zone_polygons
+    from shapely.geometry import Point
+    road_paths=legend_layer_paths(page,profile,'road_area',clip)
+    filled_areas=source_zone_polygons(road_paths)
+    label_points=[(code,Point((r.x0+r.x1)/2,(r.y0+r.y1)/2),list(r))
+                  for code,r in labels]
+    closed=closed_zone_faces(parcel,box(*page.rect),markers,filled_areas,
+        label_points,native_paths=source_barriers)
+    out['source_face_audit']=closed['audit']
+    covered=[(code,face) for code,face in closed['faces'] if face.covers(parcel)]
+    covered_codes={code for code,_ in covered}
+    if len(covered_codes)==1:
+        out['source_closed_zone']=next(iter(covered_codes))
+        out['source_closed_zone_verified']=True
+    else:
+        out['source_closed_zone_verified']=False
+        associations=supported_labels(rgb,(pix.x/scale,pix.y/scale),scale,parcel,labels,obstacle_styles,source_barriers)
     out['candidate_labels']=associations
     supported={a['code'] for a in associations if a['clear_paths']>=3}
     bound=profile.get('identity',{})
@@ -425,7 +445,9 @@ def inspect_visual_plan(doc, plan_result, profile, zone_pattern, hrsz, *, identi
     legend_bound=bool(bound.get('source_hash') and zone_styles and all(bound.get(k)==expected.get(k)
         for k in ('plan_url','plan_hash','edition','ksh')))
     exact=any(w[4]==hrsz and parcel.contains(Point((w[0]+w[2])/2,(w[1]+w[3])/2)) for w in words)
-    if legend_bound and exact and len(supported)==1 and not markers.get('unread_boundary'):
+    if legend_bound and exact and out['source_closed_zone_verified']:
+        out.update(status='source_face_verified',zone=out['source_closed_zone'])
+    elif legend_bound and exact and len(supported)==1 and not markers.get('unread_boundary'):
         out.update(status='probable',zone=next(iter(supported)))
     out.update(pdf_page=number+1,clip_pdf=list(clip),scale=scale,
         parcel_pdf_wkt=parcel.wkt,legend_bound=legend_bound,exact_hrsz_in_parcel=exact,
@@ -433,15 +455,17 @@ def inspect_visual_plan(doc, plan_result, profile, zone_pattern, hrsz, *, identi
         marker_variant_supported=markers.get('supported',False),
         context_image_sha256=hashlib.sha256(pix.tobytes('png')).hexdigest())
     out['context_png']=pix.tobytes('png')
-    out['reasons']=['A helyi képi kapcsolat nem zárt övezeti terület bizonyítéka.',
+    out['reasons']=([] if out['source_closed_zone_verified'] else ['A helyi képi kapcsolat nem zárt övezeti terület bizonyítéka.',
         'A szaggatott/pontozott jelek közti fehér képpontok nem igazolják az átjárhatóságot.',
-        'A közeli telekfeliratok szomszédsága és a kataszteri–tervi környezet egyezése külön igazolandó.']
+        'A közeli telekfeliratok szomszédsága és a kataszteri–tervi környezet egyezése külön igazolandó.'])
     if len(supported)>1:out['reasons'].append('Több eltérő övezeti feliratnak van helyi képi kapcsolata.')
     out['source_gaps']=plan_result.get('closure_audit',{}).get('topology',{}).get('open_endpoints',[])
     # Reproducible source illustration: overlay colours are not official symbols.
     canvas=Image.fromarray(rgb.copy());draw=ImageDraw.Draw(canvas)
     def xy(p):return ((p[0]-pix.x/scale)*scale,(p[1]-pix.y/scale)*scale)
     draw.line([xy(p) for p in parcel.exterior.coords],fill=(0,160,220),width=4)
+    for code,face in covered:
+        draw.line([xy(p) for p in face.exterior.coords],fill=(0,145,70),width=4)
     for line in source_barriers:
         if line.geom_type=='LineString':draw.line([xy(p) for p in line.coords],fill=(0,110,0),width=1)
     for item in associations:
