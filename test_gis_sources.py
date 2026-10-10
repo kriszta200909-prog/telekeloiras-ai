@@ -15,6 +15,10 @@ class GISSourceTests(unittest.TestCase):
                     'https://user@inspire.lechnerkozpont.hu/x',
                     'https://inspire.lechnerkozpont.hu:8000/x'):
             self.assertFalse(gis.public_url(url))
+        for url in ('https://inspire.lechnerkozpont.hu:abc/x',
+                    'https://inspire.lechnerkozpont.hu:99999/x',
+                    'https://[invalid/x'):
+            self.assertFalse(gis.public_url(url))
         self.assertTrue(gis.public_url(gis.CATALOG))
 
     def test_query_replaces_case_insensitive_parameter(self):
