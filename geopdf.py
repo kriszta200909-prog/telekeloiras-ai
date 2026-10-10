@@ -122,13 +122,17 @@ def legend_layer_paths(page, profile, role, clip=None):
     from plan_legend import styles_for,matches_style,drawing_style
     from zone_parameters import compact
     styles=styles_for(profile,role);paths=[]
-    if not styles:return paths
+    # A native, verified cadastral layer remains usable even if legend
+    # sampling cannot isolate its stroke (common in dense CAD PDF legends).
+    # Do not generalise this exception to zoning/regulatory boundaries.
     cadastral_names=set()
     if role=='parcel_boundary':
         for record in profile.get('records',[]):
             if record['role']==role and record.get('label_verified') and record['recognition']=='native':
                 term=compact(record['label'])
                 if term.endswith('hatar'):cadastral_names.add(term[:-5])
+    if not styles and not cadastral_names:
+        return paths
     def collect(drawing):
         # Filtering keeps complete source paths, never creates artificial clip
         # edges or connects geometry. It avoids decoding an entire CAD town
