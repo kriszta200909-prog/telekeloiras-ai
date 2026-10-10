@@ -1026,7 +1026,12 @@ def cadastral_plan_overlay(doc, parcel_api):
             return result
         for page in doc:
             for registration in page_registrations(page):
-                if not registration['world_frame'].intersects(parcel):
+                # A plan touching the cadastral parcel at one point is not
+                # sufficient for an auditable parcel overlay. Require the
+                # entire polygon to lie inside the georeferenced viewport,
+                # allowing only the measured registration uncertainty.
+                frame=registration['world_frame']
+                if not frame.buffer(registration['error_m']).covers(parcel):
                     continue
                 # Transform each ring, including holes. The overlay is a
                 # rendering aid, not a new inferred parcel boundary.
@@ -1039,7 +1044,8 @@ def cadastral_plan_overlay(doc, parcel_api):
                 result['overlays'].append({
                     'page':page.number+1,'rings':[project(part) for part in parts],
                     'registration_residual_m':registration['residual_m'],
-                    'registration_uncertainty_m':registration['error_m']})
+                    'registration_uncertainty_m':registration['error_m'],
+                    'coverage':'full_parcel'})
         if result['overlays']:
             result.update(status='georeferenced',reason='Igazolt kataszteri telek EOV koordinátái a GeoPDF saját illesztésével ábrázolva.')
         else:
