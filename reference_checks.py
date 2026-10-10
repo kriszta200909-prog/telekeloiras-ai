@@ -12,7 +12,7 @@ import app
 
 CASES = [('Tiszaújváros', '2200/8'), ('Budapest XII. kerület', '8448/46'),
          ('Komádi', '1558'), ('Gersekarát', '034/15'), ('Miskolc', '4755/11'),
-         ('Budapest', '76561/152')]
+         ('Budapest', '76561/152'), ('Kondoros', '1570')]
 
 # Human-reviewed benchmark evidence is deliberately kept separate from live
 # application inputs. Never pass these codes into inspect_official_parcel.
@@ -56,7 +56,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--resume-attempts',type=int,default=3,help='Resume bounded OCR searches before recording a partial result.')
     parser.add_argument('--output', default='work/reference-results.json')
-    parser.add_argument('--case-index', type=int, choices=range(1, 7), help='Run one independent reference parcel (1-6).')
+    parser.add_argument('--case-index', type=int, choices=range(1, len(CASES)+1), help='Run one independent reference parcel (1-7).')
     parser.add_argument('--outlined', action='store_true',
                         help='Run bounded/resumable outlined-label recognition when needed.')
     parser.add_argument('--visual-images',help='Save source-bound illustrations for every localised case.')
