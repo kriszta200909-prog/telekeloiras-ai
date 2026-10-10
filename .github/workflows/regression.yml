@@ -95,6 +95,33 @@ jobs:
         run: |
           mkdir -p work
           timeout --signal=TERM --kill-after=15s 1500s python -u reference_checks.py --case-index 7 --resume-attempts 1 --visual-images work --output work/kondoros-1570.json
+      - name: Diagnose full pipeline from actual result JSON
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          p=pathlib.Path('work/kondoros-1570.json')
+          if not p.exists():
+              print('ENGINE OUTPUT MISSING');raise SystemExit(0)
+          rows=json.loads(p.read_text()).get('cases',[])
+          for row in rows:
+              for key in ('errors','plan_inputs','plan_result','visual','identification','classification','zone_rules','label_search','label_hits'):
+                  value=row.get(key,{})
+                  if key=='plan_inputs':
+                      value={k:v for k,v in value.items() if k in ('source_url','edition','source_valid','current_verified','source_selection_ambiguous','error','source_warning','attachments')}
+                      if 'attachments' in value:value['attachments']=[{'name':x.get('Megnevezés'),'url':x.get('URL')} for x in value['attachments'][:8]]
+                  elif key=='visual':
+                      value={k:v for k,v in value.items() if k in ('status','zone','reasons','candidate_labels','intersection_verified','source_zone_features','source_regulatory_lines','illustration_file')}
+                      for name in ('source_zone_features','source_regulatory_lines'):
+                          if name in value:value[name+'_count']=len(value.pop(name))
+                  elif key=='plan_result':
+                      value={k:v for k,v in value.items() if k in ('zone','candidate_zone','detail','registrations','hrsz_method','parcel_boundary_verified','zone_features')}
+                      if 'zone_features' in value:value['zone_features_count']=len(value.pop('zone_features'))
+                  elif key=='zone_rules':
+                      value={k:v for k,v in value.items() if k in ('status','zone','error','reason','rules','applicable')}
+                      if 'rules' in value:value['rules_count']=len(value.pop('rules')) if isinstance(value['rules'],list) else 'not-list'
+                  print('PIPELINE',key,json.dumps(value,ensure_ascii=False,default=str)[:4500])
+          PY
       - name: Preserve original engine output and evidence map
         if: always()
         uses: actions/upload-artifact@v4
