@@ -99,6 +99,23 @@ class ParcelZoneTests(unittest.TestCase):
         self.assertAlmostEqual(min(p[1] for p in ring),300,delta=.1)
         self.assertAlmostEqual(max(p[1] for p in ring),400,delta=.1)
 
+    def test_render_cadastral_overlay_produces_real_plan_png(self):
+        from test_automatic_sources import geo_document
+        from shapely.geometry import mapping,box
+        from PIL import Image
+        from io import BytesIO
+        with geo_document() as doc:
+            parcel={'parcel_boundary_verified':True,'geometry_crs':'EPSG:23700',
+                    'cadastral_geometry':mapping(box(600300,249600,600400,249700))}
+            overlay=app.cadastral_plan_overlay(doc,parcel)
+            png=app.render_cadastral_overlay_png(doc,overlay)
+            self.assertIsNotNone(png)
+            self.assertTrue(png.startswith(b'\\x89PNG\\r\\n\\x1a\\n'))
+            image=Image.open(BytesIO(png))
+            self.assertGreater(image.width,100)
+            self.assertGreater(image.height,100)
+            self.assertIsNone(app.render_cadastral_overlay_png(doc,{'status':'unavailable'}))
+
     def test_full_coverage_returns_code_and_source_evidence(self):
         before = copy.deepcopy((self.parcel, self.source))
         result = self.identify()
