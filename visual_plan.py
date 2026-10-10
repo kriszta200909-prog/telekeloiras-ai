@@ -430,6 +430,27 @@ def inspect_visual_plan(doc, plan_result, profile, zone_pattern, hrsz, *, identi
     closed=closed_zone_faces(parcel,box(*page.rect),markers,filled_areas,
         label_points,native_paths=source_barriers)
     out['source_face_audit']=closed['audit']
+    # Transfer only source-closed faces through the already verified GeoPDF
+    # registration. The same features feed the normal multi-zone coverage
+    # engine; no parcel-specific code or expected zone is consulted.
+    from shapely.ops import transform as shapely_transform
+    from shapely.geometry import mapping
+    from geopdf import to_world
+    out['source_zone_features']=[
+        {'code':code,'geometry':mapping(shapely_transform(
+            lambda x,y,z=None:to_world((x,y),matrix),face)),
+         'crs':'EPSG:23700'}
+        for code,face in closed['faces']
+    ]
+    out['source_regulatory_lines']=[]
+    for path in legend_layer_paths(page,profile,'regulatory_line',clip):
+        for line in path['segments']:
+            out['source_regulatory_lines'].append({
+                'geometry':mapping(shapely_transform(
+                    lambda x,y,z=None:to_world((x,y),matrix),line)),
+                'crs':'EPSG:23700','status':'unspecified',
+                'legend_verified':True})
+
     covered=[(code,face) for code,face in closed['faces'] if face.covers(parcel)]
     covered_codes={code for code,_ in covered}
     if len(covered_codes)==1:
@@ -437,7 +458,7 @@ def inspect_visual_plan(doc, plan_result, profile, zone_pattern, hrsz, *, identi
         out['source_closed_zone_verified']=True
     else:
         out['source_closed_zone_verified']=False
-        associations=supported_labels(rgb,(pix.x/scale,pix.y/scale),scale,parcel,labels,obstacle_styles,source_barriers)
+    associations=supported_labels(rgb,(pix.x/scale,pix.y/scale),scale,parcel,labels,obstacle_styles,source_barriers)
     out['candidate_labels']=associations
     supported={a['code'] for a in associations if a['clear_paths']>=3}
     bound=profile.get('identity',{})
