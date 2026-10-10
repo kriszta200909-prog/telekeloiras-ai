@@ -79,8 +79,11 @@ class ParcelZoneTests(unittest.TestCase):
         self.assertEqual(result['status'],'georeferenced')
         self.assertEqual(result['overlays'][0]['page'],1)
         ring=result['overlays'][0]['rings'][0]['exterior']
-        self.assertAlmostEqual(ring[0][0],300,places=1)
-        self.assertAlmostEqual(ring[0][1],400,places=1)
+        # Polygon rings may start at any vertex; compare their actual bounds.
+        self.assertAlmostEqual(min(p[0] for p in ring),300,delta=.1)
+        self.assertAlmostEqual(max(p[0] for p in ring),400,delta=.1)
+        self.assertAlmostEqual(min(p[1] for p in ring),300,delta=.1)
+        self.assertAlmostEqual(max(p[1] for p in ring),400,delta=.1)
 
     def test_full_coverage_returns_code_and_source_evidence(self):
         before = copy.deepcopy((self.parcel, self.source))
