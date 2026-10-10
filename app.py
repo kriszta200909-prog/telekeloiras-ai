@@ -631,6 +631,11 @@ def discover_njt_source(town, hrsz, selected_district=""):
             place = f"Budapest {district}"
 
     queries = [
+        # A municipality may have several separate KÉSZ documents. Prefer
+        # exact-HRSZ hits in official annexes before generic title matches;
+        # any candidate still needs the existing content/source validation.
+        f'site:or.njt.hu "{normalize_hrsz(hrsz)}" "{place}"',
+        f'site:ujpest.hu/rendeletek "{normalize_hrsz(hrsz)}" "szabályozási"',
         f'site:njt.jog.gov.hu/jogszabaly "{place}" "építési szabályzat"',
         f'site:or.njt.hu/eli "{place}" "helyi építési szabályzat"',
         f'site:or.njt.hu "{place}" "kerületi építési szabályzat"',
