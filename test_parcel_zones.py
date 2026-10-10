@@ -33,6 +33,16 @@ class ParcelZoneTests(unittest.TestCase):
         self.assertEqual(result['zone'], '')
         self.assertTrue(result['reason'])
 
+    def test_cadastral_outline_requires_matching_footprint_not_only_centroid(self):
+        from shapely.geometry import box
+        reference = box(0, 0, 10, 10)
+        self.assertTrue(app.parcel_outline_match(box(0, 0, 10, 10), reference))
+        # Contains the same parcel centre and passes the former 50%-area
+        # threshold, but represents only part of the cadastral parcel.
+        self.assertFalse(app.parcel_outline_match(box(0, 0, 6, 10), reference))
+        self.assertFalse(app.parcel_outline_match(box(1, 0, 11, 10), reference))
+        self.assertFalse(app.parcel_outline_match(box(0, 0, 0, 10), reference))
+
     def test_full_coverage_returns_code_and_source_evidence(self):
         before = copy.deepcopy((self.parcel, self.source))
         result = self.identify()
