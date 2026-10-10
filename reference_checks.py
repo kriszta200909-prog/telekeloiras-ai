@@ -1,4 +1,4 @@
-"""Repeat the five official-source checks without interacting with Streamlit.
+"""Repeat the six official-source checks without interacting with Streamlit.
 
 This is a live integration command, not an offline unit test. An unavailable
 source is an explicit result and never an assertion that a parcel does not exist.
@@ -11,7 +11,8 @@ from pathlib import Path
 import app
 
 CASES = [('Tiszaújváros', '2200/8'), ('Budapest XII. kerület', '8448/46'),
-         ('Komádi', '1558'), ('Gersekarát', '034/15'), ('Miskolc', '4755/11')]
+         ('Komádi', '1558'), ('Gersekarát', '034/15'), ('Miskolc', '4755/11'),
+         ('Budapest', '76561/152')]
 
 
 def public_result(result):
