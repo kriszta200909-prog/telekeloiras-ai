@@ -26,3 +26,29 @@ jobs:
         env:
           STREAMLIT_SERVER_HEADLESS: 'true'
         run: python -m unittest discover -v
+
+  live-six-parcel-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install OCR and dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng tesseract-ocr-hun
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt numpy
+      - name: Run all six parcels against live official sources
+        env:
+          STREAMLIT_SERVER_HEADLESS: 'true'
+        run: python -u reference_checks.py --resume-attempts 2 --output work/reference-results.json
+      - name: Preserve actual source-backed results, including partial failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: six-parcel-live-results
+          path: work/reference-results.json
+          if-no-files-found: warn
