@@ -32,10 +32,15 @@ ENTRY_PAGES = {'Miskolc': ['https://www.miskolc.hu/varoshaza/onkormanyzat/strate
 
 
 def public_url(url, hosts=OFFICIAL_HOSTS):
-    parsed = urlsplit(url)
-    return (parsed.scheme == 'https' and parsed.hostname in hosts
-            and parsed.port in (None, 443) and not parsed.username
-            and not parsed.password)
+    """Reject malformed authorities as well as non-allowlisted destinations."""
+    try:
+        parsed = urlsplit(url)
+        return (parsed.scheme == 'https' and parsed.hostname in hosts
+                and parsed.port in (None, 443) and not parsed.username
+                and not parsed.password)
+    except ValueError:
+        # urlsplit / hostname / port can raise for invalid IPv6 or ports.
+        return False
 
 
 class OfficialRedirect(HTTPRedirectHandler):
