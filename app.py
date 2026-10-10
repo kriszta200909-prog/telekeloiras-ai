@@ -911,7 +911,9 @@ def parcel_zone_coverage(parcel_geojson, zone_features, crs):
         out["coverage"] = round(covered / parcel.area, 8)
         if sum(part.area for part in pieces) - covered > 0.000001 * parcel.area:
             out["status"] = "overlapping_zones"
-        elif covered < 0.999999 * parcel.area:
+        elif parcel.area - covered > max(1e-8, 1e-10 * parcel.area):
+            # Even a narrow uncovered strip can contain a binding setback or
+            # another zone. Do not round away gaps before the legal decision.
             out["status"] = "partial_coverage"
         elif len(pieces) > 1:
             out["status"] = "multiple_zones"
