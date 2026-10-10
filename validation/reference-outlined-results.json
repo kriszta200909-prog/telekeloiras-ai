@@ -1,0 +1,159 @@
+{
+  "checked_at_utc": "2026-10-09T17:59:19.103135+00:00",
+  "purpose": "Külön, forrásalapú HRSZ-feliratpróba. Nem övezeti vagy telekhatár-bizonyíték; a hiányzó felirat nem bizonyítja a telek hiányát.",
+  "code_sha256": {
+    "plan_labels.py": "0f1ab916c62483b17f309b0458b1399abd4435d764b1911d9a2f6578efd4b4e4",
+    "plan_ocr_worker.py": "c2208690a1f14214a64fdaf0c622505ebd595ab2ddcb794921004c8c8d419f67"
+  },
+  "cases": [
+    {
+      "place": "Tiszaújváros",
+      "hrsz": "2200/8",
+      "plan_source_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+      "plan_source_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+      "edition": "2024.10.10.",
+      "label_search": {
+        "status": "zone_not_found",
+        "spatial_evidence": {
+          "parcel_boundary_verified": false,
+          "zone_boundary_verified": false,
+          "intersection_verified": false,
+          "reason": "A tervlapi feliratokhoz nincs hitelesen összerendelt telek- és övezetpoligon."
+        },
+        "candidates": [],
+        "zone": "",
+        "scan": {
+          "hits": [
+            {
+              "page_number": 34,
+              "pdf_rect": [
+                536.8209838867188,
+                110.96002197265625,
+                541.2009887695312,
+                115.4599609375
+              ],
+              "angle": 50.15035884116729,
+              "text": "2200/8",
+              "label_only": true,
+              "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés"
+            }
+          ],
+          "complete": true,
+          "scanned": 24633,
+          "candidates": 24633,
+          "pages": 56,
+          "ocr_document_sha256": "ad67f8107097925a6825d03de8d4aff281ce2cdbd1630120464d08724b75b385"
+        }
+      },
+      "label_hits": [
+        {
+          "page": 35,
+          "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés"
+        }
+      ],
+      "native_parcel_label_method": ""
+    },
+    {
+      "place": "Budapest XII. kerület",
+      "hrsz": "8448/46",
+      "plan_source_url": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf",
+      "plan_source_hash": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
+      "edition": "2026.06.08.",
+      "label_search": {
+        "status": "parcel_not_found",
+        "candidates": [],
+        "zone": "",
+        "scan": {
+          "hits": [],
+          "complete": true,
+          "scanned": 353,
+          "candidates": 353,
+          "pages": 37,
+          "ocr_document_sha256": "9d2307d389babb511ff3fac1e0078589c37fc13fee2728c2ac4c465a98942490"
+        }
+      },
+      "label_hits": [],
+      "native_parcel_label_method": ""
+    },
+    {
+      "place": "Komádi",
+      "hrsz": "1558",
+      "plan_source_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+      "plan_source_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+      "edition": "2025.12.22.",
+      "label_search": {
+        "status": "zone_not_found",
+        "spatial_evidence": {
+          "parcel_boundary_verified": false,
+          "zone_boundary_verified": false,
+          "intersection_verified": false,
+          "reason": "A tervlapi feliratokhoz nincs hitelesen összerendelt telek- és övezetpoligon."
+        },
+        "candidates": [],
+        "zone": "",
+        "scan": {
+          "hits": [
+            {
+              "page_number": 0,
+              "pdf_rect": [
+                1577.8199462890625,
+                1790.280029296875,
+                1583.93994140625,
+                1793.93994140625
+              ],
+              "angle": -17.727852496532797,
+              "text": "1558",
+              "label_only": true,
+              "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés"
+            }
+          ],
+          "complete": true,
+          "scanned": 6355,
+          "candidates": 6355,
+          "pages": 4,
+          "ocr_document_sha256": "eec40a43417cdc8578b2b22c8917987adf4b038072cea696367e70147a5f3b0a"
+        }
+      },
+      "label_hits": [
+        {
+          "page": 1,
+          "method": "rajzi HRSZ-felirat, három felbontásban egyező felismerés"
+        }
+      ],
+      "native_parcel_label_method": ""
+    },
+    {
+      "place": "Gersekarát",
+      "hrsz": "034/15",
+      "plan_source_url": "https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf",
+      "plan_source_hash": "a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca",
+      "edition": "2019.06.01.",
+      "label_search": {
+        "status": "parcel_not_found",
+        "candidates": [],
+        "zone": "",
+        "scan": {
+          "hits": [],
+          "complete": true,
+          "scanned": 5047,
+          "candidates": 5047,
+          "pages": 1,
+          "ocr_document_sha256": "45da73cffaba42013aa926ab6ba333fe9fb363b89e10932117f12b053ea33271"
+        }
+      },
+      "label_hits": [],
+      "native_parcel_label_method": ""
+    },
+    {
+      "place": "Miskolc",
+      "hrsz": "4755/11",
+      "plan_source_url": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
+      "plan_source_hash": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc",
+      "edition": "2026.09.26.",
+      "label_search": {},
+      "label_hits": [],
+      "native_parcel_label_method": "pontos HRSZ a zárt, georeferált tervlapi telekben"
+    }
+  ],
+  "hash_note": "A plan_source_hash az eredeti letöltött hivatalos PDF-é. Az ocr_document_sha256 a MuPDF által a feliratgyorsítótárhoz szerializált dokumentumé."
+}

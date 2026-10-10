@@ -56,6 +56,16 @@ def pdf_processing_lock():
 # Validált hivatalos forrásindex.
 # Új település később egyetlen új rekorddal felvehető.
 HESZ_INDEX = {
+    "kondoros": {
+        "municipality": "Kondoros",
+        "title": "Kondoros Nagyközség helyi építési szabályzatáról",
+        "regulation": "2/2005. (I. 21.) önkormányzati rendelet",
+        "url": "https://njt.jog.gov.hu/jogszabaly/2005-2-SP-5Y1804",
+        # The current 4th annex was replaced by 15/2025 (X.17.) § 1.
+        # Do not pin a zone or historic PDF: discover the current annex
+        # from the consolidated NJT page at run time.
+        "plan_scope": "belterület",
+    },
     "komadi": {
         "municipality": "Komádi",
         "title": "Komádi város Szabályozási Tervének és Helyi Építési Szabályzatának elfogadásáról",
@@ -70,9 +80,12 @@ HESZ_INDEX = {
         "title": "Gersekarát község helyi építési szabályzatáról és a község szabályozási tervéről",
         "regulation": "2/2007. (II. 15.) önkormányzati rendelet",
         "url": "https://njt.jog.gov.hu/jogszabaly/2007-2-SP-5Y3101",
+        # The filename is misleading: this is the 2019 administrative-area
+        # plan (sheet 5.2), verified from its printed title and approval block.
         "plan_url": "https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf",
         "plan_sha256": "a459bb1daa7b442ddd58ffe5bb7bd65ace62eed2412c744897bf705a98566cca",
         "plan_scope": "igazgatási terület",
+        "location_documents": ["https://www.gersekarat.hu/webimages/files/letoltheto_dokumentumok/Gersekarat_telepulesrendezesi_eszkozok_modositasa.pdf"],
         "scope_note": "A 2/2007. rendelet területi hatálya a déli községrészt kizárja; arra külön rendelet vonatkozik. A megfelelő helyi rendelet telekre való alkalmazhatóságához a telek helyét is igazolni kell.",
     },
     "miskolc": {
@@ -99,6 +112,12 @@ HESZ_INDEX = {
         "title": "Dél-Hegyvidék Kerületi Építési Szabályzat",
         "regulation": "36/2021. (XII. 14.) önkormányzati rendelet",
         "url": "https://njt.jog.gov.hu/jogszabaly/2021-36-SP-5Y261",
+        "plan_url": "https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf",
+        "plan_sha256": "98b958834b26759e93367f3a5f025de7264e5c7fdbb9fcd4fded0627bb52b84f",
+        "alternative_sources": [{"municipality":"Budapest XII. kerület",
+            "title":"Észak-Hegyvidék Kerületi Építési Szabályzat",
+            "url":"https://njt.jog.gov.hu/jogszabaly/2020-26-SP-5Y261"}],
+        "scope_note": "A rendelet Dél-Hegyvidékre vonatkozik; a telek területi érintettségét a terven kell igazolni.",
     },
 }
 
@@ -380,10 +399,21 @@ def validate_njt_source(town, meta, page):
 
     body = key_text(page.get("text"))
     town_key = key_text(town)
+    title_match = re.search(r"<title[^>]*>(.*?)</title>", page.get("html", ""), re.I | re.S)
+    header = key_text(title_match[1]) if title_match else key_text(page.get("text", "")[:650])
+    district = re.fullmatch(r"budapest\s+([ivxlcdm]+|\d+)\.?\s+kerulet", town_key)
+    place_ok = bool(re.search(r"(?<!\w)" + re.escape(town_key) + r"(?!\w)", header))
+    if district:
+        selected = district[1]
+        if selected.isdigit():
+            roman = ("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI", "XXII", "XXIII")
+            selected = roman[int(selected)-1].lower() if 1 <= int(selected) <= 23 else "invalid"
+        place_ok = "budapest" in header and bool(re.search(
+            r"(?<![a-z0-9])" + re.escape(selected) + r"\.?\s+kerulet(?!\w)", header))
 
     checks = {
         "NJT-domain": is_official_njt_url(page.get("url", "")),
-        "település": town_key in body or (key_text(town) == "budapest" and "budapest" in body),
+        "település": place_ok,
         "építési szabályzat": (
             "epitesi szabalyzat" in body
             or "helyi epitesi szabalyzat" in body
@@ -610,7 +640,17 @@ def discover_njt_source(town, hrsz, selected_district=""):
         if district:
             place = f"Budapest {district}"
 
+    # Normalize once using the existing parcel identifier helper; do not
+    # introduce a second HRSZ normalization path in legal-source discovery.
+    # This function is also executed standalone by source-discovery checks.
+    # Use the same whitespace-only HRSZ normalization without relying on
+    # another global symbol in the extracted execution scope.
+    exact_hrsz = "".join(str(hrsz or "").split())
     queries = [
+        # A municipality may have several separate KÉSZ documents. Prefer
+        # exact-HRSZ hits in official annexes before generic title matches;
+        # any candidate still needs the existing content/source validation.
+        f'site:or.njt.hu "{exact_hrsz}" "{place}"',
         f'site:njt.jog.gov.hu/jogszabaly "{place}" "építési szabályzat"',
         f'site:or.njt.hu/eli "{place}" "helyi építési szabályzat"',
         f'site:or.njt.hu "{place}" "kerületi építési szabályzat"',
@@ -756,6 +796,13 @@ def _extract_id(obj):
                 return x
     return ""
 
+class ParcelGeometryUnavailable(RuntimeError):
+    """Keep proven search identity when the separate geometry request fails."""
+    def __init__(self, result, error):
+        super().__init__(str(error))
+        self.result=result
+
+
 @st.cache_data(show_spinner=False, ttl=3600)
 def public_parcel_geometry(ksh_code, hrsz):
     h = normalize_hrsz(hrsz)
@@ -773,13 +820,24 @@ def public_parcel_geometry(ksh_code, hrsz):
     if not parcel_id:
         raise RuntimeError("A pontos HRSZ-rekord nem tartalmaz közvetlen ingatlan-azonosítót; beágyazott másik rekord azonosítóját nem használjuk.")
     bbox_url = f"{HRSZ_API_BASE}/bounding-box?" + urllib.parse.urlencode({"id": parcel_id})
-    geom = _json_get(bbox_url)
-    if (geom.get('lotNumber') is not None
-            and normalize_hrsz(geom['lotNumber'])!=h):
-        raise RuntimeError('A visszakapott geometria másik helyrajzi számhoz tartozik.')
-    settlement=geom.get('settlement') or {}
-    if settlement.get('kshCode') is not None and str(settlement['kshCode'])!=str(ksh_code):
-        raise RuntimeError('A visszakapott geometria másik településhez tartozik.')
+    search_result={"id":parcel_id,"search_url":search_url,"geometry_url":bbox_url,
+                   "search":data,"geometry":{},"parcel_polygon_candidate":False,
+                   "parcel_boundary_verified":False,"geometry_role":"unavailable",
+                   "geometry_evidence_note":"A HRSZ azonosított; telekgeometria nem tölthető be."}
+    try:
+        geom = _json_get(bbox_url)
+        if not isinstance(geom, dict):
+            raise RuntimeError('A geometria végpont válasza nem objektum.')
+        if (geom.get('lotNumber') is not None
+                and normalize_hrsz(geom['lotNumber'])!=h):
+            raise RuntimeError('A visszakapott geometria másik helyrajzi számhoz tartozik.')
+        settlement=geom.get('settlement') or {}
+        if not isinstance(settlement, dict):
+            raise RuntimeError('A geometria településadata érvénytelen.')
+        if settlement.get('kshCode') is not None and str(settlement['kshCode'])!=str(ksh_code):
+            raise RuntimeError('A visszakapott geometria másik településhez tartozik.')
+    except Exception as exc:
+        raise ParcelGeometryUnavailable(search_result,exc) from exc
     # A bounding-box végpont nem bizonyítja, hogy teljes telekpoligont ad.
     # A koordinátákat csak explicit GeoJSON Polygon/MultiPolygon alakban,
     # és csak ellenőrzött, nem üres geometriaként tekintjük határjelöltnek.
@@ -796,6 +854,8 @@ def public_parcel_geometry(ksh_code, hrsz):
             "search": data, "geometry": geom,
             "parcel_polygon_candidate": polygon_candidate,
             "parcel_boundary_verified": False,
+            "geometry_crs": "EPSG:23700",
+            "geometry_role": "display_outline",
             "geometry_evidence_note": (
                 "A poligon geometriailag érvényes jelölt, de a hiteles telekhatár még nem igazolt."
                 if polygon_candidate else
@@ -869,9 +929,13 @@ def parcel_zone_coverage(parcel_geojson, zone_features, crs):
             return out
         covered = unary_union(pieces).area
         out["coverage"] = round(covered / parcel.area, 8)
-        if sum(part.area for part in pieces) - covered > 0.000001 * parcel.area:
+        if sum(part.area for part in pieces) - covered > max(1e-8, 1e-10 * parcel.area):
+            # Two distinct zoning codes cannot claim the same measurable
+            # parcel strip. Even narrow overlaps require source review.
             out["status"] = "overlapping_zones"
-        elif covered < 0.999999 * parcel.area:
+        elif parcel.area - covered > max(1e-8, 1e-10 * parcel.area):
+            # Even a narrow uncovered strip can contain a binding setback or
+            # another zone. Do not round away gaps before the legal decision.
             out["status"] = "partial_coverage"
         elif len(pieces) > 1:
             out["status"] = "multiple_zones"
@@ -880,6 +944,941 @@ def parcel_zone_coverage(parcel_geojson, zone_features, crs):
     except (ValueError, TypeError, KeyError, AttributeError):
         return {"status": "unverified", "zones": [], "coverage": 0.0}
     return out
+
+
+def parcel_crossing_impacts(parcel_geojson, zone_features, regulatory_lines, crs):
+    """Report independently sourced zoning intersections and planned road cuts.
+
+    Input regulatory lines must have a verified plan-legend role and share the
+    parcel's projected coordinate system. A line alone cannot establish which
+    side will be acquired: require a source-derived affected-area polygon.
+    """
+    from shapely.geometry import shape
+    from shapely.ops import unary_union
+    out={'zone_parts':[], 'planned_cuts':[], 'warnings':[], 'multi_zone':False}
+    if not isinstance(parcel_geojson,dict) or not crs:
+        out['warnings'].append('Nincs ellenőrzött telekgeometria.')
+        return out
+    try:
+        parcel=shape(parcel_geojson)
+        if not parcel.is_valid or parcel.is_empty or parcel.area<=0:
+            raise ValueError('Érvénytelen telekpoligon.')
+        for feature in zone_features or []:
+            if feature.get('crs')!=crs or not feature.get('code'):
+                out['warnings'].append('Eltérő koordinátarendszerű vagy jelöletlen övezet.')
+                continue
+            region=shape(feature['geometry'])
+            if not region.is_valid:
+                out['warnings'].append('Érvénytelen övezeti poligon.')
+                continue
+            part=parcel.intersection(region)
+            if part.area>0:
+                out['zone_parts'].append({'code':feature['code'],
+                    'area':part.area,'fraction':part.area/parcel.area,
+                    'geometry':part.__geo_interface__})
+        out['multi_zone']=len({part['code'] for part in out['zone_parts']})>1
+        for feature in regulatory_lines or []:
+            if feature.get('crs')!=crs or feature.get('status')!='planned' or feature.get('legend_verified') is not True:
+                continue
+            line=shape(feature['geometry'])
+            if line.geom_type not in ('LineString','MultiLineString') or not line.intersects(parcel):
+                continue
+            crossing=line.intersection(parcel)
+            if crossing.length<=0:continue
+            item={'line_geometry':crossing.__geo_interface__,
+                  'affected_area_verified':False,'affected_part':None,'remaining_part':None}
+            affected=feature.get('affected_area')
+            if affected:
+                area=shape(affected)
+                if area.is_valid and area.geom_type in ('Polygon','MultiPolygon'):
+                    cut=parcel.intersection(area)
+                    remaining=parcel.difference(cut)
+                    if cut.area>0 and remaining.area>0:
+                        item.update(affected_area_verified=True,
+                            affected_part={'area':cut.area,'geometry':cut.__geo_interface__},
+                            remaining_part={'area':remaining.area,'geometry':remaining.__geo_interface__})
+            if not item['affected_area_verified']:
+                out['warnings'].append('Tervezett szabályozási vonal metszi a telket, de a levágás oldala/területe nem igazolt.')
+            out['planned_cuts'].append(item)
+        if out['multi_zone']:
+            out['warnings'].append('Több övezet érinti a telket: mindegyik övezet és a HÉSZ közös szabályai vizsgálandók.')
+    except (ValueError,TypeError,KeyError,AttributeError) as exc:
+        out['warnings'].append('Metszetszámítás sikertelen: '+str(exc))
+    return out
+
+
+def identify_parcel_zones(parcel, zone_source, *, ksh_code, hrsz, edition):
+    """First automatic polygon identification stage for verified source adapters.
+
+    Adapters must supply verified boundaries, an explicit CRS and the current
+    plan edition. Label proximity and bounding boxes cannot satisfy this input
+    contract. This function consumes verification evidence; it does not establish
+    source authenticity itself. Multiple zones never become a single zone code.
+    """
+    out = {"status": "unverified", "zone": "", "zones": [], "coverage": 0.0,
+           "intersection_verified": False, "reason": "", "source": {}}
+    if not isinstance(parcel, dict) or not isinstance(zone_source, dict):
+        out["reason"] = "Hiányzó telek- vagy övezeti adatforrás."
+        return out
+    if (not ksh_code or not hrsz or not edition
+            or str(parcel.get("ksh_code", "")) != str(ksh_code)
+            or str(zone_source.get("ksh_code", "")) != str(ksh_code)
+            or normalize_hrsz(parcel.get("hrsz", "")) != normalize_hrsz(hrsz)):
+        out["reason"] = "A település, a pontos HRSZ vagy a forráskiadás nem egyezik."
+        return out
+    if (parcel.get("boundary_verified") is not True
+            or zone_source.get("boundary_verified") is not True
+            or zone_source.get("current_verified") is not True):
+        out["reason"] = "A telekhatár, az övezethatár vagy a hatályos forrás nincs ellenőrizve."
+        return out
+    digest = zone_source.get("source_hash", "")
+    source_url = zone_source.get("source_url", "")
+    if (zone_source.get("edition") != edition
+            or not isinstance(source_url, str) or not source_url.startswith("https://")
+            or not is_official_njt_url(source_url)
+            or not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)):
+        out["reason"] = "Hiányzó vagy eltérő hivatalos tervforrás, kiadás vagy SHA-256."
+        return out
+    out["source"] = {key: zone_source[key] for key in ("source_url", "source_hash", "edition")}
+    coverage = parcel_zone_coverage(parcel.get("geometry"), zone_source.get("features"),
+                                    parcel.get("crs"))
+    out.update(coverage)
+    out['crossings']=parcel_crossing_impacts(parcel.get('geometry'),
+        zone_source.get('features',[]),zone_source.get('regulatory_lines',[]),parcel.get('crs'))
+    if out['crossings']['planned_cuts']:
+        out['planned_regulation_intersection']=True
+        out['buildable_area_requires_legal_review']=True
+    if out['crossings']['multi_zone']:
+        out['multiple_zone_rules_required']=True
+    if out["status"] in ("single_zone_spatial", "multiple_zones"):
+        out["intersection_verified"] = True
+        if out["status"] == "single_zone_spatial":
+            out["zone"] = out["zones"][0]["code"]
+        out["reason"] = "Teljes telekfedés, ellenőrzött bemeneti forrásbizonyítékokkal."
+    else:
+        out["reason"] = ("Részleges, geometriailag azonosított övezeti érintettség; teljes besorolás nem igazolt." if out["status"] == "partial_coverage" else "Hiányos, átfedő vagy érvénytelen övezeti geometria; nincs igazolt besorolás.")
+    return out
+
+
+def parcel_outline_match(candidate, reference, *, tolerance_m=0):
+    """Require near-identical parcel footprints, not just a nearby centroid.
+
+    Both geometries must already use the same projected metre-based CRS.
+    This checks map alignment; it does not independently certify cadastral
+    source authenticity or the current legal parcel boundary.
+    """
+    try:
+        if (candidate.is_empty or reference.is_empty or not candidate.is_valid
+                or not reference.is_valid or candidate.area <= 0 or reference.area <= 0):
+            return False
+        if candidate.geom_type not in ("Polygon", "MultiPolygon"):
+            return False
+        if reference.geom_type not in ("Polygon", "MultiPolygon"):
+            return False
+        intersection = candidate.intersection(reference).area
+        union = candidate.union(reference).area
+        # The public locator can return a display polygon expanded by a
+        # couple of metres. Its IoU with an exact closed cadastral square is
+        # only ~0.925 (100 x 100 m with a 2 m display buffer), despite the
+        # correct boundary. Reject materially different or shifted shapes,
+        # but do not demand near-identical areas from display outlines.
+        if union <= 0 or intersection / union < .90:
+            return False
+        return candidate.hausdorff_distance(reference) <= 3 + tolerance_m
+    except (ValueError, TypeError, AttributeError):
+        return False
+
+
+def cadastral_plan_overlay(doc, parcel_api):
+    """Project an independently verified cadastral parcel onto a GeoPDF.
+
+    Display/bounding-box outlines are never promoted to cadastral evidence.
+    Coordinates must be verified EOV metres; no invented registration points.
+    """
+    from shapely.geometry import shape, Polygon, MultiPolygon
+    from geopdf import page_registrations, to_pdf
+    result={'status':'unavailable','reason':'Nincs igazolt kataszteri telekpoligon.',
+            'overlays':[]}
+    if not isinstance(parcel_api,dict) or parcel_api.get('parcel_boundary_verified') is not True:
+        return result
+    if parcel_api.get('geometry_crs')!='EPSG:23700':
+        result['reason']='A kataszteri geometria nem igazolt EOV koordinátarendszerű.'
+        return result
+    geometry=parcel_api.get('cadastral_geometry')
+    if not isinstance(geometry,dict) or geometry.get('type') not in ('Polygon','MultiPolygon'):
+        result['reason']='A kataszteri forrás nem adott teljes Polygon/MultiPolygon geometriát.'
+        return result
+    try:
+        parcel=shape(geometry)
+        if not parcel.is_valid or parcel.is_empty or parcel.area<=0:
+            return result
+        for page in doc:
+            for registration in page_registrations(page):
+                # A plan touching the cadastral parcel at one point is not
+                # sufficient for an auditable parcel overlay. Require the
+                # entire polygon to lie inside the georeferenced viewport,
+                # allowing only the measured registration uncertainty.
+                frame=registration['world_frame']
+                if not frame.buffer(registration['error_m']).covers(parcel):
+                    continue
+                # Transform each ring, including holes. The overlay is a
+                # rendering aid, not a new inferred parcel boundary.
+                def project(poly):
+                    return {'exterior':[list(to_pdf(p,registration['matrix']))
+                                        for p in poly.exterior.coords],
+                            'holes':[[list(to_pdf(p,registration['matrix']))
+                                      for p in ring.coords] for ring in poly.interiors]}
+                parts=parcel.geoms if isinstance(parcel,MultiPolygon) else [parcel]
+                result['overlays'].append({
+                    'page':page.number+1,'rings':[project(part) for part in parts],
+                    'registration_residual_m':registration['residual_m'],
+                    'registration_uncertainty_m':registration['error_m'],
+                    'coverage':'full_parcel'})
+        if result['overlays']:
+            result.update(status='georeferenced',reason='Igazolt kataszteri telek EOV koordinátái a GeoPDF saját illesztésével ábrázolva.')
+        else:
+            result['reason']='Nincs a kataszteri poligont lefedő igazolt GeoPDF-illesztés.'
+    except (ValueError,TypeError,KeyError,AttributeError):
+        result['reason']='A kataszteri poligon vagy az illesztés érvénytelen.'
+    return result
+
+
+def render_cadastral_overlay_png(doc, overlay, *, margin_pt=35, zoom=1.5):
+    """Render an actual source-plan crop with cadastral outline overlaid.
+
+    The caller must pass the output of cadastral_plan_overlay, not an inferred
+    PDF parcel. This returns PNG bytes without changing the source document.
+    """
+    import fitz
+    if overlay.get('status')!='georeferenced' or not overlay.get('overlays'):
+        return None
+    entry=overlay['overlays'][0]
+    page_number=entry['page']-1
+    if page_number<0 or page_number>=len(doc):
+        return None
+    rings=entry['rings']
+    vertices=[point for poly in rings for point in poly['exterior']]
+    if not vertices:return None
+    bounds=fitz.Rect(min(p[0] for p in vertices),min(p[1] for p in vertices),
+                     max(p[0] for p in vertices),max(p[1] for p in vertices))
+    page=doc[page_number]
+    clip=(bounds+(-margin_pt,-margin_pt,margin_pt,margin_pt)) & page.rect
+    if clip.is_empty:return None
+    # Render the actual official plan first, then draw only the independent
+    # cadastral geometry in the exact same PDF coordinate frame.
+    pix=page.get_pixmap(matrix=fitz.Matrix(zoom,zoom),clip=clip,alpha=False)
+    from PIL import Image,ImageDraw
+    from io import BytesIO
+    image=Image.open(BytesIO(pix.tobytes('png'))).convert('RGB')
+    painter=ImageDraw.Draw(image)
+    def pixels(coords):
+        return [((x-clip.x0)*zoom,(y-clip.y0)*zoom) for x,y in coords]
+    for poly in rings:
+        painter.line(pixels(poly['exterior']),fill=(230,30,30),width=max(2,round(3*zoom)),joint='curve')
+        for hole in poly['holes']:
+            painter.line(pixels(hole),fill=(230,30,30),width=max(2,round(3*zoom)),joint='curve')
+    out=BytesIO();image.save(out,format='PNG')
+    return out.getvalue()
+
+
+def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
+    """Read the parcel boundary from a georeferenced official source layer.
+
+    A display outline only selects candidate sheets. A closed cadastral layer
+    face and an exact HRSZ inside that face provide the independent map proof.
+    Explicit closed zone areas are required for the general coverage engine.
+    """
+    from geopdf import page_registrations, to_world, to_pdf, named_layer_paths, polygon_faces, source_zone_polygons, legend_layer_paths
+    from plan_connections import native_dotted_boundaries, bounded_zone_connections, closed_zone_faces
+    from plan_geometry_audit import audit_plan_geometry
+    from shapely.geometry import shape, Point, Polygon, mapping
+    result = {"zone": "", "candidate_zone": "", "detail": "", "registrations": [],
+              "parcel_boundary_verified": False, "zone_features": []}
+    if not parcel_api or not parcel_api.get("parcel_polygon_candidate"):
+        result["detail"] = "Nincs pontos HRSZ-hez kapcsolt megjelenítési poligon a tervlapkereséshez."
+        return result
+    outline = shape(parcel_api['geometry']['outline'])
+    from plan_legend import discover_legend,styles_for,matches_style
+    if legend_profile is None:
+        raw=doc.stream or doc.tobytes()
+        legend_profile=discover_legend(doc,source_url='embedded PDF',source_hash=source_digest(raw),
+            plan_url='embedded PDF',plan_hash=source_digest(raw),edition='embedded',ksh='embedded')
+    else:
+        from pathlib import Path
+        raw=Path(doc.name).read_bytes() if doc.name and Path(doc.name).is_file() else (doc.stream or doc.tobytes())
+        if legend_profile.get('identity',{}).get('plan_hash')!=source_digest(raw):
+            result['detail']='A jelmagyarázat nem ehhez a tervfájlhoz tartozik; másik terv jelölései nem alkalmazhatók.'
+            return result
+    result['legend']=legend_profile
+    confirmed = []
+    for page in doc:
+        for registration in page_registrations(page):
+            if not registration['world_frame'].intersects(outline):
+                continue
+            matrix = registration['matrix']
+            result['registrations'].append({'PDF-oldal': page.number+1,
+                'Illesztés': 'a PDF saját GEO-koordinátái',
+                'Legnagyobb eltérés (m)': registration['residual_m'],
+                'Bizonytalanság (m)': registration['error_m']})
+            cadastral_paths=legend_layer_paths(page,legend_profile,'parcel_boundary')
+            zone_paths=legend_layer_paths(page,legend_profile,'zone_boundary')
+            center = Point(to_pdf(outline.centroid.coords[0], matrix))
+            faces = polygon_faces(cadastral_paths)
+            for face in faces:
+                # Only cadastral paths contributed to these faces. Preserve
+                # actual source holes; no bbox or display-buffer inversion is used.
+                boundary = face
+                if not boundary.covers(center):
+                    continue
+                parcel = Polygon([to_world(p, matrix) for p in boundary.exterior.coords],
+                                 [[to_world(p,matrix) for p in ring.coords] for ring in boundary.interiors])
+                if not parcel_outline_match(parcel, outline, tolerance_m=registration['error_m']):
+                    continue
+                rect = fitz.Rect(boundary.bounds)
+                native = [hit for hit in find_hrsz(doc, hrsz)
+                          if hit['page_number'] == page.number
+                          and boundary.contains(Point(fitz.Rect(hit['pdf_rect']).tl +
+                              (fitz.Rect(hit['pdf_rect']).br-fitz.Rect(hit['pdf_rect']).tl)/2))]
+                proof = bool(native)
+                if not proof:
+                    readings=[]
+                    for scale in (4, 5):
+                        pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=rect+(-2,-2,2,2),alpha=False)
+                        pix.set_dpi(72*scale,72*scale)
+                        with fitz.open(stream=pix.pdfocr_tobytes(language='eng',tessdata=plan_ocr_data()),filetype='pdf') as crop:
+                            readings.append(any(normalize_hrsz(w[4]) == normalize_hrsz(hrsz)
+                                and boundary.contains(Point(w[0]+pix.x/scale+(w[2]-w[0])/2,
+                                                            w[1]+pix.y/scale+(w[3]-w[1])/2))
+                                for w in crop[0].get_text('words')))
+                    proof = all(readings)
+                if not proof:
+                    continue
+                zones=[]
+                # Plan layer names alone do not prove an area: require a closed
+                # filled source face, within the actual georeferenced viewport,
+                # with exactly one zone inscription inside it.
+                areas=source_zone_polygons(zone_paths)
+                # Native dashed strokes retain their complete underlying
+                # source path. Only actual closed faces qualify; no endpoints
+                # are joined to manufacture a zoning area.
+                areas.extend(polygon_faces([p for p in zone_paths if p['fill'] is None]))
+                for area in areas:
+                    if not area.intersects(boundary) or not registration['frame'].contains(area):
+                        continue
+                    codes={match[0] for word in page.get_text('words')
+                           if area.contains(Point((word[0]+word[2])/2,(word[1]+word[3])/2))
+                           for match in [ZONE_PATTERN.fullmatch(word[4])] if match}
+                    if len(codes)==1:
+                        world=Polygon([to_world(p,matrix) for p in area.exterior.coords],
+                                      [[to_world(p,matrix) for p in ring.coords] for ring in area.interiors])
+                        zones.append({'code':next(iter(codes)), 'geometry':mapping(world), 'crs':'EPSG:23700'})
+                candidates=zone_candidates(page,rect)
+                connection={};closure_audit={}
+                if not zones:
+                    markers=native_dotted_boundaries(page,styles_for(legend_profile,'zone_boundary'))
+                    source_areas=[];regulatory_segments=[]
+                    separating=legend_layer_paths(page,legend_profile,'regulatory_line')
+                    regulatory_segments=[segment for path in separating for segment in path['segments']]
+                    for role in ('road_area','landuse_area'):
+                        areas=legend_layer_paths(page,legend_profile,role)
+                        source_areas.extend(source_zone_polygons(areas))
+                    labels=[(word[4],Point((word[0]+word[2])/2,(word[1]+word[3])/2),word[:4])
+                            for word in page.get_text('words')
+                            if ZONE_PATTERN.fullmatch(word[4]) or word[4] in ('Ev','Eg','Ve','V','kt.')]
+                    # Any opaque source rectangle containing an inscription
+                    # may mask a boundary. Neither its layer name nor its colour
+                    # determines regulatory meaning.
+                    masks=[]
+                    if markers.get('supported') or zone_paths or source_areas:
+                        def label_mask(drawing):
+                            if drawing.get('fill') is None or drawing.get('fill_opacity',1)!=1:return
+                            if len(drawing['items'])!=1 or drawing['items'][0][0]!='re':return
+                            source_rect=fitz.Rect(drawing['items'][0][1])
+                            if any(source_rect.contains(fitz.Rect(label[2])) for label in labels):
+                                from shapely.geometry import box
+                                masks.append(box(*source_rect))
+                        page.get_cdrawings(callback=label_mask)
+                    # The inverse affine's largest singular value bounds the
+                    # world-coordinate uncertainty in source PDF points.
+                    import numpy as np
+                    error_points=registration['error_m']*float(np.linalg.svd(
+                        np.linalg.inv(matrix[:2]),compute_uv=False)[0])
+                    closed=closed_zone_faces(boundary,registration['frame'],markers,
+                                            source_areas,labels,masks,
+                                            native_paths=[segment for path in zone_paths
+                                                if path['fill'] is None for segment in path['segments']])
+                    closure_audit=closed['audit']
+                    closure_audit['georeferencing']={
+                        'shared_source_coordinates':True,
+                        'residual_m':registration['residual_m'],
+                        'uncertainty_m':registration['error_m'],
+                        'affine_matrix':matrix.tolist(),
+                        'registration_closes_source_gaps':False}
+                    for endpoint in closure_audit['topology']['open_endpoints']:
+                        if 'nearest_source_point_pdf' in endpoint:
+                            endpoint['gap_m']=float(np.linalg.norm(
+                                np.array(to_world(endpoint['point_pdf'],matrix))-
+                                to_world(endpoint['nearest_source_point_pdf'],matrix)))
+                    for code,area in closed['faces']:
+                        world=Polygon([to_world(p,matrix) for p in area.exterior.coords],
+                                      [[to_world(p,matrix) for p in ring.coords] for ring in area.interiors])
+                        zones.append({'code':code,'geometry':mapping(world),'crs':'EPSG:23700'})
+                    markers['lines'].extend(regulatory_segments)
+                    markers['lines'].extend(source_areas)
+                    connection=bounded_zone_connections(boundary,registration['frame'],markers,
+                                                        labels,masks,uncertainty_points=error_points)
+                confirmed.append({'parcel_wkt':parcel.wkt,'parcel_geometry':mapping(parcel),
+                    'parcel_boundary_verified':True,'zone_features':zones,
+                    'parcel_layer_basis':'saját jelmagyarázat szerinti jel vagy abban megnevezett natív kataszteri CAD-réteg',
+                    'candidate_zone':(connection['supported_codes'][0] if connection.get('verified')
+                                      else candidates[0]['Övezeti kód'] if candidates else ''),
+                    'boundary_connection':connection,
+                    'closure_audit':closure_audit,
+                    'territorial_audit':audit_plan_geometry(page,boundary,legend_profile),
+                    'pdf_page':page.number+1,'uncertainty_m':registration['error_m'],
+                    'hrsz_method':'pontos HRSZ a zárt, georeferált tervlapi telekben',
+                    'preview':page.get_pixmap(matrix=fitz.Matrix(3,3),clip=rect+(-25,-25,25,25)).tobytes('png')})
+            fitz.TOOLS.store_shrink(100)
+    if not confirmed:
+        result['detail']='Nincs együtt igazolt GEO-illesztés, zárt telekhatár és pontos HRSZ.'
+        return result
+    first=confirmed[0]
+    from shapely import wkt
+    if any(wkt.loads(item['parcel_wkt']).hausdorff_distance(wkt.loads(first['parcel_wkt'])) >
+           item['uncertainty_m']+first['uncertainty_m'] for item in confirmed[1:]):
+        result['detail']='Az azonos HRSZ tervlapi geometriái ellentmondanak egymásnak.'
+        return result
+    result.update(first)
+    result['detail']='Pontos HRSZ és zárt tervlapi telekhatár a PDF saját koordinátáiból ellenőrizve.'
+    if not result['zone_features']:
+        result['detail']+=' Az övezetfelirat még jelölt: teljes, feliratozott övezetpoligon nem igazolt.'
+    return result
+
+
+def load_official_plan(page, meta, hrsz):
+    """Load only a plan linked by the freshly checked NJT regulation page."""
+    from pathlib import Path
+    from hashlib import sha256
+    result={'source_valid':False,'current_verified':False,'edition':'','checks':{},
+            'attachments':[],'source_url':'','source_hash':'','path':'','error':''}
+    valid, checks=validate_njt_source(meta.get('municipality',''),meta,page)
+    result.update(source_valid=valid,checks=checks)
+    if not valid:
+        result['error']='A tervet kiadó NJT-forrás települése vagy tartalma nem igazolt.'
+        return result
+    reader=TiszaLegalParagraphs(urllib.parse.urlsplit(page.get('url','')).path.rsplit('/',1)[-1])
+    reader.feed(page.get('html',''))
+    if len(reader.editions)!=1:
+        result['error']='Nincs egyértelmű NJT-forráskiadás.'
+        return result
+    edition=reader.editions[0]
+    try:
+        effective=datetime.strptime(edition,'%Y.%m.%d.').date()
+        if effective>datetime.now(ZoneInfo('Europe/Budapest')).date():
+            raise ValueError('A forráskiadás még nem hatályos.')
+    except ValueError as exc:
+        result['error']='A forrás időállapota nem igazolt: '+str(exc)
+        return result
+    result['edition']=edition
+    attachments=discover_attachments(page)
+    result['attachments']=attachments
+    doc=None
+    try:
+        doc,url,error=try_auto_plan(attachments,page.get('text',''),meta,hrsz)
+        if error:
+            result["source_warning"] = error
+        if doc is None:
+            result['error']=error or 'Nincs letölthető, azonosított szabályozási terv.'
+            return result
+        # The final redirected resource also has to remain an official HTTPS PDF.
+        if (not isinstance(url,str) or not url.startswith('https://') or not is_official_njt_url(url)
+                or url not in {row['URL'] for row in attachments}):
+            result['error']='A tervletöltés nem hivatalos címre irányult át.'
+            return result
+        path,final=download_pdf_location(url)
+        raw=Path(path).read_bytes()
+        if final!=url:
+            result['error']='A terv forráscíme a feldolgozás közben megváltozott.'
+            return result
+        result.update(source_url=url,path=path,source_hash=sha256(raw).hexdigest(),
+                      current_verified=True)
+    except Exception as exc:
+        result['error']=f'Tervbetöltés: {type(exc).__name__}: {exc}'
+    finally:
+        if doc is not None:doc.close()
+    return result
+
+
+
+def load_plan_legend(inputs,meta,ksh,on_progress=None):
+    from pathlib import Path
+    from plan_legend import discover_legend
+    empty={'zone_style_verified':False,'records':[],'error':''}
+    if not inputs.get('current_verified') or not inputs.get('path'):
+        empty['error']='Nincs igazolt hatályos terv a saját jelmagyarázat azonosításához.';return empty
+    candidates=[row for row in inputs.get('attachments',[]) if 'jelmagyarazat' in key_text(
+        urllib.parse.unquote(row.get('Megnevezés','')+' '+row.get('URL','')))]
+    if len(candidates)>1:
+        empty['error']='Több külön jelmagyarázat; a tervhez rendelés nem egyértelmű.';return empty
+    url=candidates[0]['URL'] if candidates else inputs['source_url']
+    try:
+        path,final=download_pdf_location(url) if candidates else (inputs['path'],url)
+        if final!=url or not is_official_njt_url(url):raise ValueError('Nem igazolt jelmagyarázat-forrás.')
+        raw=Path(path).read_bytes()
+        with fitz.open(path) as doc:
+            profile=discover_legend(doc,source_url=url,source_hash=source_digest(raw),
+                plan_url=inputs['source_url'],plan_hash=inputs['source_hash'],edition=inputs['edition'],
+                ksh=ksh,tessdata=plan_ocr_data(),on_progress=on_progress)
+        if not profile['zone_style_verified']:profile['error']='Nem sikerült a saját jelmagyarázat övezethatár-mintáját egyértelműen feldolgozni.'
+        return profile
+    except Exception as exc:
+        empty['error']='Jelmagyarázat: '+str(exc);return empty
+
+
+def original_plan_bytes(doc, plan_inputs):
+    """Keep the downloaded source hash across file-backed MuPDF documents."""
+    from pathlib import Path
+    raw=Path(plan_inputs['path']).read_bytes() if plan_inputs.get('path') else (doc.stream or doc.tobytes())
+    if plan_inputs.get('source_hash') and source_digest(raw)!=plan_inputs['source_hash']:
+        raise ValueError('A tervfájl tartalma a forrásellenőrzés után megváltozott.')
+    return raw
+
+
+def connect_automatic_zone(parcel_api, plan_result, plan_inputs, ksh, hrsz):
+    """Supply source-derived evidence to the PR #1 coverage engine."""
+    from shapely import wkt
+    from shapely.geometry import mapping
+    geometry=(parcel_api or {}).get('geometry',{}).get('outline')
+    parcel_verified=plan_result.get('parcel_boundary_verified') is True
+    if parcel_verified and plan_result.get('parcel_wkt'):
+        geometry=mapping(wkt.loads(plan_result['parcel_wkt']))
+    features=[] if plan_inputs.get('source_selection_ambiguous') else plan_result.get('zone_features',[])
+    if (not plan_inputs.get('source_selection_ambiguous') and plan_result.get('zone_wkt') and plan_result.get('zone')
+            and plan_result.get('hrsz_method') and plan_result.get('parcel_wkt')):
+        # The Dél-Hegyvidék adapter proves the parcel in the official PDF, not
+        # from the OÉNY display outline. Its complete closed region supplies
+        # source geometry for the shared coverage engine.
+        geometry=mapping(wkt.loads(plan_result['parcel_wkt']))
+        parcel_verified=True
+        features=[{'code':plan_result['zone'],'geometry':mapping(wkt.loads(plan_result['zone_wkt'])),
+                   'crs':'EPSG:23700'}]
+    parcel={'hrsz':normalize_hrsz(hrsz),'ksh_code':ksh,'geometry':geometry,
+            'crs':'EPSG:23700','boundary_verified':parcel_verified}
+    source={'ksh_code':ksh,'edition':plan_inputs.get('edition',''),
+            'source_url':plan_inputs.get('source_url',''),'source_hash':plan_inputs.get('source_hash',''),
+            'current_verified':plan_inputs.get('current_verified') is True,
+            'boundary_verified':bool(features),'features':features,
+            'regulatory_lines':plan_result.get('regulatory_lines',[])}
+    result=identify_parcel_zones(parcel,source,ksh_code=ksh,hrsz=hrsz,
+                                 edition=plan_inputs.get('edition',''))
+    result['parcel_boundary_verified']=bool(parcel_verified and plan_inputs.get('current_verified'))
+    result['candidate_zone']=plan_result.get('candidate_zone') or plan_result.get('zone','')
+    result['uncertainty_m']=plan_result.get('uncertainty_m')
+    result['boundary_connection']=plan_result.get('boundary_connection',{})
+    result['closure_audit']=plan_result.get('closure_audit',{})
+    result['territorial_audit']=plan_result.get('territorial_audit',{})
+    return result
+
+
+
+MISKOLC_RULE_SECTION_HASHES={
+    24:'38a9c79e6425a68912cb26a3a7cd065229e9642cc9c5d2b51caecb3012740083',
+    25:'0acaca294b999e72cd37491f3d7f800b36ce179fb0889a025d2447023d1883b4',
+    33:'423e683e6ff905ca15a177472c69e087bb99e9fc6215599336a3dbfe3fb5b0ed',
+    36:'64d5dd6cc017548ed8782f5e192b7bd996dd3b57904d871354027d944a45641e'}
+
+
+def automatic_zone_rule_evidence(meta, page, inputs, identification):
+    """Source-proven rules for a *derived* code, with separate applicability.
+
+    A candidate's parameters must never become proved parcel requirements.
+    Reviewed section profiles bind legal categories, never parcels to codes.
+    """
+    from zone_parameters import legend_tables,decode_zone
+    if (identification.get('status') == 'multiple_zones'
+            and identification.get('intersection_verified') is True):
+        # A split parcel has no single zone. Retrieve and keep the rules for
+        # every spatially proven code separately; never silently pick one.
+        zones=identification.get('zones',[])
+        if not zones or any(not isinstance(z,dict) or not isinstance(z.get('code'),str)
+                            or not z['code'].strip() for z in zones):
+            return {'zone':'','zone_verified':False,'per_zone':[],
+                    'parameter_rows':[],'clause_rows':[],'errors':[],
+                    'complete':False,'missing_evidence':['Érvénytelen többövezetes besorolás']}
+        per_zone=[]
+        for zone in zones:
+            scoped=dict(identification,zone=zone['code'],candidate_zone='',
+                        status='single_zone_spatial')
+            rules=automatic_zone_rule_evidence(meta,page,inputs,scoped)
+            per_zone.append({'code':zone['code'],'fraction':zone.get('fraction'),
+                             'rules':rules})
+        return {'zone':'','zone_verified':True,'per_zone':per_zone,
+                'parameter_rows':[],'clause_rows':[],
+                'errors':[err for entry in per_zone for err in entry['rules']['errors']],
+                'complete':False,'missing_evidence':[
+                    'Övezethatár érinti a telket; az előírásokat övezetenként kell alkalmazni.',
+                    'A teljes telek valamennyi korlátozásának és általános szabályának ellenőrzése']}
+    code=identification.get('zone') or identification.get('candidate_zone','')
+    verified=identification.get('intersection_verified') is True
+    out={'zone':code,'zone_verified':verified,'parameter_rows':[], 'clause_rows':[],
+         'errors':[],'complete':False,'missing_evidence':[],
+         'candidate_basis':identification.get('candidate_basis','')}
+    if not identification.get('parcel_boundary_verified'):out['missing_evidence'].append('Forrásból igazolt teljes telekhatár')
+    if not verified:out['missing_evidence'].append('A teljes telek igazolt övezeti fedése')
+    out['missing_evidence'].extend(['Minden tervi korlátozás és védőterület telekspecifikus ellenőrzése',
+        'A helyi és országos szabályok, átmeneti rendelkezések és különös beruházási szabályok alkalmazási feltételei'])
+    if not code or inputs.get('source_valid') is not True:return out
+    edition=inputs.get('edition','');source=page.get('url','')
+    inline=inline_zone_rows(inline_zone_tables(page.get('html','')),code)[0]
+    out['parameter_rows']=[dict(row,URL=source) for row in inline]
+    legend=meta.get('parameter_legend_url','')
+    attachments=inputs.get('attachments',[])
+    try:
+        if not inline and legend:
+            if legend not in {a['URL'] for a in attachments}:raise ValueError('A paraméterjelmagyarázat nincs a hatályos NJT-forrásban hivatkozva.')
+            raw,final,status,*_=http_get(legend)
+            if status!=200 or final!=legend:raise ValueError('Nem igazolt jelmagyarázat-letöltés.')
+            with fitz.open(stream=raw,filetype='pdf') as doc:
+                text='\n'.join(p.get_text() for p in doc)
+            if 'Miskolc' not in text or 'Paraméterek' not in text:raise ValueError('A paraméterjelmagyarázat tartalma nem azonosítható.')
+            rows=decode_zone(code,legend_tables(text))
+            out['parameter_rows']=[dict(row,URL=legend,**{'Forrás SHA-256':source_digest(raw),'PDF-oldal':1}) for row in rows]
+        elif not inline and source==TISZA_RULES_URL:
+            table=choose_zone_table_attachment(attachments)
+            if table:
+                raw,final,status,*_=http_get(table['URL'])
+                if status!=200 or final!=table['URL']:raise ValueError('Nem igazolt övezeti táblaletöltés.')
+                with fitz.open(stream=raw,filetype='pdf') as doc:
+                    rows,params,note=verified_tisza_table_rows(doc,code)
+                if not rows:raise ValueError('A tiszaújvárosi táblasor vagy forráskiadás nem igazolt.')
+                out['parameter_rows']=[dict(row,URL=final,**{'Forrás SHA-256':source_digest(raw),'PDF-oldal':2,'Lábjegyzet':note}) for row in rows]
+    except Exception as exc:out['errors'].append('Övezeti paraméterek: '+str(exc))
+    profiles=[]
+    if source==TISZA_RULES_URL and edition=='2024.10.10.' and re.fullmatch(r'Gip/[1-3]',code):
+        profiles=[(n,TISZA_RULE_SECTION_HASHES[n]) for n in (7,8,11,12,26,29,30)]
+    elif (source=='https://njt.jog.gov.hu/jogszabaly/2022-38-SP-5Y1070'
+          and edition=='2026.09.26.' and code.startswith('Gipe-')):
+        profiles=list(MISKOLC_RULE_SECTION_HASHES.items())
+    if profiles:
+        reader=TiszaLegalParagraphs(source.rsplit('/',1)[-1]);reader.feed(page.get('html',''))
+        for section,expected in profiles:
+            content='\n'.join(str(b)+':'+clean_text(' '.join(parts))
+                              for (n,b),parts in reader.blocks.items() if n==section)
+            if section in reader.duplicates or source_digest(content)!=expected:
+                out['errors'].append(f'A {section}. § szövege eltér a felülvizsgált kategóriaszabálytól.');continue
+            for position,parts in reader.blocks.items():
+                if position[0]!=section:continue
+                out['clause_rows'].append({'Forrás':f'{section}. §'+(f' ({position[1]})' if position[1] else ''),
+                    'URL':source+'#'+urllib.parse.quote(reader.anchors[position],safe='.@()'),
+                    'Teljes rendelkezés':clean_text(' '.join(parts)),
+                    'Forrás SHA-256':expected})
+    else:
+        # Literal source-code references select complete legal sections, never
+        # a municipality/HRSZ-specific expected answer or a truncated snippet.
+        reader=TiszaLegalParagraphs(source.rsplit('/',1)[-1]);reader.feed(page.get('html',''))
+        code_match=re.compile(r'(?<![\w/.-])'+re.escape(code)+r'(?![\w/.-])',re.I)
+        sections={position[0] for position,parts in reader.blocks.items()
+                  if code_match.search(clean_text(' '.join(parts)))}
+        for position,parts in reader.blocks.items():
+            if position[0] not in sections or position[0] in reader.duplicates:continue
+            text=clean_text(' '.join(parts))
+            out['clause_rows'].append({'Forrás':f'{position[0]}. §'+(f' ({position[1]})' if position[1] else ''),
+                'URL':source+'#'+urllib.parse.quote(reader.anchors[position],safe='.@()'),
+                'Teljes rendelkezés':text,'Forrás SHA-256':source_digest(text),
+                'Kiválasztás':'A felismert kód szó szerinti említése a hatályos jogszabály teljes szakaszában'})
+    for rows in (out['parameter_rows'],out['clause_rows']):
+        for row in rows:
+            row['Forrás időállapota']=edition
+            row['Állapot']='Övezeti forrásszabály; a teljes telekre és az ügyre alkalmazhatóság külön igazolandó'
+    return out
+
+
+def automatic_evidence_rows(parcel_api, plan_inputs, identification, *, rules_available=False,visual=None):
+    """Separate successful retrieval, map proof and complete rule applicability."""
+    visual=visual or {}
+    candidate=identification.get('candidate_zone','') or visual.get('zone','')
+    if not candidate:
+        observed={r['code'] for r in visual.get('candidate_labels',[])}
+        if len(observed)==1:candidate=next(iter(observed))
+    map_label=(visual.get('location',{}).get('verified_preliminary') or
+               visual.get('location',{}).get('plan_label_locations_verified') or visual.get('exact_hrsz_in_parcel'))
+    geometry_ok=identification.get('parcel_boundary_verified') is True
+    zone_ok=identification.get('intersection_verified') is True
+    return [
+        {'Adat':'Helyrajzi szám','Bizonyított':bool(parcel_api or map_label),
+         'Eredmény':('pontos hivatalos HRSZ-találat' if parcel_api else
+                     'pontos HRSZ-felirat a hatályos terven; mai kataszteri állapot külön igazolandó' if map_label else
+                     'nincs pontos hivatalos HRSZ-találat'),
+         'Forrás':(parcel_api or {}).get('search_url','') or (plan_inputs.get('source_url','') if map_label else '')},
+        {'Adat':'Telekgeometria','Bizonyított':geometry_ok,
+         'Eredmény':('zárt tervlapi telekhatár; bizonytalanság: '+str(identification.get('uncertainty_m'))+' m'
+                     if geometry_ok else 'csak megjelenítési poligon / nincs igazolt telekhatár'),
+         'Forrás':plan_inputs.get('source_url','') if geometry_ok else (parcel_api or {}).get('geometry_url','')},
+        {'Adat':'Övezet','Bizonyított':zone_ok,
+         'Eredmény':(identification.get('zone') or ', '.join(z['code'] for z in identification.get('zones',[])))
+                     if zone_ok else ('jelölt: '+candidate+'; poligonfedés nem igazolt' if candidate else 'nincs igazolt övezet'),
+         'Forrás':plan_inputs.get('source_url','')},
+        {'Adat':'Hatályos előírások – teljes telekspecifikus kör','Bizonyított':False,
+         'Eredmény':('hivatalos rendelkezések betöltve; teljes telekre alkalmazhatóság nem igazolt'
+                     if rules_available else 'nem sikerült forrásolt rendelkezéseket betölteni'),
+         'Forráskiadás':plan_inputs.get('edition','')},
+    ]
+
+
+def supplementary_location_documents(meta, hrsz):
+    """Read lawful municipal studies as historical clues, never current zoning."""
+    from pathlib import Path
+    receipts=[]
+    for url in meta.get('location_documents',[]):
+        receipt={'source_url':url,'current_plan_verified':False,'zone_verified':False,'mentions':[]}
+        try:
+            path,final=download_pdf_location(url)
+            if final!=url:raise ValueError('Megváltozott a kiegészítő dokumentum forrása.')
+            receipt['source_hash']=source_digest(Path(path).read_bytes())
+            with fitz.open(path) as doc:
+                hits=native_hrsz_hits(doc,hrsz)
+                for page in doc:
+                    text=page.get_text()
+                    for hit in hits:
+                        if hit['page_number']!=page.number:continue
+                        rect=fitz.Rect(hit['pdf_rect'])
+                        receipt['mentions'].append({'pdf_page':page.number+1,'rect_pdf':list(rect),
+                            'context':snippets_around(text,hrsz,radius=500,max_items=2)})
+            receipt['note']='Települési tanulmányban szereplő HRSZ-említés; nem igazolt mai telekhely vagy hatályos övezet.'
+        except Exception as exc:receipt['error']=str(exc)
+        receipts.append(receipt)
+    return receipts
+
+
+def select_plan_by_exact_label(meta, page, inputs, hrsz, on_progress=None):
+    """Search current alternative municipal laws, never assume geographic scope."""
+    alternatives=meta.get('alternative_sources',[])
+    if not alternatives:return meta,page,inputs
+    candidates=[(meta,page,inputs)];receipts=[];matched=[]
+    for other in alternatives:
+        try:
+            other_page=fetch_njt_page(other['url'])
+            other_inputs=load_official_plan(other_page,other,hrsz)
+            candidates.append((other,other_page,other_inputs))
+        except Exception as exc:receipts.append({'legal_url':other.get('url'),'error':str(exc),'complete':False})
+    for index,(source,legal,plan) in enumerate(candidates):
+        receipt={'legal_url':source.get('url'),'plan_url':plan.get('source_url'),
+                 'plan_hash':plan.get('source_hash'),'edition':plan.get('edition'),'complete':False}
+        if plan.get('current_verified') and plan.get('path'):
+            with fitz.open(plan['path']) as doc:
+                spatial=locate_parcel(doc,hrsz,outlined=True,on_progress=on_progress)
+            hits=spatial.get('hits',[])
+            receipt.update(complete=spatial.get('scan',{}).get('complete',bool(hits)),
+                exact_label_hits=[{**hit,'pdf_rect':list(hit['pdf_rect'])} for hit in hits],
+                search=spatial.get('scan',{}))
+            if hits:matched.append(index)
+        else:receipt['error']=plan.get('error','Nincs ellenőrzött hatályos terv.')
+        receipts.append(receipt)
+    if len(matched)==1 and all(r.get('complete') for r in receipts):
+        selected_meta,selected_page,selected_inputs=candidates[matched[0]]
+    else:selected_meta,selected_page,selected_inputs=meta,page,inputs
+    selected_inputs=dict(selected_inputs,alternative_plan_search=receipts,
+        source_selection_ambiguous=len(matched)>1 or (bool(matched) and not all(r.get('complete') for r in receipts)))
+    return selected_meta,selected_page,selected_inputs
+
+
+def parcel_search_method_evidence(parcel_api, plan_result, label_hits=None, minerva_detail=''):
+    """Retain independent search methods without conflating a label and a boundary.
+
+    A previously useful source remains visible as a candidate method even if
+    a different method wins; only explicit verification elevates its status.
+    """
+    methods=[]
+    api=parcel_api or {}
+    methods.append({'method':'public_hrsz','found':bool(api.get('id')),
+                    'boundary_verified':api.get('parcel_boundary_verified') is True,
+                    'source':api.get('search_url',''),
+                    'detail':api.get('geometry_evidence_note','')})
+    for hit in label_hits or []:
+        methods.append({'method':'pdf_label','found':True,
+                        'boundary_verified':False,'page':hit.get('page'),
+                        'detail':hit.get('method','')})
+    plan=plan_result or {}
+    if plan.get('hrsz_method'):
+        methods.append({'method':'plan_geometry','found':True,
+                        'boundary_verified':plan.get('parcel_boundary_verified') is True,
+                        'detail':plan.get('hrsz_method','')})
+    if minerva_detail:
+        methods.append({'method':'municipal_gis','found':False,
+                        'boundary_verified':False,'detail':minerva_detail})
+    return methods
+
+
+def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
+    """Headless integration path using the same loaders and adapters as the UI."""
+    result={'place':place,'hrsz':normalize_hrsz(hrsz),'ksh':'','errors':[],
+            'parcel_api':None,'plan_inputs':{},'plan_result':{},'identification':{},'evidence':[]}
+    # Budapest without a district must first be resolved from evidence
+    # concerning this exact HRSZ; never default to the XII. district.
+    resolved_place=place
+    if key_text(place)=='budapest':
+        district,district_evidence=discover_budapest_district(hrsz)
+        result['district_evidence']=district_evidence
+        if district:
+            # discover_budapest_district already returns e.g. "XII. kerület".
+            # Do not append a second ". kerület" to the exact settlement name.
+            resolved_place='Budapest '+district
+            result['resolved_district']=district
+        else:
+            result['errors'].append('A budapesti kerület nem igazolt a pontos HRSZ alapján.')
+    try:
+        if key_text(place)=='budapest' and not result.get('resolved_district'):
+            raise RuntimeError('Kerületazonosítás nélkül nem választunk önkényesen kataszteri településkódot.')
+        result['ksh']=resolve_settlement_code(resolved_place)
+        result['parcel_api']=public_parcel_geometry(result['ksh'],hrsz)
+    except ParcelGeometryUnavailable as exc:
+        result['parcel_api']=exc.result
+        result['errors'].append('Telekgeometria: '+str(exc))
+    except Exception as exc:result['errors'].append('HRSZ/telek: '+str(exc))
+    # Legal-source discovery is independent of a failed cadastral lookup.
+    # Only unresolved Budapest needs a district before choosing its KÉSZ.
+    can_resolve_law=key_text(place)!='budapest' or bool(result.get('resolved_district'))
+    meta=source_for_town(resolved_place) if can_resolve_law else None
+    if meta is None:
+        meta,page=discover_njt_source(resolved_place,hrsz) if can_resolve_law else ({},{})
+    else:page=fetch_njt_page(meta['url'])
+    if not meta:
+        result['errors'].append('Nincs tartalmilag ellenőrzött NJT-forrás.')
+        page={};meta={}
+    inputs=load_official_plan(page,meta,hrsz)
+    meta,page,inputs=select_plan_by_exact_label(meta,page,inputs,hrsz,on_progress)
+    inputs['legal_zone_text']=page.get('text','')
+    inputs['legal_zone_text_sha256']=source_digest(inputs['legal_zone_text'])
+    result['plan_inputs']=inputs
+    inputs['supplementary_location_sources']=supplementary_location_documents(meta,hrsz)
+    legend_profile=load_plan_legend(inputs,meta,result['ksh'])
+    result['legend']=legend_profile
+    if legend_profile.get('error'):result['errors'].append(legend_profile['error'])
+    if inputs.get('error'):result['errors'].append(inputs['error'])
+    doc=None;plan_result={'zone':''};hits=[]
+    result['visual']={'status':'not_identifiable','zone':'','intersection_verified':False,
+                      'reasons':['Nincs vizsgálható hivatalos tervrészlet.']}
+    try:
+        if inputs.get('path'):
+            doc=fitz.open(inputs['path'])
+            # A failed specialised adapter must not suppress the generic
+            # GeoPDF, label-localisation and legend/zone-boundary methods.
+            try:
+                if result['ksh']=='28352' and result['parcel_api']:
+                    from pathlib import Path
+                    plan_result=tiszaujvaros_plan_zone(original_plan_bytes(doc,inputs),
+                        result['parcel_api']['geometry'],hrsz)
+                elif result['ksh']=='24697' and result['parcel_api']:
+                    diag=minerva_xii_status_for_parcel(result['parcel_api'])
+                    result['minerva_detail']=diag.get('detail','')
+                    snapshot=next((item for item in diag.get('geometry_snapshots',[])
+                        if '20250806_DEL_HEGYVIDEK_KESZ' in item.get('resource','')),None)
+                    if snapshot:
+                        from pathlib import Path
+                        plan_result=georeferenced_plan_zone(original_plan_bytes(doc,inputs),snapshot,hrsz)
+                    else:plan_result=geopdf_parcel_zone(doc,result['parcel_api'],hrsz,legend_profile)
+                else:plan_result=geopdf_parcel_zone(doc,result['parcel_api'],hrsz,legend_profile)
+            except Exception as specialised_error:
+                result['errors'].append('Speciális tervillesztés: '+str(specialised_error))
+                try:
+                    plan_result=geopdf_parcel_zone(doc,result['parcel_api'],hrsz,legend_profile)
+                except Exception as generic_error:
+                    result['errors'].append('Általános GeoPDF: '+str(generic_error))
+                    plan_result={'zone':''}
+            # Geometry methods confirm their own label. Other sources still get
+            # bounded, resumable label inspection rather than a nearest-zone rule.
+            if not plan_result.get('hrsz_method'):
+                spatial=locate_parcel(doc,hrsz,outlined=inputs.get('source_valid',False),on_progress=on_progress)
+                hits=spatial.get('hits',[])
+                result['label_search']={k:v for k,v in spatial.items() if k not in ('hit','hits')}
+                result['label_hits']=[{'page':h['page_number']+1,'method':h.get('method','')} for h in hits]
+            result['visual']=visual_plan_evidence(doc,plan_result,legend_profile,inputs,result['ksh'],hrsz,
+                spatial=spatial if not plan_result.get('hrsz_method') else None)
+    except Exception as exc:
+        result['errors'].append('Tervgeometria: '+str(exc))
+    finally:
+        if doc is not None:doc.close()
+    plan_result.pop('preview',None)
+    result['plan_result']=plan_result
+    result['search_methods']=parcel_search_method_evidence(
+        result['parcel_api'],plan_result,result.get('label_hits'),
+        result.get('minerva_detail',''))
+    # Feed verified closed PDF faces into the existing coverage and crossing
+    # engines. Never promote a visual candidate without a registered parcel.
+    if not inputs.get('source_selection_ambiguous'):
+        # Always pass the actually retrieved OENY outline to the existing
+        # intersection engine, even when the PDF lacks cadastral registration.
+        # The engine retains boundary_verified=False and cannot assert a zone
+        # from an unregistered display polygon or an unverified plan face.
+        if result['visual'].get('source_zone_features'):
+            plan_result['zone_features']=result['visual']['source_zone_features']
+            plan_result['regulatory_lines']=result['visual'].get('source_regulatory_lines',[])
+        if result['parcel_api']:
+            result['identification']=connect_automatic_zone(
+                result['parcel_api'],plan_result,inputs,result['ksh'],hrsz)
+        else:
+            result['errors'].append('Övezetmetszés: OÉNY telekgeometria nem áll rendelkezésre.')
+    from gis_sources import automatic_gis_evidence
+    from shapely.geometry import mapping
+    from shapely import wkt
+    gis_geometry=(result['parcel_api'] or {}).get('geometry',{}).get('outline')
+    if plan_result.get('parcel_boundary_verified') and plan_result.get('parcel_wkt'):
+        gis_geometry=mapping(wkt.loads(plan_result['parcel_wkt']))
+    result['gis_sources']=automatic_gis_evidence(place,gis_geometry,
+        parcel_verified=result['identification'].get('parcel_boundary_verified',False))
+    inventory=local_source_inventory(page,inputs.get('source_valid',False),
+        result['identification'].get('zone',''),result['identification'].get('intersection_verified',False),
+        inputs.get('attachments',[]))
+    result['legal_source_url']=page.get('url','')
+    result['legal_source_verified']=inputs.get('source_valid',False)
+    result['rules_count']=len(inventory['rows'])
+    result['rules_errors']=inventory['errors']
+    result['source_inventory']=inventory
+    result['classification'],rule_identification=visual_rule_identification(result['identification'],result['visual'])
+    result['zone_rules']=automatic_zone_rule_evidence(meta,page,inputs,rule_identification)
+    result['evidence']=automatic_evidence_rows(result['parcel_api'],inputs,result['identification'],
+                                              rules_available=bool(inventory['rows']),visual=result['visual'])
+    return result
+
+
+def visual_rule_identification(identification, visual):
+    from visual_plan import classification_result
+    classification=classification_result(identification,visual)
+    scoped=dict(identification)
+    if classification['category']=='B':
+        scoped.update(zone='',candidate_zone=classification['zone'],intersection_verified=False)
+    elif classification['category']=='C':
+        observed={row['code'] for row in visual.get('candidate_labels',[])}
+        if len(observed)==1:
+            scoped.update(zone='',candidate_zone=next(iter(observed)),intersection_verified=False,
+                candidate_basis='Kiolvasott tervi kód; telekhez tartozása nem igazolt, a besorolás C marad.')
+    return classification,scoped
+
+
+def visual_plan_evidence(doc, plan_result, profile, inputs, ksh, hrsz, spatial=None):
+    from pathlib import Path
+    import tempfile
+    from visual_plan import inspect_visual_plan,inspect_label_location,add_source_legend,optional_vision_review
+    from plan_localization import source_zone_pattern
+    pattern=source_zone_pattern(inputs.get('legal_zone_text',''),ZONE_PATTERN)
+    result=inspect_visual_plan(doc,plan_result,profile,ZONE_PATTERN,normalize_hrsz(hrsz),
+        identity={'plan_url':inputs.get('source_url'),'plan_hash':inputs.get('source_hash'),
+                  'edition':inputs.get('edition'),'ksh':ksh})
+    if not plan_result.get('parcel_boundary_verified') and spatial:
+        result=inspect_label_location(doc,spatial,profile,pattern,normalize_hrsz(hrsz),
+            {'plan_url':inputs.get('source_url'),'plan_hash':inputs.get('source_hash'),
+             'edition':inputs.get('edition'),'ksh':ksh},ocr_rotated_crop,ink_components)
+    if inputs.get('source_selection_ambiguous'):
+        result.update(status='not_identifiable',zone='')
+        result['reasons'].append('Az alternatív hatályos forrásterv keresése nem teljes vagy többértelmű; a területi hatály nem egyértelmű.')
+    if not inputs.get('current_verified'):
+        result.update(status='not_identifiable',zone='')
+        result['reasons'].append('A terv hatályos kiadása nincs igazolva.')
+    result=add_source_legend(result,profile,Path(tempfile.gettempdir())/'telekeloiras_pdf_cache')
+    if result.get('annotated_png'):result['annotated_image_sha256']=source_digest(result['annotated_png'])
+    result['ai_review']=optional_vision_review(result,normalize_hrsz(hrsz))
+    result.pop('context_png',None);result.pop('legend_png',None)
+    return result
 
 
 def geometry_summary(geom):
@@ -1479,11 +2478,32 @@ class IncompletePlanLabelIndex(Exception):
 
 @st.cache_data(show_spinner=False,ttl=3600,max_entries=8)
 def cached_outlined_plan_index(pdf_sha,algorithm_version,_doc,_on_progress=None):
+    from pathlib import Path
+    import tempfile
+    folder=Path(tempfile.gettempdir())/'telekeloiras_label_cache'
+    folder.mkdir(mode=0o700,exist_ok=True)
+    from plan_labels import IMPLEMENTATION_HASH
+    key=source_digest(pdf_sha+algorithm_version+IMPLEMENTATION_HASH)
+    path=folder/(key+'.json')
     checkpoint=outlined_plan_checkpoint(pdf_sha,algorithm_version)
     saved=checkpoint.get('index')
+    if not saved and path.is_file():
+        try:
+            receipt=json.loads(path.read_text())
+            if receipt.get('document_sha256')==pdf_sha and receipt.get('key')==key:saved=receipt['index']
+        except (ValueError,KeyError,OSError):pass
     if saved and saved.get('complete'):return saved
+    last_saved=[-1024]
+    def persist(state, force=False):
+        checkpoint.update(index=state)
+        if not force and state.get('scanned',0)-last_saved[0]<1024:return
+        with tempfile.NamedTemporaryFile(dir=folder,mode='w',delete=False) as handle:
+            temporary=Path(handle.name)
+            json.dump({'document_sha256':pdf_sha,'key':key,'index':state},handle)
+        temporary.replace(path);last_saved[0]=state.get('scanned',0)
     index=outlined_label_index(_doc,plan_ocr_data(),max_seconds=600,on_progress=_on_progress,
-                              resume=saved,on_checkpoint=lambda state:checkpoint.update(index=state))
+                              resume=saved,on_checkpoint=persist)
+    persist(index,force=True)
     if not index['complete']:raise IncompletePlanLabelIndex(index)
     return index
 
@@ -1498,9 +2518,10 @@ def load_outlined_plan_labels(doc,hrsz,on_progress=None):
     # The key is always computed from this actual document, not source metadata.
     raw=doc.tobytes(no_new_id=True) if doc.is_dirty else (doc.stream or doc.tobytes(no_new_id=True))
     digest=source_digest(raw)
-    try:index=cached_outlined_plan_index(digest,'outlined-label-index-v3',_doc=doc,_on_progress=on_progress)
+    try:index=cached_outlined_plan_index(digest,'outlined-label-index-v4-separate-stroke',_doc=doc,_on_progress=on_progress)
     except IncompletePlanLabelIndex as exc:index=exc.result
-    result=verify_outlined_hrsz(doc,index,normalize_hrsz(hrsz),plan_ocr_data())
+    from plan_localization import verify_candidates
+    result=verify_candidates(doc,index,normalize_hrsz(hrsz),plan_ocr_data())
     result['source_sha256']=digest
     return result
 
@@ -1639,6 +2660,17 @@ def locate_parcel(doc, hrsz, outlined=False, on_progress=None):
     scan={}
     if not hits and outlined:
         scan=load_outlined_plan_labels(doc,hrsz,on_progress=on_progress)
+        if not scan['hits'] and scan.get('complete'):
+            from plan_localization import tiled_index,verify_candidates,repeated_sheet_labels,nearby_hrsz_candidates
+            index=tiled_index(doc,plan_ocr_data(),on_progress=on_progress)
+            supplemental=verify_candidates(doc,index,normalize_hrsz(hrsz),plan_ocr_data())
+            supplemental['hits']=nearby_hrsz_candidates(doc,index,supplemental['hits'],normalize_hrsz(hrsz),plan_ocr_data())
+            supplemental['method']='CAD-csoportosítástól független, átfedő térképlapkák OCR-keresése'
+            supplemental['source_sha256']=index['source_sha256']
+            supplemental['cad_search']=scan
+            supplemental['hits'],supplemental['sheet_equivalence']=repeated_sheet_labels(
+                doc,index,supplemental['hits'],normalize_hrsz(hrsz),plan_ocr_data())
+            scan=supplemental
         hits=[{**hit,'pdf_rect':fitz.Rect(hit['pdf_rect']),'coordinate_space':'display'}
               for hit in scan['hits']]
     if not hits:
@@ -1874,37 +2906,47 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
     preferred = source_meta.get("plan_url", "")
     eligible = not (source_meta.get("plan_scope") == "belterület"
                     and normalize_hrsz(hrsz).startswith("0"))
+    problems = []
     pinned = next((row for row in attachments
                    if eligible and preferred and row.get("URL") == preferred), None)
     if eligible and preferred and not pinned:
-        return None, "", "Az ellenőrzött tervmelléklet már nem szerepel az aktuális NJT-rendelet hivatkozásai között."
+        problems.append("A korábban rögzített tervmelléklet már nincs az aktuális NJT-hivatkozások között.")
     if pinned:
         doc = None
         try:
             raw, final_url = download_pdf(preferred)
-            if source_meta.get('plan_sha256') and __import__('hashlib').sha256(raw).hexdigest() != source_meta.get('plan_sha256'):
-                return None, final_url, "Az ellenőrzött tervmelléklet tartalma megváltozott; új forrásellenőrzés szükséges."
-            doc = open_pdf_bytes(raw)
-            if not doc or not len(doc):
-                if doc is not None:
-                    doc.close()
-                return None, final_url, "Az ellenőrzött tervmelléklet nem tartalmaz tervlapot."
-            return doc, final_url, ""
+            if (source_meta.get("plan_sha256") and
+                    __import__("hashlib").sha256(raw).hexdigest() != source_meta["plan_sha256"]):
+                problems.append("A korábban ellenőrzött tervmelléklet tartalma megváltozott; másik hivatalos melléklet keresése szükséges.")
+            else:
+                doc = open_pdf_bytes(raw)
+                if doc is None or not len(doc):
+                    if doc is not None:
+                        doc.close()
+                    doc = None
+                    problems.append("A korábban rögzített NJT-tervmelléklet üres.")
+                else:
+                    return doc, final_url, " | ".join(problems[:5])
         except Exception as exc:
             if doc is not None:
                 doc.close()
-            return None, preferred, f"Ellenőrzött NJT-tervmelléklet: {type(exc).__name__}: {exc}"
-    # A legelső találat gyakran jelmagyarázat vagy hibás PDF. A többi
-    # hivatalos NJT-mellékletet is megvizsgáljuk, nem állunk meg egynél.
-    remaining = list(attachments)
-    problems = []
+            problems.append(f"Korábbi NJT-tervmelléklet: {type(exc).__name__}: {exc}")
+    # An invalid pinned source must not prevent examining the other *currently*
+    # linked official NJT annexes. Never retry a rejected pin in the fallback.
+    remaining = [row for row in attachments if row is not pinned]
     checked = 0
     fallback_doc = None
     fallback_url = ''
     while remaining and checked < 20:
         candidate = choose_plan_attachment(remaining, legal_text)
         if not candidate:
-            break
+            # Generic annex filenames need content inspection too. Acceptance
+            # below still requires an actual plan title; annex number is no proof.
+            candidate=next((row for row in remaining if is_official_njt_url(row.get('URL',''))
+                and 'melleklet' in key_text(row.get('Megnevezés',''))
+                and not any(term in key_text(row.get('Megnevezés',''))
+                    for term in ('jelmagyarazat','parameter','nyilatkozat'))),None)
+            if not candidate:break
         remaining.remove(candidate)
         checked += 1
         doc = None
@@ -1946,11 +2988,10 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
             # tervlapjelöltként, ha a CAD-exportban minden felirat görbe.
             # A pontos HRSZ és övezet igazolása későbbi, külön lépés.
             if title_ok or named_plan:
-                # Prefer the official plan containing the exact requested parcel label.
-                if exact_hits:
-                    if fallback_doc is not None:
-                        fallback_doc.close()
-                    return doc, final_url, ""
+                # An HRSZ text hit does not identify the governing map sheet:
+            # a reference index, overview or superseded detail may repeat it.
+            # Prefer the actual plan annex identity and inspect its own sheets
+            # spatially after loading. Never use label presence as plan ranking.
                 if fallback_doc is None:
                     fallback_doc, fallback_url = doc, final_url
                 else:
@@ -1964,7 +3005,7 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
             problems.append(f"{candidate.get('URL', '')}: {phase}: {type(exc).__name__}: {exc}")
     if fallback_doc is not None:
         # An outlined parcel label may not appear in the PDF text layer.
-        return fallback_doc, fallback_url, ""
+        return fallback_doc, fallback_url, " | ".join(problems[:5])
     return None, "", " | ".join(problems[:5])
 
 
@@ -2486,56 +3527,7 @@ def resolve_plan_zone(doc, snapshot, hrsz, zone_lines, selected, solids, parcels
 
 @st.cache_data(show_spinner=False,ttl=900,max_entries=3)
 def georeferenced_plan_zone(pdf_bytes, snapshot, hrsz):
-    import numpy as np
-    from shapely.geometry import Polygon
-    result={'zone':'','detail':'','registrations':[]}
-    resource=snapshot.get('resource','')
-    # This adapter's source styles and version must be the same as the official attached plan.
-    if '20250806_DEL_HEGYVIDEK_KESZ' not in resource:
-        result['detail']='Ehhez az adatforráshoz még nincs ellenőrzött tervlap-adapter.';return result
-    with fitz.open(stream=pdf_bytes,filetype='pdf') as doc:
-        cover=key_text(doc[0].get_text())
-        if 'del-hegyvidek' not in cover or not re.search(r'2025\s*\.\s*08\s*\.\s*06',cover):
-            result['detail']='A térképi adatforrás és a PDF kiadása nem egyezik.';return result
-        field=snapshot.get('geometry_field','Geom')
-        zone_lines=[minerva_wkt_geometry(r[field]) for r in plan_boundary_records(snapshot)]
-        if any(l.geom_type!='LineString' for l in zone_lines):
-            result['detail']='Nem támogatott övezethatár-geometria.';return result
-        outline=minerva_wkt_geometry(snapshot['parcel_wkt']);centroid=outline.centroid
-        origin=np.array([centroid.x,-centroid.y]);segments=[]
-        for line in zone_lines:
-            points=np.array(line.coords);points[:,1]*=-1
-            for a,b in zip(points,points[1:]):
-                if np.linalg.norm(b-a)>5:segments.extend(((a,b),(b,a)))
-        selected=[];solids=[];parcels=[];footprints=[];proof_cache={}
-        for number,page in enumerate(doc):
-            if number<4:continue
-            drawings=plan_drawings(page)
-            registration=register_plan_page(drawings,segments,origin)
-            if not registration:
-                del drawings
-                continue
-            target=registration['target']
-            if not page.rect.contains(fitz.Point(float(target[0]),float(target[1]))):
-                del drawings
-                continue
-            entry={'PDF-oldal':number+1,'Egyező szakaszok':registration['inliers'],
-                'Legnagyobb illesztési eltérés (m)':registration['error_m'],'Méretarány (pont/m)':registration['scale']}
-            result['registrations'].append(entry)
-            selected.append((number,registration))
-            solids.extend(plan_road_polygons(drawings,registration))
-            for candidate in plan_parcel_candidates(drawings,registration,outline):parcels.append((number,registration,candidate))
-            footprints.append(Polygon([plan_to_eov(p,registration) for p in ((20,20),(1170,20),(1170,822),(20,822))]))
-            del drawings
-            # A fully contained, closed and uniquely labelled region already proves
-            # the result. Other sheets cannot be used to invent a missing boundary.
-            if parcels and solids:
-                attempt=resolve_plan_zone(doc,snapshot,hrsz,zone_lines,selected,solids,parcels,footprints,dict(result),proof_cache)
-                if attempt.get('zone'):return attempt
-        if not selected or not solids or not parcels:
-            result['detail']='Nem igazolható együtt a tervlap illesztése, a közterületi határ és a telek körvonala.';return result
-        return resolve_plan_zone(doc,snapshot,hrsz,zone_lines,selected,solids,parcels,footprints,result,proof_cache)
-
+    return {"zone":"", "detail":"A MINERVA-adapter jelmagyarázat szerinti vonalosztályozása még nem igazolt; övezeti besorolás nem adható."}
 
 
 def inline_zone_code_valid(code):
@@ -2908,24 +3900,7 @@ def cached_tisza_plan_zone(pdf_sha, geometry_json, hrsz, algorithm_version, _pdf
 
 
 def tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
-    import hashlib
-    pdf_sha = hashlib.sha256(pdf_bytes).hexdigest()
-    if pdf_sha != TISZA_PLAN_SHA256:
-        return {'zone': '', 'detail': 'A tiszaújvárosi terv kiadása megváltozott; új forrásellenőrzés szükséges.', 'registrations': []}
-    normalized_hrsz = normalize_hrsz(hrsz)
-    if (str((geometry.get('settlement') or {}).get('kshCode')) != '28352'
-            or normalize_hrsz(geometry.get('lotNumber', '')) != normalized_hrsz):
-        return {'zone': '', 'detail': 'A geometria települése vagy pontos helyrajzi száma nem egyezik.', 'registrations': []}
-    # Keep every coordinate unchanged. Labels, timestamps and display metadata
-    # cannot change the geometry used by the verified native/OCR algorithm.
-    stable_geometry = {'settlement': {'kshCode': '28352'}, 'lotNumber': normalized_hrsz,
-                       'outline': geometry['outline']}
-    geometry_json = json.dumps(stable_geometry, sort_keys=True, separators=(',', ':'), allow_nan=False)
-    try:
-        return cached_tisza_plan_zone(pdf_sha, geometry_json, normalized_hrsz,
-                                      'tisza-plan-zone-v15.45', _pdf_bytes=pdf_bytes)
-    except UnverifiedTiszaPlanZone as exc:
-        return exc.result
+    return {"zone":"", "detail":"A tiszaújvárosi raszteres övezethatár-minta jelmagyarázat szerinti felismerése még nem igazolt; a korábbi színalapú besorolás letiltva."}
 
 
 def compute_tiszaujvaros_plan_zone(pdf_bytes, geometry, hrsz):
@@ -4549,6 +5524,14 @@ def matching_investigation_request(fingerprint,token='',start=False):
         return token if record and record['fingerprint']==fingerprint else ''
 
 
+@st.fragment
+def render_automatic_download(evidence):
+    version = tuple(int(part) for part in st.__version__.split('.')[:2])
+    st.download_button('Az automatikus azonosítás bizonyítékai (JSON)',
+        evidence,file_name='automatikus_azonositas.json',mime='application/json',
+        key='automatic-evidence-download',on_click='ignore' if version >= (1,44) else None)
+
+
 class UncachedInvestigationResult(Exception):
     def __init__(self,result):
         super().__init__('A részleges vagy sikertelen vizsgálat nem kerül az eredmény-gyorsítótárba.')
@@ -4688,6 +5671,10 @@ def main():
     finally:
         lock.release()
     render_report_download(result['report'],hrsz)
+    if result.get('automatic_evidence'):
+        render_automatic_download(result['automatic_evidence'])
+        from local_vision import render_free_evidence
+        render_free_evidence(json.loads(result['automatic_evidence']))
     if result.get('minerva_geometry'):
         st.download_button('Övezeti geometria ellenőrzési adatainak letöltése',
             data=result['minerva_geometry'],file_name='minerva_geometry_snapshot.json',
@@ -4728,6 +5715,9 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
             st.caption(parcel_api.get("geometry_evidence_note", ""))
             if bbox:
                 st.json({"boundingBox": bbox})
+        except ParcelGeometryUnavailable as exc:
+            parcel_api = exc.result
+            st.warning(f"A pontos HRSZ azonosított, de a telekgeometria lekérése sikertelen: {exc}")
         except Exception as exc:
             st.error(f"A nyilvános HRSZ-lekérdezés nem sikerült: {exc}")
     else:
@@ -4802,7 +5792,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
         with st.spinner("NJT-forrás ellenőrzése…"):
             if not page:
                 page = fetch_njt_page(meta["url"])
-            source_valid, checks = validate_njt_source(town, meta, page)
+            source_valid, checks = validate_njt_source(source_place, meta, page)
 
         if source_valid:
             st.success("A hivatalos NJT-forrás elérhető és tartalmilag ellenőrizhető.")
@@ -4865,15 +5855,53 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     plan_doc = open_uploaded_pdf(uploaded_plan)
     plan_source = "feltöltött hivatalos PDF" if plan_doc else ""
     auto_plan_error = ""
+    plan_inputs = {'source_valid':source_valid,'current_verified':False,'edition':'',
+                   'source_url':'','source_hash':'','attachments':attachments,'path':''}
 
     if plan_doc is None and (attachments or (source_valid and meta.get("plan_url"))):
         with st.spinner("Szabályozási terv automatikus letöltésének kísérlete…"):
-            plan_doc, plan_source, auto_plan_error = try_auto_plan(attachments, page.get("text", ""), meta if source_valid else None, hrsz)
+            plan_inputs = load_official_plan(page, meta or {}, hrsz)
+            meta,page,plan_inputs=select_plan_by_exact_label(meta or {},page,plan_inputs,hrsz)
+            plan_inputs['legal_zone_text']=page.get('text','')
+            plan_inputs['legal_zone_text_sha256']=source_digest(plan_inputs['legal_zone_text'])
+            source_valid=plan_inputs.get('source_valid',False)
+            checks=plan_inputs.get('checks',{});attachments=plan_inputs.get('attachments',[])
+            auto_plan_error = plan_inputs.get('error','')
+            if plan_inputs.get('path'):
+                plan_doc = fitz.open(plan_inputs['path'])
+                plan_source = plan_inputs['source_url']
 
         if plan_doc:
             st.success("A szabályozási terv PDF automatikusan betöltődött.")
+            # Never draw the public HRSZ service's display/bounding-box outline
+            # as if it were an independently verified cadastral parcel.
+            cadastral_overlay=cadastral_plan_overlay(plan_doc,parcel_api)
+            if cadastral_overlay['status']=='georeferenced':
+                preview=render_cadastral_overlay_png(plan_doc,cadastral_overlay)
+                if preview:
+                    st.image(preview,caption='Hivatalos tervlap + igazolt kataszteri telekhatár (piros)',
+                             use_container_width=True)
+                    st.caption('GeoPDF illesztési bizonytalanság: '
+                        +str(cadastral_overlay['overlays'][0]['registration_uncertainty_m'])+' m')
+            else:
+                st.caption('Kataszteri telekhatár ráillesztése: '
+                           +cadastral_overlay['reason'])
         elif auto_plan_error:
             st.caption(f"A szabályozási terv automatikus feldolgozása nem sikerült: {auto_plan_error}")
+
+    plan_inputs['supplementary_location_sources']=supplementary_location_documents(meta or {},hrsz)
+    if plan_inputs.get('alternative_plan_search') or plan_inputs.get('supplementary_location_sources'):
+        with st.expander('Alternatív hivatalos források és helyazonosítási nyomok'):
+            st.json({'tervkeresés':plan_inputs.get('alternative_plan_search',[]),
+                     'történeti nyomok':plan_inputs.get('supplementary_location_sources',[])})
+    legend_profile=load_plan_legend(plan_inputs,meta or {},ksh)
+    if legend_profile.get('identity'):
+        st.caption('Saját hivatalos jelmagyarázat: '+legend_profile['identity']['source_url'])
+        with st.expander('A tervből felismert jelölések és forrásuk'):
+            st.dataframe([{'Jelentés':r['label'],'Szerep':r['role'],'PDF-oldal':r['PDF-oldal'],
+                           'Felirat ellenőrzött':r['label_verified'],'Felismert minták':len(r['styles'])}
+                          for r in legend_profile['records']],hide_index=True,use_container_width=True)
+    if legend_profile.get('error'):st.warning(legend_profile['error'])
 
     zone_table_doc = None
     zone_table_source = ""
@@ -4908,7 +5936,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
                 snapshot = next((item for item in snapshots
                     if "20250806_DEL_HEGYVIDEK_KESZ" in item.get("resource", "")), None)
                 if snapshot:
-                    raw_plan=plan_doc.tobytes()
+                    raw_plan=original_plan_bytes(plan_doc,plan_inputs)
                     plan_doc.close()
                     plan_doc=None
                     fitz.TOOLS.store_shrink(100)
@@ -4933,7 +5961,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     if (plan_doc is not None and source_valid and parcel_api and ksh=="28352"
             and plan_source.startswith("https://njt.jog.gov.hu/document/")):
         with st.spinner("Tiszaújváros: tervlapszelvények, pontos HRSZ és övezethatárok ellenőrzése…"):
-            raw_plan=plan_doc.stream or plan_doc.tobytes()
+            raw_plan=original_plan_bytes(plan_doc,plan_inputs)
             plan_doc.close();plan_doc=None
             fitz.TOOLS.store_shrink(100)
             try:
@@ -4952,9 +5980,27 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
                 st.dataframe(plan_zone['registrations'],hide_index=True,use_container_width=True)
         if not plan_zone.get('zone') and plan_zone.get('detail'):st.warning(plan_zone['detail'])
 
+    if plan_doc is not None and parcel_api and not plan_zone.get('zone'):
+        with st.spinner('A PDF saját koordinátái és a zárt telekhatár ellenőrzése…'):
+            try:
+                geo_result = geopdf_parcel_zone(plan_doc, parcel_api, hrsz, legend_profile)
+                if geo_result.get('parcel_boundary_verified') or not plan_zone.get('hrsz_method'):
+                    plan_zone = geo_result
+            except Exception as exc:
+                st.warning('A GeoPDF-adapter ellenőrzése nem teljes: '+str(exc))
+
+    geometric_identification = connect_automatic_zone(parcel_api, plan_zone, plan_inputs, ksh, hrsz)
+    plan_zone['candidate_zone'] = geometric_identification.get('candidate_zone','')
+    plan_zone['zone'] = geometric_identification.get('zone','')
+    if plan_zone.get('candidate_zone') and not plan_zone.get('zone'):
+        st.info('Tervlapi övezetjelölt: '+plan_zone['candidate_zone']+'. '+geometric_identification['reason'])
+    if geometric_identification.get('status') == 'multiple_zones':
+        st.dataframe(geometric_identification['zones'],hide_index=True,use_container_width=True)
+        st.info('A telek több övezetet érint; egyetlen övezeti kódhoz nem kapcsolok előírásokat.')
+
     # Native text is a fallback. Do not scan every large CAD sheet before the
     # geometric method or keep a second open document during that computation.
-    if plan_zone.get('zone'):
+    if plan_zone.get('zone') or plan_zone.get('hrsz_method'):
         spatial={'status':'verified','hit':None,'candidates':[],'zone':''}
     else:
         try:
@@ -4983,7 +6029,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
         bbox, gtype = geometry_summary(parcel_api.get("geometry", {}))
         st.success(
             f"A helyrajzi számot a nyilvános ingatlan-nyilvántartási HRSZ-szolgáltatás azonosította; "
-            f"telekgeometria: **{gtype or 'elérhető'}**."
+            f"megjelenítési geometria: **{gtype or 'nem elérhető'}**."
         )
         if bbox:
             st.caption(f"Telek bounding box: {bbox}")
@@ -4996,10 +6042,14 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     elif plan_zone.get("zone"):
         st.success(f"A telek a szabályozási terv {plan_zone['pdf_page']}. PDF-oldalán, a koordináták és a pontos HRSZ alapján azonosítva.")
         st.image(plan_zone["preview"], caption="Az azonosított telek a hatályos szabályozási terven", use_container_width=True)
+    elif plan_zone.get('hrsz_method'):
+        st.info(f"A pontos HRSZ a {plan_zone['pdf_page']}. tervlapon ellenőrizhető. Az övezet teljes poligonfedése még nincs igazolva.")
+        if plan_zone.get('preview'):
+            st.image(plan_zone['preview'],caption='A pontos HRSZ környezete a hivatalos terven',use_container_width=True)
     elif spatial["status"] == "parcel_not_found":
         if parcel_api:
             st.warning(
-                "A telek hivatalos geometriája már rendelkezésre áll, de a szabályozási terv "
+                "A telek megjelenítési poligonja rendelkezésre áll, de a szabályozási terv "
                 "még nincs georeferáltan összekapcsolva vele. A v15 ezért nem próbálja a HRSZ-et "
                 "a PDF szövegében a telek helyettesítőjeként használni."
             )
@@ -5265,6 +6315,79 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     if national_rules:
         summary.append({"Adat":"Országos rendeltetési szabályok","Eredmény":f"{sum(r['ok'] for r in national_rules)}/4 ellenőrzött forráskiadás",
             "Forrás":"OTÉK és TÉKA – pontos § és bekezdés","Bizonyosság":("alkalmazási csomag kiválasztva; a konkrét építési feltételek még vizsgálandók" if applicability.get("ok") else "alkalmazási alap még igazolandó; építési jogosultság nem megállapított")})
+    visual={'status':'not_identifiable','zone':''}
+    if plan_doc is not None:
+        visual=visual_plan_evidence(plan_doc,plan_zone,legend_profile,plan_inputs,ksh,hrsz,spatial=spatial)
+        with st.expander('Helyi vizuális övezetvizsgálat – tervrészlet és saját jelmagyarázat',expanded=True):
+            st.write({'Állapot':{'probable':'valószínű, nem bizonyított',
+                'not_identifiable':'nem megállapítható'}.get(visual['status'],visual['status']),
+                'Vizuális jelölt':visual['zone']})
+            st.caption('A vizuális jelölt önmagában nem igazolt övezeti besorolás és nem ad teljes előíráslistát.')
+            png=visual.pop('annotated_png',None)
+            if png:st.image(png,caption=visual['annotation_note'])
+            st.json(visual)
+    automatic_rows = automatic_evidence_rows(parcel_api, plan_inputs, geometric_identification,
+                                             rules_available=bool(source_inventory['rows']),visual=visual)
+    st.subheader('Automatikus azonosítás – négy külön bizonyítottsági állapot')
+    st.dataframe(automatic_rows,hide_index=True,use_container_width=True)
+    classification,rule_identification=visual_rule_identification(geometric_identification,visual)
+    st.subheader(classification['title'])
+    if classification['zone']:st.write('Övezet: '+classification['zone'])
+    if classification['category']=='B':
+        st.info('A vizuális besorolás erős jelölt. Az alábbi övezeti előírások alkalmazhatósága feltételes; a teljes telek övezeti fedése még igazolandó.')
+    from gis_sources import automatic_gis_evidence
+    from shapely.geometry import mapping
+    from shapely import wkt
+    gis_geometry=(parcel_api or {}).get('geometry',{}).get('outline')
+    if plan_zone.get('parcel_boundary_verified') and plan_zone.get('parcel_wkt'):
+        gis_geometry=mapping(wkt.loads(plan_zone['parcel_wkt']))
+    with st.expander('Hivatalos GIS-források és örökségvédelmi téradatok'):
+        with st.spinner('Nyilvános hivatalos téradatforrások ellenőrzése…'):
+            gis_evidence=automatic_gis_evidence(parcel_place,gis_geometry,
+                parcel_verified=geometric_identification.get('parcel_boundary_verified',False))
+        st.caption(gis_evidence['selection_reason'])
+        st.caption('A téradat-pillanatkép és a jogi védettség külön bizonyíték. A találat hiánya nem igazolja a korlátozások hiányát.')
+        st.json(gis_evidence)
+    zone_rule_evidence=automatic_zone_rule_evidence(meta or {},page,plan_inputs,rule_identification)
+    connection=geometric_identification.get('boundary_connection',{})
+    if connection.get('verified'):
+        st.info('Ellenőrzött tervi kapcsolat a telekbelsőhöz: '+', '.join(connection['supported_codes'])+'. '+connection['reason'])
+    audit=geometric_identification.get('territorial_audit',{})
+    closure=geometric_identification.get('closure_audit',{})
+    if audit or closure:
+        with st.expander('Övezetlezárás és területi korlátozások forrásellenőrzése'):
+            if closure.get('reason'):st.info(closure['reason'])
+            st.caption('A metsző tervi jelek és a hiányok elkülönülnek. Az ellenőrzés nem teljes előíráslista.')
+            st.json({'övezetlezárás':closure,'területi_ellenőrzés':audit})
+    if zone_rule_evidence['parameter_rows'] or zone_rule_evidence['clause_rows']:
+        with st.expander('Önállóan felismert kód forrásolt szabályai: '+zone_rule_evidence['zone']):
+            st.caption('A kódhoz tartozó forrásszabályok. A teljes telekre és a konkrét építési ügyre alkalmazhatóságuk még nem igazolt.')
+            if zone_rule_evidence.get('candidate_basis'):st.warning(zone_rule_evidence['candidate_basis'])
+            if zone_rule_evidence['parameter_rows']:
+                st.dataframe(zone_rule_evidence['parameter_rows'],hide_index=True,use_container_width=True)
+            if zone_rule_evidence['clause_rows']:
+                st.dataframe(zone_rule_evidence['clause_rows'],hide_index=True,use_container_width=True)
+    if zone_rule_evidence.get('per_zone'):
+        st.warning('A telken övezethatár halad át. Az alábbi szabályok külön-külön az érintett övezetekre vonatkoznak.')
+        for entry in zone_rule_evidence['per_zone']:
+            with st.expander('Érintett övezet: '+entry['code']+' (telekrész: '+
+                             str(round(100*(entry['fraction'] or 0),2))+'%)',expanded=True):
+                rules=entry['rules']
+                st.caption('Övezetspecifikus forrásadatok; a teljes építési jogosultság még nem igazolt.')
+                if rules['parameter_rows']:
+                    st.dataframe(rules['parameter_rows'],hide_index=True,use_container_width=True)
+                if rules['clause_rows']:
+                    st.dataframe(rules['clause_rows'],hide_index=True,use_container_width=True)
+                if not rules['parameter_rows'] and not rules['clause_rows']:
+                    st.info('Ehhez az övezethez még nem sikerült forrásolt rendelkezést kinyerni.')
+    for error in zone_rule_evidence['errors']:st.warning(error)
+    automatic_evidence = {'place':parcel_place,'hrsz':normalize_hrsz(hrsz),'ksh':ksh,
+        'evidence':automatic_rows,'identification':geometric_identification,
+        'plan':{key:plan_inputs.get(key,'') for key in ('source_url','source_hash','edition','current_verified','error')},
+        'legal_source':page.get('url',''),'legal_source_verified':source_valid,
+        'rules_count':len(source_inventory['rows']),'zone_rules':zone_rule_evidence,'legend':legend_profile,
+        'classification':classification,'visual':visual}
+    summary.extend(automatic_rows)
     st.dataframe(summary, hide_index=True, use_container_width=True)
 
     st.caption(
@@ -5279,7 +6402,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
                                   applicability=applicability, plan_basis=plan_basis, proposal_result=proposal_result,
                                   source_inventory=source_inventory,label_search=spatial)
     progress.finish()
-    result={'report':report,'minerva_geometry':json.dumps(minerva_diag['geometry_snapshots'],ensure_ascii=False).encode('utf-8') if minerva_diag.get('geometry_snapshots') else None}
+    result={'report':report,'automatic_evidence':json.dumps(automatic_evidence,ensure_ascii=False,indent=2).encode('utf-8'),'minerva_geometry':json.dumps(minerva_diag['geometry_snapshots'],ensure_ascii=False).encode('utf-8') if minerva_diag.get('geometry_snapshots') else None}
     if not source_valid or not (plan_zone.get('zone') or spatial.get('hits')) or (spatial.get('scan') and not spatial['scan'].get('complete')):
         raise UncachedInvestigationResult(result)
     return result

@@ -159,11 +159,33 @@ class RuleInventoryTests(unittest.TestCase):
         from pathlib import Path
         tree = ast.parse(Path(__file__).with_name("app.py").read_text(encoding="utf-8"))
         fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "run_investigation")
-        calls = [n for n in ast.walk(fn) if isinstance(n, ast.Call)
-                 and isinstance(n.func, ast.Name) and n.func.id == "discover_njt_source"]
-        self.assertTrue(calls)
-        self.assertTrue(any(len(call.args) == 3 and isinstance(call.args[2], ast.Name)
-                            and call.args[2].id == "budapest_district" for call in calls))
+        # Execute the actual forwarding branch instead of requiring a local
+        # variable name. The selected district passes through detected_district.
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        start = next(i for i, node in enumerate(fn.body)
+                     if isinstance(node, ast.Assign)
+                     and any(isinstance(t, ast.Name) and t.id == "detected_district"
+                             for t in node.targets))
+        end = next(i for i in range(start, len(fn.body))
+                   if isinstance(fn.body[i], ast.If)
+                   and ast.unparse(fn.body[i].test) == "meta is None")
+        branch = compile(ast.Module(body=fn.body[start:end + 1], type_ignores=[]),
+                         "<district-forwarding>", "exec")
+        for town, selected, expected in [("Budapest", "XII. kerület", "XII. kerület"),
+                                         ("Budapest", "XI. kerület", "XI. kerület"),
+                                         ("Komádi", "", "")]:
+            for parcel_api in (None, {"id": "exact-parcel"}):
+                with self.subTest(town=town, district=selected, parcel=bool(parcel_api)):
+                    discover = Mock(return_value=({}, {}))
+                    scope = dict(town=town, hrsz="8448/46", budapest_district=selected,
+                                 parcel_api=parcel_api, meta=None, key_text=str.casefold,
+                                 discover_njt_source=discover,
+                                 st=SimpleNamespace(success=Mock(), info=Mock(),
+                                                    spinner=lambda _: nullcontext()))
+                    exec(branch, scope)
+                    discover.assert_called_once_with(town, "8448/46", expected)
 
     def test_njt_plan_search_retries_multiple_official_annexes(self):
         import ast
