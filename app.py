@@ -972,6 +972,30 @@ def identify_parcel_zones(parcel, zone_source, *, ksh_code, hrsz, edition):
     return out
 
 
+def parcel_outline_match(candidate, reference, *, tolerance_m=0):
+    """Require near-identical parcel footprints, not just a nearby centroid.
+
+    Both geometries must already use the same projected metre-based CRS.
+    This checks map alignment; it does not independently certify cadastral
+    source authenticity or the current legal parcel boundary.
+    """
+    try:
+        if (candidate.is_empty or reference.is_empty or not candidate.is_valid
+                or not reference.is_valid or candidate.area <= 0 or reference.area <= 0):
+            return False
+        if candidate.geom_type not in ("Polygon", "MultiPolygon"):
+            return False
+        if reference.geom_type not in ("Polygon", "MultiPolygon"):
+            return False
+        intersection = candidate.intersection(reference).area
+        union = candidate.union(reference).area
+        if union <= 0 or intersection / union < .95:
+            return False
+        return candidate.hausdorff_distance(reference) <= 3 + tolerance_m
+    except (ValueError, TypeError, AttributeError):
+        return False
+
+
 def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
     """Read the parcel boundary from a georeferenced official source layer.
 
@@ -1023,8 +1047,7 @@ def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
                     continue
                 parcel = Polygon([to_world(p, matrix) for p in boundary.exterior.coords],
                                  [[to_world(p,matrix) for p in ring.coords] for ring in boundary.interiors])
-                if (not .5*outline.area < parcel.area <= outline.area*1.05
-                        or parcel.hausdorff_distance(outline) > 3+registration['error_m']):
+                if not parcel_outline_match(parcel, outline, tolerance_m=registration['error_m']):
                     continue
                 rect = fitz.Rect(boundary.bounds)
                 native = [hit for hit in find_hrsz(doc, hrsz)
