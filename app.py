@@ -1169,6 +1169,8 @@ def load_official_plan(page, meta, hrsz):
     doc=None
     try:
         doc,url,error=try_auto_plan(attachments,page.get('text',''),meta,hrsz)
+        if error:
+            result["source_warning"] = error
         if doc is None:
             result['error']=error or 'Nincs letölthető, azonosított szabályozási terv.'
             return result
@@ -2430,30 +2432,34 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
     preferred = source_meta.get("plan_url", "")
     eligible = not (source_meta.get("plan_scope") == "belterület"
                     and normalize_hrsz(hrsz).startswith("0"))
+    problems = []
     pinned = next((row for row in attachments
                    if eligible and preferred and row.get("URL") == preferred), None)
     if eligible and preferred and not pinned:
-        return None, "", "Az ellenőrzött tervmelléklet már nem szerepel az aktuális NJT-rendelet hivatkozásai között."
+        problems.append("A korábban rögzített tervmelléklet már nincs az aktuális NJT-hivatkozások között.")
     if pinned:
         doc = None
         try:
             raw, final_url = download_pdf(preferred)
-            if source_meta.get('plan_sha256') and __import__('hashlib').sha256(raw).hexdigest() != source_meta.get('plan_sha256'):
-                return None, final_url, "Az ellenőrzött tervmelléklet tartalma megváltozott; új forrásellenőrzés szükséges."
-            doc = open_pdf_bytes(raw)
-            if not doc or not len(doc):
-                if doc is not None:
-                    doc.close()
-                return None, final_url, "Az ellenőrzött tervmelléklet nem tartalmaz tervlapot."
-            return doc, final_url, ""
+            if (source_meta.get("plan_sha256") and
+                    __import__("hashlib").sha256(raw).hexdigest() != source_meta["plan_sha256"]):
+                problems.append("A korábban ellenőrzött tervmelléklet tartalma megváltozott; másik hivatalos melléklet keresése szükséges.")
+            else:
+                doc = open_pdf_bytes(raw)
+                if doc is None or not len(doc):
+                    if doc is not None:
+                        doc.close()
+                    doc = None
+                    problems.append("A korábban rögzített NJT-tervmelléklet üres.")
+                else:
+                    return doc, final_url, " | ".join(problems[:5])
         except Exception as exc:
             if doc is not None:
                 doc.close()
-            return None, preferred, f"Ellenőrzött NJT-tervmelléklet: {type(exc).__name__}: {exc}"
-    # A legelső találat gyakran jelmagyarázat vagy hibás PDF. A többi
-    # hivatalos NJT-mellékletet is megvizsgáljuk, nem állunk meg egynél.
-    remaining = list(attachments)
-    problems = []
+            problems.append(f"Korábbi NJT-tervmelléklet: {type(exc).__name__}: {exc}")
+    # An invalid pinned source must not prevent examining the other *currently*
+    # linked official NJT annexes. Never retry a rejected pin in the fallback.
+    remaining = [row for row in attachments if row is not pinned]
     checked = 0
     fallback_doc = None
     fallback_url = ''
@@ -2520,7 +2526,7 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
             problems.append(f"{candidate.get('URL', '')}: {phase}: {type(exc).__name__}: {exc}")
     if fallback_doc is not None:
         # An outlined parcel label may not appear in the PDF text layer.
-        return fallback_doc, fallback_url, ""
+        return fallback_doc, fallback_url, " | ".join(problems[:5])
     return None, "", " | ".join(problems[:5])
 
 
