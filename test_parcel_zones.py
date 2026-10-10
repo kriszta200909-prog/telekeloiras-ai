@@ -110,7 +110,7 @@ class ParcelZoneTests(unittest.TestCase):
             overlay=app.cadastral_plan_overlay(doc,parcel)
             png=app.render_cadastral_overlay_png(doc,overlay)
             self.assertIsNotNone(png)
-            self.assertTrue(png.startswith(b'\\x89PNG\\r\\n\\x1a\\n'))
+            self.assertTrue(png.startswith(bytes((137,80,78,71,13,10,26,10))))
             image=Image.open(BytesIO(png))
             self.assertGreater(image.width,100)
             self.assertGreater(image.height,100)
