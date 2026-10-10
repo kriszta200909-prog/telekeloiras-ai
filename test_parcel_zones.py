@@ -46,7 +46,8 @@ class ParcelZoneTests(unittest.TestCase):
 
     def test_sixth_live_reference_case_is_not_hardcoded_to_a_district(self):
         from reference_checks import CASES
-        self.assertEqual(len(CASES),6)
+        self.assertEqual(len(CASES),7)
+        self.assertIn(('Kondoros','1570'),CASES)
         self.assertIn(('Budapest','76561/152'),CASES)
         self.assertEqual(CASES.count(('Budapest','76561/152')),1)
 
