@@ -120,3 +120,71 @@ kapcsolat ellenőrizhető. Ez nem igazolja a teljes övezeti fedést vagy az
 építési jogosultságot. A C kategóriához mentett kép forrásáttekintés, nem
 lokalizált telek. Az alternatív KÉSZ-ek területi hatályát a program nem
 feltételezi; történeti tanulmányból nem állapít meg hatályos övezetet.
+
+### Elkülönített, valódi képes AI-próba
+
+A `vision_trial.py` a meglévő OpenAI képbemeneti kérésépítőt használja,
+a Streamlit és a helyi felismerés eredményének módosítása nélkül. A három
+próba sorrendje Miskolc 4755/11, Tiszaújváros 2200/8, Komádi 1558.
+A modell bemenete kizárólag a keresett HRSZ, az eredeti, utólagos jelölések
+nélküli tervkivágat, a terv saját teljes jelmagyarázatlapja és nagyított
+jelmintái. A helyi övezeti eredmény külön `control.json`; nem része a kérésnek.
+A kivágat helyét a korábbi helyi helyazonosítás szolgáltatja: ez a próba
+**a megtalált környezet értelmezését**, nem a teljes országos HRSZ-keresést méri.
+A modell a képen látható eredeti feliratokat természetesen olvashatja.
+
+A források friss ellenőrzése és az eredeti PDF-ek gyorsítótárba töltése:
+
+```bash
+python reference_checks.py --output work/reference-results.json
+python validation/check_sources.py work/reference-results.json --history-report validation/miskolc-legend-history.json --output work/source-check-results.json
+python vision_trial.py prepare --report work/reference-results.json --output work/vision-trial
+```
+
+A `prepare` nem küld adatot, nem hív API-t. A forrás-PDF-ek SHA-256 egyezését,
+a hatályosság korábbi ellenőrzését, a saját jelmagyarázat kötését és a nyers
+kivágat egyezését ellenőrzi. `manifest.json` forrásokat, oldalakat, képméreteket,
+kép-/kéréslenyomatokat és költségbecslést tartalmaz; képek és `request.json`
+a három almappában. A `work/` Git által figyelmen kívül hagyott munkaterület;
+API-kulcsot ide vagy a repóba sem szabad fájlba írni.
+
+A 2026-10-10-i környezetellenőrzésben nincs API-kulcs vagy konfigurált OpenAI
+kapcsolat. **Valódi AI-hívás nem történt.** Kulcs jelenléte sem bizonyít
+működő API-hozzáférést: ezt csak a tényleges, engedélyezett kérés eredménye
+igazolhatja. A ChatGPT-előfizetés önmagában nem API-hozzáférés.
+
+Valódi futtatás csak a felhasználó külön pénzügyi és képküldési jóváhagyása,
+valamint biztonságos környezeti `OPENAI_API_KEY` beállítása után:
+
+```bash
+python vision_trial.py run work/vision-trial/miskolc --approve-paid-call --max-estimated-usd 0.01
+python vision_trial.py run work/vision-trial/tiszaujvaros --approve-paid-call --max-estimated-usd 0.01
+python vision_trial.py run work/vision-trial/komadi --approve-paid-call --max-estimated-usd 0.01
+```
+
+A kapcsoló a már megadott jóváhagyás technikai rögzítése; nem helyettesíti
+azt. A három parancs három külön hívás. Modell:
+`gpt-4.1-mini-2025-04-14`, Responses API, `store=false`, legfeljebb 1200
+kimeneti token, átirányítás és automatikus újrapróbálás nélkül. A `store=false`
+nem állítja az API minden szolgáltatói adatmegőrzésének hiányát.
+Egy már megkísérelt próbamappában a program nem indít újabb hívást.
+
+Az [ellenőrzött hivatalos modellár](https://developers.openai.com/api/docs/models/gpt-4.1-mini)
+$0.40/millió bemeneti és $1.60/millió kimeneti token. A három elkészített
+kép/case, képenként legfeljebb 1536 patch × 1.62, 4096 szöveg-/sématoken
+becsült tartalék és 1200 kimeneti token alapján **kb. $0.00655/telek,
+összesen $0.01964** a konzervatív becslés. Nem garantált számlázási plafon;
+a `--max-estimated-usd` becslési kapu, nem szolgáltatói költségkorlát.
+Adó/árfolyam, ismételt próbák és jövőbeli árváltozás nincs benne.
+
+A `result.json` megőrzi a független modellválaszt, a helyi kóddal való egyezést
+vagy eltérést, a bizonytalanságokat, a határ- és jelmagyarázat-érvelést,
+futásidőt, tokenhasználatot és a tokenekből számolt költséget. Hiba esetén
+nem szimulál választ vagy nulla költséget. Megállapítható, hogy a modell
+jobban olvassa-e az apró/kör alakú feliratokat, felismeri-e a hiányzó sarkokat,
+megkülönbözteti-e a saját jelmagyarázat szerinti vonalakat, és indokoltan
+visszautasít-e egy bizonytalan besorolást. A válaszokat az eredeti képeken
+embernek is ellenőriznie kell; a helyi eredménnyel való egyezés **nem
+pontossági mérőszám és nem jogi igazolás**. A három B kontrollhoz nincs
+függetlenül igazolt A referencia; három példa országos pontosságot sem mér.
+Az AI-próba soha nem ad A minősítést vagy igazolt építési előíráslistát.
