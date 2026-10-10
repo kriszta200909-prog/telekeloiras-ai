@@ -1631,7 +1631,9 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
         district,district_evidence=discover_budapest_district(hrsz)
         result['district_evidence']=district_evidence
         if district:
-            resolved_place='Budapest '+district+'. kerület'
+            # discover_budapest_district already returns e.g. "XII. kerület".
+            # Do not append a second ". kerület" to the exact settlement name.
+            resolved_place='Budapest '+district
             result['resolved_district']=district
         else:
             result['errors'].append('A budapesti kerület nem igazolt a pontos HRSZ alapján.')
