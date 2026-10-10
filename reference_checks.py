@@ -14,6 +14,22 @@ CASES = [('Tiszaújváros', '2200/8'), ('Budapest XII. kerület', '8448/46'),
          ('Komádi', '1558'), ('Gersekarát', '034/15'), ('Miskolc', '4755/11'),
          ('Budapest', '76561/152')]
 
+# Human-reviewed benchmark evidence is deliberately kept separate from live
+# application inputs. Never pass these codes into inspect_official_parcel.
+KNOWN_EVIDENCE = {
+    ('Tiszaújváros', '2200/8'): {'zone': 'Gip/3', 'level': 'previously identified'},
+    ('Miskolc', '4755/11'): {'zone': 'Gipe-60.63.5', 'level': 'previously identified'},
+    ('Komádi', '1558'): {'zone': 'Lke/1.2', 'level': 'previously identified'},
+    ('Gersekarát', '034/15'): {'zone': 'Kb-Nk', 'level': 'preliminary candidate'},
+    ('Budapest', '76561/152'): {'zone': 'Ln-T/IV-9/K', 'level': 'reviewed official plan',
+        'source': 'https://or.njt.hu/onkormanyzati-rendelet/2025-20-SP-253'},
+    ('Budapest XII. kerület', '8448/46'): {'zone': 'Lke-2/D-2', 'level': 'reviewed official plan',
+        'source': 'https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf',
+        'supersedes_candidate': 'L6-XII/IK1', 'regulation': '36/2021. (XII. 14.)'},
+}
+
+
+
 
 def public_result(result):
     """Retain proof and geometry; omit raw address records and local cache paths."""
@@ -71,6 +87,9 @@ def main():
             result['visual']['illustration_file']=name
         if png and args.visual_image and (place,hrsz)==('Miskolc','4755/11'):
             Path(args.visual_image).write_bytes(png)
+        result['benchmark'] = KNOWN_EVIDENCE.get((place, hrsz), {})
+        # Benchmark is attached only AFTER the full independent live run.
+        # Do not mistake the stored human evidence for a program finding.
         report['cases'].append(public_result(result))
         destination.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
         for row in result['evidence']:
