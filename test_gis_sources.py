@@ -94,6 +94,15 @@ class GISSourceTests(unittest.TestCase):
         self.assertEqual(result['invalid_geometry'],1)
         self.assertFalse(result['spatial_snapshot_complete'])
 
+    def test_projection_failure_cannot_prove_absence_of_restrictions(self):
+        from unittest.mock import patch
+        from pyproj.exceptions import ProjError
+        with patch('shapely.ops.transform',side_effect=ProjError('invalid transform')):
+            result=gis.shapefile_intersections(self.archive(),mapping(box(2,2,3,3)),'EPSG:23700')
+        self.assertEqual(result['invalid_geometry'],1)
+        self.assertFalse(result['spatial_snapshot_complete'])
+        self.assertFalse(result['complete_restrictions_verified'])
+
     def test_unavailable_official_page_does_not_prove_missing_parcel(self):
         result=gis.discover_place('Budapest XII. kerület',catalog={'complete':True,'receipts':[],'error':'','records':[]},
             fetch=lambda url:(b'',{'url':url,'status':503,'error':'Service Unavailable'}))
