@@ -56,6 +56,25 @@ def role_for_label(text):
     return ''
 
 
+def regulatory_line_status(label):
+    """Classify the plan's own legend wording; do not infer legal status from colour.
+
+    The generic regulatory_line role is retained for existing consumers.
+    """
+    key = compact(label)
+    if 'szabalyozasivonal' not in key and 'szabayozasivonal' not in key:
+        return ''
+    planned = any(term in key for term in ('tervezett', 'tervezendo', 'uj'))
+    retained = any(term in key for term in ('megtartando', 'meglevo', 'megtartott'))
+    if planned and retained:
+        return 'ambiguous'
+    if planned:
+        return 'planned'
+    if retained:
+        return 'retained'
+    return 'unspecified'
+
+
 def font_registry(page):
     result={};seen=set()
     for row in page.get_fonts(full=True):
@@ -149,7 +168,7 @@ def caption_rows(page):
                         and abs(next_rect.x0-rect.x0)<3
                         and .4*height<next_rect.y0-rect.y0<.8*height):
                     text+=' '+continuation['label'];rect|=next_rect;index+=1
-            rows.append({'label':text,'role':row['role'],'rect':list(rect*page.rotation_matrix),'recognition':'native'})
+            rows.append({'label':text,'role':row['role'],'regulatory_status':regulatory_line_status(text), 'rect':list(rect*page.rotation_matrix),'recognition':'native'})
     return rows
 
 
@@ -180,6 +199,7 @@ def ocr_rows(page,tessdata,clip=None,scale=None):
         # integer rounding, maps the crop back to the source page.
         row['rect']=[v+offset for v,offset in zip(rect,(pix.x/scale,pix.y/scale)*2)]
         row['recognition']='OCR candidate'
+        row['regulatory_status']=regulatory_line_status(row['label'])
     return rows
 
 
