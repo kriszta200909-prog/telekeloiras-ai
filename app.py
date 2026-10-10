@@ -1437,23 +1437,36 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
     result['rules_count']=len(inventory['rows'])
     result['rules_errors']=inventory['errors']
     result['source_inventory']=inventory
-    result['zone_rules']=automatic_zone_rule_evidence(meta,page,inputs,result['identification'])
+    result['classification'],rule_identification=visual_rule_identification(result['identification'],result['visual'])
+    result['zone_rules']=automatic_zone_rule_evidence(meta,page,inputs,rule_identification)
     result['evidence']=automatic_evidence_rows(result['parcel_api'],inputs,result['identification'],
                                               rules_available=bool(inventory['rows']))
     return result
 
 
+def visual_rule_identification(identification, visual):
+    from visual_plan import classification_result
+    classification=classification_result(identification,visual)
+    scoped=dict(identification)
+    if classification['category']=='B':
+        scoped.update(zone='',candidate_zone=classification['zone'],intersection_verified=False)
+    return classification,scoped
+
+
 def visual_plan_evidence(doc, plan_result, profile, inputs, ksh, hrsz):
     from pathlib import Path
     import tempfile
-    from visual_plan import inspect_visual_plan,add_source_legend
+    from visual_plan import inspect_visual_plan,add_source_legend,optional_vision_review
     result=inspect_visual_plan(doc,plan_result,profile,ZONE_PATTERN,normalize_hrsz(hrsz),
         identity={'plan_url':inputs.get('source_url'),'plan_hash':inputs.get('source_hash'),
                   'edition':inputs.get('edition'),'ksh':ksh})
     if not inputs.get('current_verified'):
         result.update(status='not_identifiable',zone='')
         result['reasons'].append('A terv hatályos kiadása nincs igazolva.')
-    return add_source_legend(result,profile,Path(tempfile.gettempdir())/'telekeloiras_pdf_cache')
+    result=add_source_legend(result,profile,Path(tempfile.gettempdir())/'telekeloiras_pdf_cache')
+    result['ai_review']=optional_vision_review(result,normalize_hrsz(hrsz))
+    result.pop('context_png',None);result.pop('legend_png',None)
+    return result
 
 
 def geometry_summary(geom):
@@ -5831,6 +5844,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
                                              rules_available=bool(source_inventory['rows']))
     st.subheader('Automatikus azonosítás – négy külön bizonyítottsági állapot')
     st.dataframe(automatic_rows,hide_index=True,use_container_width=True)
+    visual={'status':'not_identifiable','zone':''}
     if plan_doc is not None:
         visual=visual_plan_evidence(plan_doc,plan_zone,legend_profile,plan_inputs,ksh,hrsz)
         with st.expander('Helyi vizuális övezetvizsgálat – tervrészlet és saját jelmagyarázat',expanded=True):
@@ -5841,6 +5855,11 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
             png=visual.pop('annotated_png',None)
             if png:st.image(png,caption=visual['annotation_note'])
             st.json(visual)
+    classification,rule_identification=visual_rule_identification(geometric_identification,visual)
+    st.subheader(classification['title'])
+    if classification['zone']:st.write('Övezet: '+classification['zone'])
+    if classification['category']=='B':
+        st.info('A vizuális besorolás erős jelölt. Az alábbi övezeti előírások alkalmazhatósága feltételes; a teljes telek övezeti fedése még igazolandó.')
     from gis_sources import automatic_gis_evidence
     from shapely.geometry import mapping
     from shapely import wkt
@@ -5854,7 +5873,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
         st.caption(gis_evidence['selection_reason'])
         st.caption('A téradat-pillanatkép és a jogi védettség külön bizonyíték. A találat hiánya nem igazolja a korlátozások hiányát.')
         st.json(gis_evidence)
-    zone_rule_evidence=automatic_zone_rule_evidence(meta or {},page,plan_inputs,geometric_identification)
+    zone_rule_evidence=automatic_zone_rule_evidence(meta or {},page,plan_inputs,rule_identification)
     connection=geometric_identification.get('boundary_connection',{})
     if connection.get('verified'):
         st.info('Ellenőrzött tervi kapcsolat a telekbelsőhöz: '+', '.join(connection['supported_codes'])+'. '+connection['reason'])
@@ -5877,7 +5896,8 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
         'evidence':automatic_rows,'identification':geometric_identification,
         'plan':{key:plan_inputs.get(key,'') for key in ('source_url','source_hash','edition','current_verified','error')},
         'legal_source':page.get('url',''),'legal_source_verified':source_valid,
-        'rules_count':len(source_inventory['rows']),'zone_rules':zone_rule_evidence,'legend':legend_profile}
+        'rules_count':len(source_inventory['rows']),'zone_rules':zone_rule_evidence,'legend':legend_profile,
+        'classification':classification,'visual':visual}
     summary.extend(automatic_rows)
     st.dataframe(summary, hide_index=True, use_container_width=True)
 

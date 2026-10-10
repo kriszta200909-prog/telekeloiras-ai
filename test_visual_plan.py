@@ -1,13 +1,16 @@
 import hashlib
 import io
+import json
 import tempfile
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 import fitz
 import numpy as np
 from PIL import Image
 from shapely.geometry import box,LineString
-from visual_plan import supported_labels,inspect_visual_plan,add_source_legend,model_availability
+from visual_plan import (supported_labels,inspect_visual_plan,add_source_legend,model_availability,
+    classification_result,vision_request,validate_vision_answer,optional_vision_review)
 
 
 class VisualPlanTests(unittest.TestCase):
@@ -62,3 +65,78 @@ class VisualPlanTests(unittest.TestCase):
     def test_no_fictional_multimodal_model_or_paid_requests(self):
         result=model_availability();self.assertFalse(result['multimodal_model_verified'])
         self.assertEqual(result['external_ai_requests'],0);self.assertEqual(result['external_ai_cost'],0)
+
+    def test_three_categories_preserve_proof_and_conditional_applicability(self):
+        visual={'status':'probable','zone':'Test/7','legend_bound':True,'exact_hrsz_in_parcel':True}
+        self.assertEqual(classification_result({},visual)['category'],'B')
+        self.assertFalse(classification_result({},visual)['zone_verified'])
+        self.assertEqual(classification_result({'zone':'Other/8','intersection_verified':True},visual)['category'],'A')
+        visual['legend_bound']=False
+        self.assertEqual(classification_result({},visual)['category'],'C')
+
+    def test_visual_candidate_drives_conditional_rules_without_mutating_geometry(self):
+        import app
+        identification={'candidate_zone':'Wrong/1','intersection_verified':False}
+        visual={'status':'probable','zone':'Test/7','legend_bound':True,'exact_hrsz_in_parcel':True}
+        classification,scoped=app.visual_rule_identification(identification,visual)
+        self.assertEqual(scoped['candidate_zone'],'Test/7');self.assertFalse(scoped['intersection_verified'])
+        self.assertEqual(identification['candidate_zone'],'Wrong/1')
+        self.assertEqual(classification['category'],'B')
+
+    def test_api_payload_contains_original_images_but_no_reference_answer(self):
+        payload=vision_request([b'source plan',b'source legend'],'999/7')
+        self.assertFalse(payload['store']);self.assertEqual(payload['max_output_tokens'],1200)
+        content=payload['input'][0]['content']
+        self.assertEqual([c['type'] for c in content],['input_text','input_image','input_image'])
+        self.assertNotIn('Gipe-60.63.5',content[0]['text'])
+        self.assertNotIn('4755/11',content[0]['text'])
+
+    def test_ai_hallucination_and_disagreement_never_become_proof(self):
+        visual={'status':'probable','zone':'Test/7','candidate_labels':[{'code':'Test/7'}]}
+        answer={'zone':'Fake/2','hrsz':'999/7','boundary_explanation':'boundary','legend_explanation':'legend'}
+        self.assertFalse(validate_vision_answer(answer,visual,'999/7')['agrees_with_local_evidence'])
+        answer['zone']='Test/7'
+        result=validate_vision_answer(answer,visual,'999/7')
+        self.assertTrue(result['agrees_with_local_evidence']);self.assertFalse(result['intersection_verified'])
+
+    def test_api_never_runs_without_explicit_enable_even_if_key_present(self):
+        with patch.dict('os.environ',{'OPENAI_API_KEY':'test','TELEKELOIRAS_VISION_ENABLED':'0'}):
+            with patch('urllib.request.build_opener') as opener:
+                self.assertEqual(optional_vision_review({},'999/7')['external_ai_requests'],0)
+                opener.assert_not_called()
+
+    def test_completed_api_review_is_cached_and_cannot_promote_proof(self):
+        from visual_plan import _VISION_CACHE
+        _VISION_CACHE.clear()
+
+        visual={'context_png':b'plan','legend_png':b'legend','legend_image_source_verified':True,
+            'legend_bound':True,'status':'probable','zone':'Test/7','candidate_labels':[{'code':'Test/7'}]}
+        answer={'zone':'Test/7','hrsz':'999/7','boundary_explanation':'boundary',
+                'legend_explanation':'legend','neighbour_zones':[],'uncertainties':[]}
+        response={'status':'completed','id':'mock-response','usage':{'input_tokens':100,'output_tokens':50},
+                  'output':[{'type':'message','content':[{'type':'output_text','text':json.dumps(answer)}]}]}
+        with patch.dict('os.environ',{'OPENAI_API_KEY':'test','TELEKELOIRAS_VISION_ENABLED':'1'}):
+            with patch('urllib.request.build_opener') as opener:
+                opener.return_value.open.return_value.__enter__.return_value.read.return_value=json.dumps(response).encode()
+                result=optional_vision_review(visual,'999/7')
+                self.assertTrue(result['agrees_with_local_evidence']);self.assertFalse(result['intersection_verified'])
+                self.assertIsNone(result['external_ai_cost'])
+                cached=optional_vision_review(visual,'999/7')
+                self.assertTrue(cached['cache_hit']);self.assertEqual(cached['external_ai_requests'],0)
+                self.assertEqual(opener.return_value.open.call_count,1)
+                request=opener.return_value.open.call_args.args[0]
+                self.assertEqual(request.full_url,'https://api.openai.com/v1/responses')
+        _VISION_CACHE.clear()
+
+    def test_api_timeout_preserves_local_result_and_does_not_claim_zero_cost(self):
+        from visual_plan import _VISION_CACHE
+        _VISION_CACHE.clear()
+        visual={'context_png':b'timeout plan','legend_png':b'legend',
+                'legend_image_source_verified':True,'legend_bound':True,'zone':'Test/7'}
+        with patch.dict('os.environ',{'OPENAI_API_KEY':'test','TELEKELOIRAS_VISION_ENABLED':'1'}):
+            with patch('urllib.request.build_opener') as opener:
+                opener.return_value.open.side_effect=TimeoutError('transport timeout')
+                result=optional_vision_review(visual,'999/7')
+                self.assertEqual(result['status'],'failed');self.assertIsNone(result['external_ai_cost'])
+                self.assertEqual(visual['zone'],'Test/7');self.assertFalse(result['intersection_verified'])
+        _VISION_CACHE.clear()

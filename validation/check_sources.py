@@ -76,6 +76,12 @@ def check_report(report, cache, history=None):
                   visual['intersection_verified'] is False)
             check(name+': vizuális vizsgálat forráskötése megőrizve',
                   visual.get('source',{})==case['legend'].get('identity',{}))
+            from visual_plan import classification_result
+            check(name+': A/B/C minősítés külön marad a geometriai bizonyítástól',
+                  case.get('classification')==classification_result(identification,visual))
+            check(name+': élő ellenőrzésben nincs kitalált modellhívás vagy API-költség',
+                  visual.get('ai_review',{}).get('external_ai_requests')==0 and
+                  visual.get('ai_review',{}).get('external_ai_cost')==0)
     miskolc=report['cases'][-1]
     check('Miskolc: önállóan azonosított 4755/11 telekhatár',
           miskolc['identification']['parcel_boundary_verified'] is True)
@@ -96,6 +102,13 @@ def check_report(report, cache, history=None):
               and visual['legend_bound'] and visual['exact_hrsz_in_parcel'])
         check('Miskolc: túloldali felirat nem halad át a saját jelmagyarázat szerinti határon',
               any(r['code']=='Gksz-71.62.6' and r['clear_paths']==0 for r in visual['candidate_labels']))
+        check('Miskolc: B kategóriás vizuális eredményhez a felismert kód feltételes szabályai kapcsolódnak',
+              miskolc['classification']['category']=='B' and
+              miskolc['zone_rules']['zone']==visual['zone'] and
+              miskolc['zone_rules']['zone_verified'] is False and not miskolc['zone_rules']['complete'])
+        check('Miskolc: felirat tényleges helye nem változik telekbelsővé',
+              all(not r['label_inside_target_parcel'] for r in visual['candidate_labels']
+                  if r['code']==visual['zone']))
     if miskolc.get('gis_sources',{}).get('heritage_snapshot',{}).get('spatial_snapshot_checked'):
         from gis_sources import shapefile_intersections
         from shapely import wkt

@@ -2,9 +2,9 @@
 
 **A fő cél még nem teljesült: 0/5 teleknek van teljesen bizonyított, hatályos építési előíráslistája.**
 
-117/117 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
+124/124 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
 Streamlit vizsgálati útvonalát. Az öt mintatelek élő forrásvizsgálata után
-147/147 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
+159/159 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
 időállapotok, jelmagyarázat–tervlap kötés, feldolgozólenyomatok,
 bizonyítottsági állapotok és a miskolci paraméterkód feloldása.
 Ez a forráskezelés helyességét ellenőrzi; nem állít sikeres telekbesorolást.
@@ -52,11 +52,53 @@ A meglévő képi bizonyítékot frissítettem, nem új tervváltozatot hoztam l
 
 **AI és költség:** működő helyi PDF-feldolgozás, Tesseract OCR és numpy/Pillow
 képfeldolgozás. Az új képi kapcsolatvizsgálat determinisztikus, nem LLM.
-Nem található OpenAI API-kulcs, .env vagy Streamlit titokbeállítás; a
-rendelkezésre álló eszközök között nem volt az alkalmazásba köthető
-multimodális következtető API. Modellnevet és elérhetőséget nem feltételeztem.
-Külső AI-hívás: 0; külső AI API-költség: 0. Az alkalmazás tárhelyének
-költségére ez nem tesz állítást.
+A környezet aktuális, ellenőrzött konfigurációjában nincs OpenAI API-hozzáférés.
+A tényleges élő övezeti felismerést a helyi képfeldolgozó végezte;
+multimodális modell pontosságjavulását nem mértük. Külső AI-hívás: 0;
+külső AI API-költség: 0. Az alkalmazás tárhelyére ez nem tesz költségállítást.
+
+Az OpenAI [képbemenetes API-ja](https://developers.openai.com/api/docs/guides/images-vision)
+és a [GPT-4.1 mini modell dokumentációja](https://developers.openai.com/api/docs/models/gpt-4.1-mini)
+alapján elkészült egy alapértelmezésben kikapcsolt Responses API-adapter.
+A rögzített modell `gpt-4.1-mini-2025-04-14`; az eredeti, rárajzolás nélküli
+tervrészletet és az adott hivatalos jelmagyarázat eredeti mintáit kapja meg,
+beleértve a telekhatárt és az építési vonalat. A promptban kizárólag a keresett
+HRSZ szerepel; nincs referenciaövezet, helyi algoritmusválasz vagy elvárt kód.
+Szigorú JSON-séma, 1200 kimeneti tokenkorlát, 60 másodperces időkorlát,
+átirányítás-tiltás, ismételt képkérés gyorsítótára és helyi eredménnyel való
+összevetés működik. Modellválasz soha nem ad geometriai vagy jogi igazolást.
+A HTTP-adaptert szimulált válasszal ellenőriztük; ez **nem élő AI-vizsgálat**.
+
+Üzemeltetői beállítás: `TELEKELOIRAS_VISION_ENABLED=1` és szerveroldali
+`OPENAI_API_KEY`. Nem kértem kulcsot, nem aktiváltam fizetős hívást. A
+modelladatlap jelenlegi alapára 0,40 USD / millió bemeneti és 1,60 USD /
+millió kimeneti token; a képbemenet is díjköteles, a tényleges összeg a
+képfelbontástól és felhasznált tokenektől függ. A program nem ígér fix
+telekenkénti díjat; hívás esetén a tényleges usage megőrződik, a számlázott
+összeget nem találja ki. Az AI hozzáadott értékét azonos forrásképeken,
+helyi algoritmussal összehasonlított, kulcs birtokában végzett élő teszttel
+kell igazolni aktiválás előtt. Az OpenAI dokumentációja a változó vonaljelek
+és a pontos térbeli lokalizáció értelmezését is korlátként jelöli.
+
+**Genspark:** a [Team/Enterprise hivatalos súgója](https://www.genspark.ai/helpcenter/team-enterprise-plans)
+API-kulcsok adminisztrációját említi, tehát nem állítjuk, hogy semmilyen API
+nem létezik. A [connector-dokumentáció](https://www.genspark.ai/helpcenter/connectors-and-integrations)
+azonban külső szolgáltatások Gensparkon belüli használatát írja le. A vizsgált
+hivatalos oldalakon nem találtunk dokumentált, külső alkalmazásból hívható
+képelemző végpontot, hozzá tartozó sémát, díjszabást és a felhasználó konkrét
+előfizetésének jogosultságát. Genspark-előfizetés ezért nem tekinthető igazolt
+API-hozzáférésnek; webes munkamenetből visszafejtett nem hivatalos adapter
+nem készült. Hivatalos API-szerződés/dokumentáció nélkül ez az integráció blokkolt.
+
+**A/B/C eredmény:** a Streamlit és a letölthető bizonyíték-JSON ugyanazt a
+kategóriát tartalmazza. A: igazolt geometriai besorolás; B: vizuálisan nagy
+valószínűséggel azonosított besorolás, feltételes előírásokkal; C: nem
+azonosítható. A B megnevezés kategória, nem kalibrált számszerű valószínűség.
+A végső élő ellenőrzés a végleges forráskód lenyomatát rögzíti.
+A vizuális kód közvetlenül a forrásolt paraméter- és rendelkezésolvasóhoz
+kapcsolódik; nem egy korábbi közeli geometriai jelöltet használ. Az eredeti
+geometriai azonosítást nem módosítja, az építési jogosultságot nem igazolja.
+Miskolc B, a másik négy telek C; teljes bizonyított előíráslista továbbra is 0/5.
 
 Az [e-közmű hozzáférési feltételeit](https://www.e-epites.hu/gyik?temakor=177)
 október 10-én újra ellenőriztem: KAÜ-azonosításhoz kötött. Új, igazolt,
@@ -287,10 +329,12 @@ annak tényleges poligonját metszi a telekkel. A nem támogatott jelek és a
 jogi védőtávolságok külön hiányként szerepelnek a JSON-ban és a Streamlitben.
 Ez továbbra sem teljes területi korlátozásvizsgálat.
 
-![A hivatalos terv változatlan kivágata](miskolc-plan-context.png)
+![Hivatalos tervkivágat az alkalmazás magyarázó jelöléseivel](miskolc-plan-context.png)
 
-A kivágat a fent hivatkozott terv 31. PDF-oldaláról, a 20-4 szelvényről készült,
-[300; 452; 435; 590] PDF-pont tartományban, nyolcszoros raszterezéssel.
+A kivágat a fent hivatkozott terv 31. PDF-oldaláról, a 20-4 szelvényről készült.
+A tényleges kivágási koordináták és raszterezési lépték az aktuális JSON
+`visual.clip_pdf` és `visual.scale` mezőiben szerepelnek. A magyarázó rétegek
+nem a hivatalos terv módosításai.
 A 4755/11 és 4755/10 telekfelirat, a közöttük húzódó telekhatár és a
 Gipe-60.63.5 felirat külön látható. Ez a forrásképet dokumentálja,
 a teljes geometriai besorolást önmagában nem igazolja.
@@ -325,7 +369,7 @@ python reference_checks.py --outlined --output work/reference-outlined-results.j
 ```
 
 reference-results.json: aktuális öttelekes vizsgálat és forrásreceiptek.
-source-check-results.json: 147 sikeres ellenőrzés, a jelentés lenyomatával.
+source-check-results.json: 159 sikeres ellenőrzés, a jelentés lenyomatával.
 reference-outlined-results.json: külön HRSZ-feliratpróba, saját forrás- és
 feliratfeldolgozó-lenyomatokkal; nem övezeti bizonyíték.
 conditional-zone-parameters.json: a Gip/3 forrássor feltételes ellenőrzése.

@@ -1,10 +1,10 @@
 {
-  "checked_at_utc": "2026-10-10T07:00:45.546411+00:00",
+  "checked_at_utc": "2026-10-10T07:31:37.794829+00:00",
   "command": "python -m unittest discover -q",
   "python": "3.12.14",
-  "tests_run": 117,
+  "tests_run": 124,
   "failures": 0,
   "errors": 0,
   "result": "OK",
-  "note": "Az egyesített PR-ágon 117/117 teszt; 109 korábbi és 8 helyi vizuális regresszió. Élő forrásellenőrzés: 147/147."
+  "note": "124/124 teszt a végleges kódon; hét új A/B/C, feltételes szabálykapcsolati és API-szerződés regresszió. A multimodális HTTP-tesztek szimulált válaszok, nem élő AI-mérések. Streamlit kezdőfelület AppTest: 0 kivétel; kötelező telekadatok: település és HRSZ."
 }
