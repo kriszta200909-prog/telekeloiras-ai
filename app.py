@@ -1805,12 +1805,19 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
         result.get('minerva_detail',''))
     # Feed verified closed PDF faces into the existing coverage and crossing
     # engines. Never promote a visual candidate without a registered parcel.
-    if (result['visual'].get('source_zone_features')
-            and plan_result.get('parcel_boundary_verified') is True
-            and not inputs.get('source_selection_ambiguous')):
-        plan_result['zone_features']=result['visual']['source_zone_features']
-        plan_result['regulatory_lines']=result['visual'].get('source_regulatory_lines',[])
-        result['identification']=connect_automatic_zone(result['parcel_api'],plan_result,inputs,result['ksh'],hrsz)
+    if not inputs.get('source_selection_ambiguous'):
+        # Always pass the actually retrieved OENY outline to the existing
+        # intersection engine, even when the PDF lacks cadastral registration.
+        # The engine retains boundary_verified=False and cannot assert a zone
+        # from an unregistered display polygon or an unverified plan face.
+        if result['visual'].get('source_zone_features'):
+            plan_result['zone_features']=result['visual']['source_zone_features']
+            plan_result['regulatory_lines']=result['visual'].get('source_regulatory_lines',[])
+        if result['parcel_api']:
+            result['identification']=connect_automatic_zone(
+                result['parcel_api'],plan_result,inputs,result['ksh'],hrsz)
+        else:
+            result['errors'].append('Övezetmetszés: OÉNY telekgeometria nem áll rendelkezésre.')
     from gis_sources import automatic_gis_evidence
     from shapely.geometry import mapping
     from shapely import wkt
