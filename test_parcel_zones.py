@@ -44,6 +44,12 @@ class ParcelZoneTests(unittest.TestCase):
         self.assertFalse(app.parcel_outline_match(box(1, 0, 11, 10), reference))
         self.assertFalse(app.parcel_outline_match(box(0, 0, 0, 10), reference))
 
+    def test_sixth_live_reference_case_is_not_hardcoded_to_a_district(self):
+        from reference_checks import CASES
+        self.assertEqual(len(CASES),6)
+        self.assertIn(('Budapest','76561/152'),CASES)
+        self.assertEqual(CASES.count(('Budapest','76561/152')),1)
+
     def test_search_methods_preserve_independent_provenance(self):
         methods=app.parcel_search_method_evidence(
             {'id':'123','search_url':'https://example.invalid/search',
