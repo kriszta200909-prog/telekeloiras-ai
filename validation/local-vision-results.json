@@ -367,5 +367,2497 @@
   },
   "local_control_is_ground_truth": false,
   "proven_legal_rule_lists": 0,
-  "control_reference": "reference-results.json"
+  "control_reference": "reference-results.json",
+  "source_reference_commit": "64ec069bd6131e545c771ca02e18519504ebb135",
+  "source_reference_report_sha256": "31a44c91416c0f2d659dc229f442ad83a1488e09dec4bb70e17db03133a8d412",
+  "image_input_manifests": {
+    "2200/8": {
+      "place": "Tiszaújváros",
+      "plan_source_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+      "plan_source_sha256": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+      "visual": {
+        "pdf_page": 35,
+        "clip_pdf": [
+          386.82098388671875,
+          0.0,
+          691.2009887695312,
+          265.4599609375
+        ],
+        "context_image_sha256": "a3509dde592d5e9e0fe74f39c067f7c288c9762f69c35c5fef17dc07ae86d436",
+        "legend_bound": true,
+        "legend_image_source_verified": true
+      },
+      "legend": {
+        "identity": {
+          "source_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+          "source_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+          "plan_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+          "plan_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+          "edition": "2024.10.10.",
+          "ksh": "28352",
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
+        },
+        "records": [
+          {
+            "role": "road_area",
+            "label": "|   |   |.  RENDU  KOZLEKEDESI CELU  KOZTERULET",
+            "rect": [
+              469.0,
+              71.5,
+              640.999755859375,
+              86.51499938964844
+            ],
+            "sample_rect": [
+              409.0,
+              69.24775009155273,
+              468.0,
+              88.7672492980957
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "proposed_parcel_boundary",
+            "label": "TERVEZETT TELEKHATAR",
+            "rect": [
+              796.75,
+              71.5,
+              880.999755859375,
+              86.51499938964844
+            ],
+            "sample_rect": [
+              736.75,
+              69.24775009155273,
+              795.75,
+              88.7672492980957
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "road_area",
+            "label": "—TERVEZETT BEEPITESRE SZANT ILL. BEEPITESRE NEM SZANT TERULET HATARA YU,NEM KOZLEKEDESI C. KOZT. (k6zpark)",
+            "rect": [
+              188.25,
+              146.75,
+              621.2026977539062,
+              162.2655029296875
+            ],
+            "sample_rect": [
+              128.25,
+              144.42267456054688,
+              187.25,
+              164.59282836914062
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "regulatory_line",
+            "label": "TERVEZETT SZABALYOZASI VONAL",
+            "rect": [
+              200.25,
+              192.0,
+              315.0500183105469,
+              207.7657470703125
+            ],
+            "sample_rect": [
+              140.25,
+              189.63513793945313,
+              199.25,
+              210.13060913085937
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "regulatory_line",
+            "label": "TERVEZETT SZABALYOZASI VONAL MEGLEVO HATARON (telekhatar, alrészlethatar)",
+            "rect": [
+              200.25,
+              211.25,
+              463.56231689453125,
+              218.75750732421875
+            ],
+            "sample_rect": [
+              140.25,
+              210.12387390136718,
+              199.25,
+              219.88363342285157
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "road_area",
+            "label": "KOTOTTPALYAS   KOZLEKEDESI   TERULET   (iparvasut)",
+            "rect": [
+              498.5,
+              211.25,
+              664.3623657226562,
+              218.75750732421875
+            ],
+            "sample_rect": [
+              438.5,
+              210.12387390136718,
+              497.5,
+              219.88363342285157
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "zone_boundary",
+            "label": "EP[TES] OVEZET / OVEZET HATARA",
+            "rect": [
+              200.25,
+              226.25,
+              314.9375,
+              232.50625610351562
+            ],
+            "sample_rect": [
+              140.25,
+              225.31156158447266,
+              199.25,
+              233.44469451904297
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "zone_boundary",
+            "label": "EGYESITETT OVEZET HATARA",
+            "rect": [
+              200.25,
+              240.25,
+              298.5750732421875,
+              250.00975036621094
+            ],
+            "sample_rect": [
+              140.25,
+              238.78603744506836,
+              199.25,
+              251.47371292114258
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "landuse_area",
+            "label": "VIZGAZDALKODASI   TERULET   /  FOLYOVIZEK,   CSATORNAK  TERULETE",
+            "rect": [
+              498.75,
+              240.25,
+              721.68017578125,
+              250.00975036621094
+            ],
+            "sample_rect": [
+              438.75,
+              238.78603744506836,
+              497.75,
+              251.47371292114258
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "landuse_area",
+            "label": "WW  EGYEB  VIZGAZDALKODASI  TERULET",
+            "rect": [
+              468.5,
+              252.5,
+              617.0875854492188,
+              268.0155029296875
+            ],
+            "sample_rect": [
+              408.5,
+              250.17267456054688,
+              467.5,
+              270.34282836914065
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "landuse_area",
+            "label": "CG VEDELMI  RENDELTETESU  ERDOTERULET",
+            "rect": [
+              469.5,
+              267.5,
+              634.0097045898438,
+              283.2657470703125
+            ],
+            "sample_rect": [
+              409.5,
+              265.1351379394531,
+              468.5,
+              285.6306091308594
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "landuse_area",
+            "label": "WY KOZJOLETI  ERDOTERULET",
+            "rect": [
+              469.5,
+              282.75,
+              585.2597045898438,
+              298.5157470703125
+            ],
+            "sample_rect": [
+              409.5,
+              280.3851379394531,
+              468.5,
+              300.8806091308594
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "+--4 TOLTESLAB",
+            "rect": [
+              767.0,
+              282.75,
+              834.3139038085938,
+              298.5157470703125
+            ],
+            "sample_rect": [
+              707.0,
+              280.3851379394531,
+              766.0,
+              300.8806091308594
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "landuse_area",
+            "label": "VWCCWG  GAZDASAGI  RENDELTETESU  ERDOTERULET",
+            "rect": [
+              468.5,
+              297.75,
+              643.3973388671875,
+              328.2804870605469
+            ],
+            "sample_rect": [
+              408.5,
+              293.170426940918,
+              467.5,
+              332.8600601196289
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "VEDOTERULET, VEDOHATAR, VEDOSAV HATARA",
+            "rect": [
+              498.75,
+              347.25,
+              657.75,
+              354.2569885253906
+            ],
+            "sample_rect": [
+              438.75,
+              346.1989517211914,
+              497.75,
+              355.3080368041992
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "£.   .   NYILVANTARTOTT   REGESZETI   LELOHELY   HATARA",
+            "rect": [
+              471.25,
+              376.0,
+              661.8875732421875,
+              386.26025390625
+            ],
+            "sample_rect": [
+              411.25,
+              374.4609619140625,
+              470.25,
+              387.7992919921875
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "VIZMUKUT HIDROGEOLOGIAI BELSO VEDOOVEZETE",
+            "rect": [
+              498.75,
+              392.5,
+              668.3348388671875,
+              399.0065002441406
+            ],
+            "sample_rect": [
+              438.75,
+              391.5240249633789,
+              497.75,
+              399.9824752807617
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "VIZMOKUT HIDROGEOLOGIAI \"A\" VEDOOVEZETE",
+            "rect": [
+              498.75,
+              405.0,
+              655.0877685546875,
+              417.76275634765625
+            ],
+            "sample_rect": [
+              438.75,
+              403.08558654785156,
+              497.75,
+              419.6771697998047
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "VIZMOKUT HIDROGEOLOGIAI \"B\" VEDOOVEZETE",
+            "rect": [
+              498.5,
+              419.0,
+              654.6748657226562,
+              434.0150146484375
+            ],
+            "sample_rect": [
+              438.5,
+              416.74774780273435,
+              497.5,
+              436.26726684570315
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "TERMALKUT HIDROGEOLOGIAI VEDOOVEZETE",
+            "rect": [
+              498.5,
+              435.25,
+              650.3377685546875,
+              448.01275634765625
+            ],
+            "sample_rect": [
+              438.5,
+              433.33558654785156,
+              497.5,
+              449.9271697998047
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "vizMOKUT HIDROGEOLOGIAI \"A\" VEDOOVEZETE VETULETE",
+            "rect": [
+              498.75,
+              451.25,
+              691.43994140625,
+              462.260986328125
+            ],
+            "sample_rect": [
+              438.75,
+              449.5983520507813,
+              497.75,
+              463.9126342773437
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "VIZMUKUT HIDROGEOLOGIAI \"B\" VEDOOVEZETE VETULETE",
+            "rect": [
+              498.75,
+              465.5,
+              691.66015625,
+              478.26275634765625
+            ],
+            "sample_rect": [
+              438.75,
+              463.58558654785156,
+              497.75,
+              480.1771697998047
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "HIDROGEOLOGIAI VEDOOVEZETE",
+            "rect": [
+              582.0,
+              494.5,
+              690.6748657226562,
+              509.5150146484375
+            ],
+            "sample_rect": [
+              522.0,
+              492.24774780273435,
+              581.0,
+              511.76726684570315
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZETE",
+            "rect": [
+              689.0,
+              510.75,
+              719.3451538085938,
+              523.5127563476562
+            ],
+            "sample_rect": [
+              629.0,
+              508.83558654785156,
+              688.0,
+              525.4271697998047
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "zone_code",
+            "label": "EPITESI OVEZETI PARAMETEREK",
+            "rect": [
+              200.5,
+              525.75,
+              307.5848388671875,
+              538.7630004882812
+            ],
+            "sample_rect": [
+              140.5,
+              523.7980499267578,
+              199.5,
+              540.7149505615234
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZETE",
+            "rect": [
+              714.75,
+              525.75,
+              745.23486328125,
+              538.7630004882812
+            ],
+            "sample_rect": [
+              654.75,
+              523.7980499267578,
+              713.75,
+              540.7149505615234
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZET",
+            "rect": [
+              700.5,
+              540.0,
+              726.5101318359375,
+              557.0170288085938
+            ],
+            "sample_rect": [
+              640.5,
+              537.4474456787109,
+              699.5,
+              559.5695831298829
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "(NATURA 2000)",
+            "rect": [
+              694.25,
+              554.75,
+              741.8937377929688,
+              570.0152587890625
+            ],
+            "sample_rect": [
+              634.25,
+              552.4602111816406,
+              693.25,
+              572.3050476074219
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "(NATURA 2000)",
+            "rect": [
+              633.25,
+              572.5,
+              680.900146484375,
+              582.76025390625
+            ],
+            "sample_rect": [
+              573.25,
+              570.9609619140625,
+              632.25,
+              584.2992919921875
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "a:  TAJKEPVEDELMI  SZEMPONTBOL  KIEMELTEN   KEZELENDO  TERULET",
+            "rect": [
+              470.75,
+              601.25,
+              719.0175170898438,
+              614.7634887695312
+            ],
+            "sample_rect": [
+              410.75,
+              599.2229766845703,
+              469.75,
+              616.7905120849609
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "BANYATELEK HATARA",
+            "rect": [
+              625.0,
+              616.5,
+              696.8798828125,
+              629.5130004882812
+            ],
+            "sample_rect": [
+              565.0,
+              614.5480499267578,
+              624.0,
+              631.4649505615234
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZET - BELSO",
+            "rect": [
+              555.75,
+              633.75,
+              609.7188720703125,
+              642.5087280273438
+            ],
+            "sample_rect": [
+              495.75,
+              632.4361907958985,
+              554.75,
+              643.8225372314453
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "zone_code",
+            "label": "OVEZETI PARAMETEREK",
+            "rect": [
+              200.25,
+              649.5,
+              280.62127685546875,
+              657.2577514648438
+            ],
+            "sample_rect": [
+              140.25,
+              648.3363372802735,
+              199.25,
+              658.4214141845703
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZET - KOZEPSO",
+            "rect": [
+              555.75,
+              649.5,
+              619.6936645507812,
+              657.2577514648438
+            ],
+            "sample_rect": [
+              495.75,
+              648.3363372802735,
+              554.75,
+              658.4214141845703
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZET - KULSO",
+            "rect": [
+              555.75,
+              661.75,
+              609.9498901367188,
+              674.7630004882812
+            ],
+            "sample_rect": [
+              495.75,
+              659.7980499267578,
+              554.75,
+              676.7149505615234
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "parcel_boundary",
+            "label": "FOLDRESZLET HATARA / EPULET, EPITMENY, MUTARGY",
+            "rect": [
+              796.75,
+              661.75,
+              978.804931640625,
+              674.7630004882812
+            ],
+            "sample_rect": [
+              736.75,
+              659.7980499267578,
+              795.75,
+              676.7149505615234
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "fF” }   NAGYVIZI  MEDER  HATARA",
+            "rect": [
+              471.5,
+              674.75,
+              583.719970703125,
+              689.2645263671875
+            ],
+            "sample_rect": [
+              411.5,
+              672.5728210449219,
+              470.5,
+              691.4417053222656
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "road_area",
+            "label": "P|   |.  RENDU  KOZLEKEDESI  CELU  KOZTERULET",
+            "rect": [
+              468.6666259765625,
+              71.33331298828125,
+              640.416748046875,
+              87.01566314697266
+            ],
+            "sample_rect": [
+              408.6666259765625,
+              68.98096046447753,
+              467.6666259765625,
+              89.36801567077637
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "proposed_parcel_boundary",
+            "label": "TERVEZETT TELEKHATAR",
+            "rect": [
+              796.6666259765625,
+              71.33331298828125,
+              880.7501220703125,
+              87.01566314697266
+            ],
+            "sample_rect": [
+              736.6666259765625,
+              68.98096046447753,
+              795.6666259765625,
+              89.36801567077637
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "road_area",
+            "label": "EGYESITETT EPITESI OVEZETEN BELUL —- -©0-- JELENTOS SZINTBENI GEPJARMUTAROLO HATARA, JELE, FEROHELYSZAMA",
+            "rect": [
+              624.6666259765625,
+              132.0,
+              1044.329833984375,
+              146.01400756835938
+            ],
+            "sample_rect": [
+              564.6666259765625,
+              129.89789886474608,
+              623.6666259765625,
+              148.1161087036133
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "road_area",
+            "label": "EGYESITETT EPITESI OVEZETEN BELUL |00000 TERVEZETT TERSEGI JELENTOSEGU KEREKPARUT",
+            "rect": [
+              627.9999389648438,
+              146.66668701171875,
+              964.216796875,
+              162.6826934814453
+            ],
+            "sample_rect": [
+              567.9999389648438,
+              144.26428604125977,
+              626.9999389648438,
+              165.0850944519043
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "regulatory_line",
+            "label": "TERVEZETT SZABALYOZASI VONAL",
+            "rect": [
+              204.17160034179688,
+              191.66668701171875,
+              315.0499572753906,
+              208.01632690429688
+            ],
+            "sample_rect": [
+              144.17160034179688,
+              189.21424102783203,
+              203.17160034179688,
+              210.4687728881836
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "regulatory_line",
+            "label": "-TERVEZETT SZABALYOZASI VONAL MEGLEVO HATARON (telekhatar, alrészlethatar)",
+            "rect": [
+              194.33326721191406,
+              211.33331298828125,
+              463.3668212890625,
+              218.6740264892578
+            ],
+            "sample_rect": [
+              134.33326721191406,
+              210.23220596313476,
+              193.33326721191406,
+              219.7751335144043
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "road_area",
+            "label": "KOTOTTPALYAS   KOZLEKEDESI   TERULET   (iparvastt)",
+            "rect": [
+              498.6665954589844,
+              211.33331298828125,
+              664.6534423828125,
+              218.6740264892578
+            ],
+            "sample_rect": [
+              438.6665954589844,
+              210.23220596313476,
+              497.6665954589844,
+              219.7751335144043
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "zone_boundary",
+            "label": "EP(TES] OVEZET / OVEZET HATARA",
+            "rect": [
+              200.33328247070312,
+              226.33331298828125,
+              314.93341064453125,
+              232.6730194091797
+            ],
+            "sample_rect": [
+              140.33328247070312,
+              225.3823570251465,
+              199.33328247070312,
+              233.62397537231445
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "zone_boundary",
+            "label": "EGYESITETT OVEZET HATARA",
+            "rect": [
+              200.333251953125,
+              238.66668701171875,
+              298.46331787109375,
+              251.6796875
+            ],
+            "sample_rect": [
+              140.333251953125,
+              236.71473693847656,
+              199.333251953125,
+              253.6316375732422
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "landuse_area",
+            "label": "\\W,  EGYEB  VIZGAZDALKODASI  TERULET",
+            "rect": [
+              468.33319091796875,
+              252.33331298828125,
+              617.0131225585938,
+              268.34930419921875
+            ],
+            "sample_rect": [
+              408.33319091796875,
+              249.93091430664063,
+              467.33319091796875,
+              270.7517028808594
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "landuse_area",
+            "label": "WN  VEDELMI   RENDELTETESU   ERDOTERULET",
+            "rect": [
+              469.3332214355469,
+              268.66668701171875,
+              633.7727661132812,
+              282.34698486328125
+            ],
+            "sample_rect": [
+              409.3332214355469,
+              266.61464233398436,
+              468.3332214355469,
+              284.39902954101564
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "landuse_area",
+            "label": "koz,6veT  eRDOTERULET",
+            "rect": [
+              498.66650390625,
+              282.66668701171875,
+              585.524658203125,
+              296.34698486328125
+            ],
+            "sample_rect": [
+              438.66650390625,
+              280.61464233398436,
+              497.66650390625,
+              298.39902954101564
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "-   =   —   I TOLTESLAB",
+            "rect": [
+              766.66650390625,
+              282.66668701171875,
+              834.7962036132812,
+              296.34698486328125
+            ],
+            "sample_rect": [
+              706.66650390625,
+              280.61464233398436,
+              765.66650390625,
+              298.39902954101564
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "landuse_area",
+            "label": "WV  GAZDASAGI  RENDELTETESU   ERDOTERULET",
+            "rect": [
+              469.66644287109375,
+              299.0,
+              643.3994140625,
+              312.3466491699219
+            ],
+            "sample_rect": [
+              409.66644287109375,
+              296.99800262451174,
+              468.66644287109375,
+              314.34864654541013
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "VEDOTERULET, VEDOHATAR, VEDOSAV HATARA",
+            "rect": [
+              498.6665344238281,
+              347.3333435058594,
+              657.5831909179688,
+              354.34033203125
+            ],
+            "sample_rect": [
+              438.6665344238281,
+              346.2822952270508,
+              497.6665344238281,
+              355.3913803100586
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "1...   NYILVANTARTOTT  REGESZETI   LELOHELY  HATARA",
+            "rect": [
+              471.33319091796875,
+              376.0,
+              661.7066650390625,
+              386.34368896484375
+            ],
+            "sample_rect": [
+              411.33319091796875,
+              374.4484466552734,
+              470.33319091796875,
+              387.89524230957034
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "VIZMUKUT HIDROGEOLOGIAI BELSO VEDOOVEZETE",
+            "rect": [
+              498.66650390625,
+              392.6666564941406,
+              668.463623046875,
+              399.00634765625
+            ],
+            "sample_rect": [
+              438.66650390625,
+              391.71570281982423,
+              497.66650390625,
+              399.9573013305664
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "vIZMOKUT HIDROGEOLOGIAI \"A\" VEDOOVEZETE",
+            "rect": [
+              498.6665344238281,
+              406.6666564941406,
+              655.44482421875,
+              416.343017578125
+            ],
+            "sample_rect": [
+              438.6665344238281,
+              405.21520233154297,
+              497.6665344238281,
+              417.79447174072266
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "ViZMUKUT HIDROGEOLOGIAI \"B\" VEDOOVEZETE",
+            "rect": [
+              498.66656494140625,
+              418.6666564941406,
+              655.13330078125,
+              432.0133361816406
+            ],
+            "sample_rect": [
+              438.66656494140625,
+              416.66465454101564,
+              497.66656494140625,
+              434.0153381347656
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "TERMALKUT HIDROGEOLOGIAI VEDOOVEZETE",
+            "rect": [
+              498.6665344238281,
+              437.0,
+              650.6129760742188,
+              446.3426818847656
+            ],
+            "sample_rect": [
+              438.6665344238281,
+              435.59859771728514,
+              497.6665344238281,
+              447.7440841674805
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "VIZMUKUT HIDROGEOLOGIAI \"A\" VEDOOVEZETE VETULETE",
+            "rect": [
+              498.6665344238281,
+              450.3333435058594,
+              691.5999755859375,
+              462.3453369140625
+            ],
+            "sample_rect": [
+              438.6665344238281,
+              448.5315444946289,
+              497.6665344238281,
+              464.14713592529296
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "VIZMUKUT HIDROGEOLOGIAI \"B\" VEDOOVEZETE VETULETE",
+            "rect": [
+              498.6665344238281,
+              466.3333435058594,
+              691.4398193359375,
+              477.3443298339844
+            ],
+            "sample_rect": [
+              438.6665344238281,
+              464.68169555664065,
+              497.6665344238281,
+              478.9959777832031
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "W772   BEULTETESI  KOTELEZETTSEGGEL   TERHELT TERULET  HATARA",
+            "rect": [
+              173.33319091796875,
+              481.3333435058594,
+              406.1866149902344,
+              494.3463439941406
+            ],
+            "sample_rect": [
+              113.33319091796875,
+              479.3813934326172,
+              172.33319091796875,
+              496.2982940673828
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "HIDROGEOLOGIAI VEDOOVEZETE",
+            "rect": [
+              581.9998168945312,
+              498.3333435058594,
+              691.1144409179688,
+              504.6730041503906
+            ],
+            "sample_rect": [
+              521.9998168945312,
+              497.3823944091797,
+              580.9998168945312,
+              505.6239532470703
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZETE",
+            "rect": [
+              688.9998168945312,
+              511.6666259765625,
+              719.4146118164062,
+              522.6776123046875
+            ],
+            "sample_rect": [
+              628.9998168945312,
+              510.0149780273438,
+              687.9998168945312,
+              524.3292602539062
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "zone_code",
+            "label": "EPITESI OVEZETI PARAMETEREK",
+            "rect": [
+              200.3331298828125,
+              527.6666259765625,
+              307.6132507324219,
+              537.0093383789062
+            ],
+            "sample_rect": [
+              140.3331298828125,
+              526.2652191162109,
+              199.3331298828125,
+              538.4107452392578
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZETE",
+            "rect": [
+              714.66650390625,
+              527.6666259765625,
+              744.7198486328125,
+              537.0093383789062
+            ],
+            "sample_rect": [
+              654.66650390625,
+              526.2652191162109,
+              713.66650390625,
+              538.4107452392578
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZET",
+            "rect": [
+              700.66650390625,
+              541.3333740234375,
+              726.7066650390625,
+              555.3473510742188
+            ],
+            "sample_rect": [
+              640.66650390625,
+              539.2312774658203,
+              699.66650390625,
+              557.4494476318359
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "(NATURA 2000)",
+            "rect": [
+              694.3331298828125,
+              554.3333129882812,
+              741.9998168945312,
+              567.679931640625
+            ],
+            "sample_rect": [
+              634.3331298828125,
+              552.3313201904297,
+              693.3331298828125,
+              569.6819244384766
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "(NATURA 2000)",
+            "rect": [
+              632.9998168945312,
+              573.0,
+              680.7665405273438,
+              582.67626953125
+            ],
+            "sample_rect": [
+              572.9998168945312,
+              571.5485595703125,
+              631.9998168945312,
+              584.1277099609375
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "1...)   TAJKEPVEDELMI  SZEMPONTBOL   KIEMELTEN   KEZELENDO  TERULET",
+            "rect": [
+              470.6664733886719,
+              601.6666870117188,
+              718.907958984375,
+              614.6796875
+            ],
+            "sample_rect": [
+              410.6664733886719,
+              599.7147369384766,
+              469.6664733886719,
+              616.6316375732422
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "BANYATELEK HATARA",
+            "rect": [
+              624.9998168945312,
+              616.0,
+              696.886474609375,
+              628.6793823242188
+            ],
+            "sample_rect": [
+              564.9998168945312,
+              614.0980926513672,
+              623.9998168945312,
+              630.5812896728515
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZET - BELSO",
+            "rect": [
+              555.66650390625,
+              632.3333129882812,
+              609.6331787109375,
+              644.3453369140625
+            ],
+            "sample_rect": [
+              495.66650390625,
+              630.5315093994141,
+              554.66650390625,
+              646.1471405029297
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "zone_code",
+            "label": "OVEZETI PARAMETEREK",
+            "rect": [
+              200.3331298828125,
+              649.6666870117188,
+              280.49981689453125,
+              655.6726684570312
+            ],
+            "sample_rect": [
+              140.3331298828125,
+              648.7657897949218,
+              199.3331298828125,
+              656.5735656738282
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZET - KOZEPSO",
+            "rect": [
+              555.66650390625,
+              649.3333740234375,
+              619.5883178710938,
+              655.6730346679688
+            ],
+            "sample_rect": [
+              495.66650390625,
+              648.3824249267578,
+              554.66650390625,
+              656.6239837646484
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "OVEZET - KULSO",
+            "rect": [
+              555.66650390625,
+              662.6666259765625,
+              610.2081298828125,
+              674.344970703125
+            ],
+            "sample_rect": [
+              495.66650390625,
+              660.9148742675782,
+              554.66650390625,
+              676.0967224121093
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "parcel_boundary",
+            "label": "FOLDRESZLET HATARA / EPULET, EPITMENY, MUTARGY",
+            "rect": [
+              796.66650390625,
+              662.6666259765625,
+              978.9999389648438,
+              674.344970703125
+            ],
+            "sample_rect": [
+              736.66650390625,
+              660.9148742675782,
+              795.66650390625,
+              676.0967224121093
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "zone_code",
+            "label": "OVEZETI JEL",
+            "rect": [
+              288.99981689453125,
+              677.6666870117188,
+              316.6497802734375,
+              687.6766967773438
+            ],
+            "sample_rect": [
+              228.99981689453125,
+              676.165185546875,
+              287.99981689453125,
+              689.1781982421875
+            ],
+            "PDF-oldal": 2
+          },
+          {
+            "role": "restriction",
+            "label": "(_”}   NAGYVIZI   MEDER  HATARA",
+            "rect": [
+              472.3331604003906,
+              677.6666870117188,
+              583.766357421875,
+              687.6766967773438
+            ],
+            "sample_rect": [
+              412.3331604003906,
+              676.165185546875,
+              471.3331604003906,
+              689.1781982421875
+            ],
+            "PDF-oldal": 2
+          }
+        ]
+      }
+    },
+    "1558": {
+      "place": "Komádi",
+      "plan_source_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+      "plan_source_sha256": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+      "visual": {
+        "pdf_page": 1,
+        "clip_pdf": [
+          1427.8199462890625,
+          1640.280029296875,
+          1733.93994140625,
+          1943.93994140625
+        ],
+        "context_image_sha256": "2b0f19a08067a9f6ca99c21a5a108f10110237479b51beddf91f5461808f3999",
+        "legend_bound": true,
+        "legend_image_source_verified": true
+      },
+      "legend": {
+        "identity": {
+          "source_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+          "source_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+          "plan_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+          "plan_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+          "edition": "2025.12.22.",
+          "ksh": "02167",
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
+        },
+        "records": [
+          {
+            "role": "regulatory_line",
+            "label": "TERVEZETT SZABALYOZASI VONAL seeeeenseeee |OVEZETI, EPITES! OVEZETI HATAR",
+            "rect": [
+              2932.724365234375,
+              505.7008056640625,
+              3095.43359375,
+              553.93798828125
+            ],
+            "sample_rect": [
+              2872.724365234375,
+              498.46522827148436,
+              2931.724365234375,
+              561.1735656738281
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "zone_boundary",
+            "label": "|OVEZETI, EPITES! OVEZETI HATAR",
+            "rect": [
+              2979.212646484375,
+              530.0787353515625,
+              3091.407470703125,
+              550.508544921875
+            ],
+            "sample_rect": [
+              2919.212646484375,
+              527.0142639160156,
+              2978.212646484375,
+              553.5730163574219
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "HIDROGEOLOGIA! VEDOIDOM",
+            "rect": [
+              2983.18115234375,
+              576.56689453125,
+              3075.114013671875,
+              602.6716918945312
+            ],
+            "sample_rect": [
+              2923.18115234375,
+              572.6511749267578,
+              2982.18115234375,
+              606.5874114990235
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "building_line",
+            "label": "EPITES! VONAL AZ UTCAITELEKHATARTOL",
+            "rect": [
+              3020.598388671875,
+              682.0157470703125,
+              3154.16552734375,
+              722.8755493164062
+            ],
+            "sample_rect": [
+              2960.598388671875,
+              675.8867767333984,
+              3019.598388671875,
+              729.0045196533204
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "zone_code",
+            "label": "SZABALYOZASI JEL",
+            "rect": [
+              3035.338623046875,
+              881.0079345703125,
+              3122.6455078125,
+              923.5701293945312
+            ],
+            "sample_rect": [
+              2975.338623046875,
+              874.6236053466797,
+              3034.338623046875,
+              929.954458618164
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "road_area",
+            "label": "KOZLEKEDESITERULETEN   © KOu  \\   KOZLEKEDES!   TERULETEN",
+            "rect": [
+              2968.440673828125,
+              1818.141845703125,
+              3179.292236328125,
+              1842.544189453125
+            ],
+            "sample_rect": [
+              2908.440673828125,
+              1814.481494140625,
+              2967.440673828125,
+              1846.204541015625
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "regulatory_line",
+            "label": "MEGLEVO SZABALYOZASI VONAL",
+            "rect": [
+              2985.9392556152343,
+              500.7567138671875,
+              3090.01484765625,
+              507.89898681640625
+            ],
+            "sample_rect": [
+              2925.9392556152343,
+              499.6853729248047,
+              2984.9392556152343,
+              508.97032775878904
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "regulatory_line",
+            "label": "TERVEZETT SZABALYOZASI VONAL",
+            "rect": [
+              2985.614914794922,
+              517.2972412109375,
+              3095.8851174316405,
+              524.4395141601562
+            ],
+            "sample_rect": [
+              2925.614914794922,
+              516.2259002685547,
+              2984.614914794922,
+              525.510855102539
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "zone_boundary",
+            "label": "OVEZETI, EPITESI OVEZETI HATAR",
+            "rect": [
+              2987.8040932617187,
+              533.189208984375,
+              3092.3174599609374,
+              541.3053588867188
+            ],
+            "sample_rect": [
+              2927.8040932617187,
+              531.9717864990234,
+              2986.8040932617187,
+              542.5227813720703
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "HIDROGEOLOGIAI VEDOIDOM weceeeceeeeee=4 LOKALIZACIOS TOLTES",
+            "rect": [
+              2932.1014107666015,
+              582.4864501953125,
+              3075.465805908203,
+              618.8471069335938
+            ],
+            "sample_rect": [
+              2872.1014107666015,
+              577.0323516845704,
+              2931.1014107666015,
+              624.3012054443359
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "—   mk   —   wk  —   MUEMLEKI   KORNYEZET",
+            "rect": [
+              2932.1014107666015,
+              647.351318359375,
+              3057.874253173828,
+              654.4935913085938
+            ],
+            "sample_rect": [
+              2872.1014107666015,
+              646.2799774169922,
+              2931.1014107666015,
+              655.5649322509765
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "building_line",
+            "label": "EPITES! VONAL AZ UTCAI TELEKHATARTOL",
+            "rect": [
+              3021.614914794922,
+              696.0,
+              3155.846115966797,
+              705.414794921875
+            ],
+            "sample_rect": [
+              2961.614914794922,
+              694.5877807617187,
+              3020.614914794922,
+              706.8270141601563
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "building_line",
+            "label": "TELEKHATARTOL",
+            "rect": [
+              3113.7230385742187,
+              710.270263671875,
+              3167.163559814453,
+              722.9315795898438
+            ],
+            "sample_rect": [
+              3053.7230385742187,
+              708.3710662841797,
+              3112.7230385742187,
+              724.830776977539
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "zone_code",
+            "label": "SZABALYOZASI JEL",
+            "rect": [
+              3036.2095192871093,
+              882.4864501953125,
+              3123.2273720703124,
+              902.9393920898438
+            ],
+            "sample_rect": [
+              2976.2095192871093,
+              879.4185089111328,
+              3035.2095192871093,
+              906.0073333740235
+            ],
+            "PDF-oldal": 1
+          }
+        ]
+      }
+    },
+    "4755/11": {
+      "place": "Miskolc",
+      "plan_source_url": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
+      "plan_source_sha256": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc",
+      "visual": {
+        "pdf_page": 31,
+        "clip_pdf": [
+          236.9853515625,
+          392.5877685546875,
+          488.8841552734375,
+          601.4468383789062
+        ],
+        "context_image_sha256": "7c87670b7b5514eba5227e3283b0c2f7aeed6f9b5281a556e4a3ae50a36dca45",
+        "legend_bound": true,
+        "legend_image_source_verified": true
+      },
+      "legend": {
+        "identity": {
+          "source_url": "https://njt.jog.gov.hu/document/03/0366LL_EJR_83921015-Jelmagyarazat_modositasa.pdf",
+          "source_hash": "6d40152ff111712a5a139926e7c23e5acf6736106e6bc81d7277e2beb696f24a",
+          "plan_url": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
+          "plan_hash": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc",
+          "edition": "2026.09.26.",
+          "ksh": "30456",
+          "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
+        },
+        "records": [
+          {
+            "role": "regulatory_line",
+            "label": "Sza báyozási vona l",
+            "rect": [
+              51.605201721191406,
+              164.5138702392578,
+              142.25218200683594,
+              184.8125
+            ],
+            "sample_rect": [
+              0.0,
+              161.46907577514648,
+              50.605201721191406,
+              187.85729446411133
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "building_line",
+            "label": "Épitési vona l",
+            "rect": [
+              51.605201721191406,
+              206.27870178222656,
+              113.44890594482422,
+              226.57733154296875
+            ],
+            "sample_rect": [
+              0.0,
+              203.23390731811523,
+              50.605201721191406,
+              229.62212600708008
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "zone_boundary",
+            "label": "  Építési övezet, övezet h a tára , jele",
+            "rect": [
+              46.636436462402344,
+              223.80067443847656,
+              217.46514892578125,
+              247.459716796875
+            ],
+            "sample_rect": [
+              0.0,
+              220.2518180847168,
+              45.636436462402344,
+              251.00857315063476
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "road_area",
+            "label": "Közúti k özlek edési terület - ország os k özút, h elyi g yüjtőút",
+            "rect": [
+              51.605201721191406,
+              268.9259033203125,
+              331.47857666015625,
+              289.22454833984375
+            ],
+            "sample_rect": [
+              0.0,
+              265.8811065673828,
+              50.605201721191406,
+              292.26934509277345
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "road_area",
+            "label": "Nem szerk ezeti jelentőség ű k özlek edési terület",
+            "rect": [
+              51.605201721191406,
+              289.80828857421875,
+              282.99249267578125,
+              310.10693359375
+            ],
+            "sample_rect": [
+              0.0,
+              286.76349182128905,
+              50.605201721191406,
+              313.1517303466797
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "road_area",
+            "label": "Kötöttpályás k özlek edési terület",
+            "rect": [
+              51.605201721191406,
+              331.33306884765625,
+              210.2645263671875,
+              351.6317138671875
+            ],
+            "sample_rect": [
+              0.0,
+              328.28827209472655,
+              50.605201721191406,
+              354.6765106201172
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "road_area",
+            "label": "Lég ik özlek edési terület",
+            "rect": [
+              51.605201721191406,
+              352.21551513671875,
+              168.49969482421875,
+              372.5141296386719
+            ],
+            "sample_rect": [
+              0.0,
+              349.1707229614258,
+              50.605201721191406,
+              375.55892181396484
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "landuse_area",
+            "label": "Zöldterület - k özk ert",
+            "rect": [
+              51.605201721191406,
+              373.097900390625,
+              154.0974884033203,
+              393.3965148925781
+            ],
+            "sample_rect": [
+              0.0,
+              370.05310821533203,
+              50.605201721191406,
+              396.4413070678711
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "landuse_area",
+            "label": "V   édelm   i rendeltetésű erdőterület",
+            "rect": [
+              51.605201721191406,
+              393.98028564453125,
+              214.3443603515625,
+              414.2789306640625
+            ],
+            "sample_rect": [
+              0.0,
+              390.93548889160155,
+              50.605201721191406,
+              417.3237274169922
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "landuse_area",
+            "label": "Ga zda ság i rendeltetésű erdőterület",
+            "rect": [
+              51.605201721191406,
+              414.8626708984375,
+              227.0662078857422,
+              435.16131591796875
+            ],
+            "sample_rect": [
+              0.0,
+              411.8178741455078,
+              50.605201721191406,
+              438.20611267089845
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "landuse_area",
+            "label": "Közjóléti rendeltetésű erdőterület",
+            "rect": [
+              51.605201721191406,
+              435.7451171875,
+              216.2642822265625,
+              456.0437316894531
+            ],
+            "sample_rect": [
+              0.0,
+              432.70032501220703,
+              50.605201721191406,
+              459.0885238647461
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "landuse_area",
+            "label": "V   ízg a zdálk odási terület",
+            "rect": [
+              51.605201721191406,
+              456.62750244140625,
+              170.17884826660156,
+              476.9261169433594
+            ],
+            "sample_rect": [
+              0.0,
+              453.5827102661133,
+              50.605201721191406,
+              479.97090911865234
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "landuse_area",
+            "label": "Eg yéb vízg a zdálk odási terület",
+            "rect": [
+              51.605201721191406,
+              477.269775390625,
+              201.86318969726562,
+              497.56842041015625
+            ],
+            "sample_rect": [
+              0.0,
+              474.2249786376953,
+              50.605201721191406,
+              500.61321716308595
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "prohibition",
+            "label": "Épitési tila lom területe",
+            "rect": [
+              50.165000915527344,
+              642.5309448242188,
+              162.2577667236328,
+              663.2908935546875
+            ],
+            "sample_rect": [
+              0.0,
+              639.4169525146484,
+              49.165000915527344,
+              666.4048858642578
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "prohibition",
+            "label": "Épitési és telek a la k ítási tila lom területe",
+            "rect": [
+              50.165000915527344,
+              662.2132568359375,
+              243.63221740722656,
+              682.9732055664062
+            ],
+            "sample_rect": [
+              0.0,
+              659.0992645263672,
+              49.165000915527344,
+              686.0871978759766
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Beültetési k ötelezettség g el érintett terület",
+            "rect": [
+              50.165000915527344,
+              701.5777587890625,
+              258.74945068359375,
+              722.3377075195312
+            ],
+            "sample_rect": [
+              0.0,
+              698.4637664794922,
+              49.165000915527344,
+              725.4516998291016
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Műem   lék i jelentőség ű terület",
+            "rect": [
+              51.36520004272461,
+              769.2655029296875,
+              198.0215301513672,
+              790.0254516601562
+            ],
+            "sample_rect": [
+              0.0,
+              766.1515106201172,
+              50.36520004272461,
+              793.1394439697266
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Műem   lék i k örnyezet h a tára",
+            "rect": [
+              363.6365051269531,
+              41.86408233642578,
+              495.7312316894531,
+              63.0854606628418
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              38.680875587463376,
+              362.6365051269531,
+              66.2686674118042
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Nyilvánta rtott rég észeti lelőh ely h a tára",
+            "rect": [
+              363.6365051269531,
+              117.47278594970703,
+              551.1775512695312,
+              138.6941680908203
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              114.28957862854004,
+              362.6365051269531,
+              141.87737541198732
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Kiem   elten védett rég észeti lelőh ely h a tára",
+            "rect": [
+              363.6365051269531,
+              139.31524658203125,
+              569.1799926757812,
+              160.53663635253906
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              136.13203811645508,
+              362.6365051269531,
+              163.71984481811523
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Rég észeti érdek ű terület",
+            "rect": [
+              363.6365051269531,
+              160.917724609375,
+              492.7711486816406,
+              182.1391143798828
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              157.73451614379883,
+              362.6365051269531,
+              185.32232284545898
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Na tura 2000 terület KJTT",
+            "rect": [
+              363.6365051269531,
+              291.49273681640625,
+              493.4909973144531,
+              312.714111328125
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              288.3095306396484,
+              362.6365051269531,
+              315.89731750488284
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Na tura 2000 terület KMT",
+            "rect": [
+              363.6365051269531,
+              313.09527587890625,
+              490.3707580566406,
+              334.316650390625
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              309.9120697021484,
+              362.6365051269531,
+              337.49985656738284
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Bük k i Nem   zeti Pa rk területe",
+            "rect": [
+              363.6365051269531,
+              334.937744140625,
+              506.4532165527344,
+              356.15911865234375
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              331.75453796386716,
+              362.6365051269531,
+              359.3423248291016
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Fok ozotta n védett terület",
+            "rect": [
+              363.6365051269531,
+              356.5402526855469,
+              494.6911926269531,
+              377.7616271972656
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              353.35704650878904,
+              362.6365051269531,
+              380.94483337402346
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Ország os ök ológ ia i h álóza t - m   a g terület",
+            "rect": [
+              363.6365051269531,
+              465.27264404296875,
+              568.86083984375,
+              486.4940185546875
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              462.0894378662109,
+              362.6365051269531,
+              489.67722473144534
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Ország os ök ológ ia i h álóza t - ök ológ ia i folyosó",
+            "rect": [
+              363.6365051269531,
+              487.1151428222656,
+              595.7434692382812,
+              508.3365173339844
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              483.9319366455078,
+              362.6365051269531,
+              511.5197235107422
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Ország os ök ológ ia i h álóza t - pufferterület",
+            "rect": [
+              363.6365051269531,
+              508.7176513671875,
+              575.5814819335938,
+              529.9390258789062
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              505.53444519042966,
+              362.6365051269531,
+              533.1222320556641
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Tájk épvédelm   i terület",
+            "rect": [
+              363.6365051269531,
+              530.5601196289062,
+              477.8900146484375,
+              551.781494140625
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              527.3769134521484,
+              362.6365051269531,
+              554.9647003173828
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "V   ízbázis belső védőövezete",
+            "rect": [
+              363.6365051269531,
+              595.607666015625,
+              507.17327880859375,
+              616.8290405273438
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              592.4244598388672,
+              362.6365051269531,
+              620.0122467041016
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "V   ízbázis k ülső védőövezete",
+            "rect": [
+              363.6365051269531,
+              617.4501342773438,
+              506.69293212890625,
+              638.6715087890625
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              614.2669281005859,
+              362.6365051269531,
+              641.8547149658203
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "V   ízbázis h idrog eológ ia i \"A\" védőövezete",
+            "rect": [
+              363.6365051269531,
+              639.0526733398438,
+              568.6201171875,
+              660.2740478515625
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              635.8694671630859,
+              362.6365051269531,
+              663.4572540283203
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "V   ízbázis h idrog eológ ia i \"B\" védőövezete",
+            "rect": [
+              363.6365051269531,
+              660.8951416015625,
+              568.6201171875,
+              682.1165161132812
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              657.7119354248047,
+              362.6365051269531,
+              685.2997222900391
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "V   ízbázis h idrog eológ ia i \"C\" védőövezete",
+            "rect": [
+              363.6365051269531,
+              682.7376708984375,
+              569.3399658203125,
+              703.9590454101562
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              679.5544647216797,
+              362.6365051269531,
+              707.1422515869141
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Na g yvízi m   eder területe",
+            "rect": [
+              363.6365051269531,
+              704.3401489257812,
+              486.5306396484375,
+              725.5615234375
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              701.1569427490234,
+              362.6365051269531,
+              728.7447296142578
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Elsődleg es levezető sáv",
+            "rect": [
+              363.6365051269531,
+              726.1826782226562,
+              489.1707763671875,
+              747.404052734375
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              722.9994720458984,
+              362.6365051269531,
+              750.5872589111328
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Másodla g os levezető sáv",
+            "rect": [
+              363.6365051269531,
+              747.78515625,
+              494.69244384765625,
+              769.0065307617188
+            ],
+            "sample_rect": [
+              303.6365051269531,
+              744.6019500732422,
+              362.6365051269531,
+              772.1897369384766
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Á   tm   eneti levezető sáv",
+            "rect": [
+              633.18359375,
+              39.341758728027344,
+              746.2362060546875,
+              60.10166931152344
+            ],
+            "sample_rect": [
+              573.18359375,
+              36.22777214050293,
+              632.18359375,
+              63.21565589904785
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Á   ra m   lási h olttér",
+            "rect": [
+              633.18359375,
+              60.704246520996094,
+              711.92236328125,
+              81.46415710449219
+            ],
+            "sample_rect": [
+              573.18359375,
+              57.59025993347168,
+              632.18359375,
+              84.5781436920166
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Felszíni viz pa rti sávja",
+            "rect": [
+              633.18359375,
+              82.0666732788086,
+              743.115966796875,
+              102.82658386230469
+            ],
+            "sample_rect": [
+              573.18359375,
+              78.95268669128419,
+              632.18359375,
+              105.9405704498291
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Töltésláb",
+            "rect": [
+              633.18359375,
+              125.03157806396484,
+              682.3889770507812,
+              145.79148864746094
+            ],
+            "sample_rect": [
+              573.18359375,
+              121.91759147644044,
+              632.18359375,
+              148.90547523498535
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "V   Bánya telek területe",
+            "rect": [
+              624.062744140625,
+              145.91397094726562,
+              732.0748901367188,
+              167.1539764404297
+            ],
+            "sample_rect": [
+              564.062744140625,
+              142.72797012329102,
+              623.062744140625,
+              170.3399772644043
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Erózió érzék eny terület",
+            "rect": [
+              633.18359375,
+              221.28268432617188,
+              753.67822265625,
+              242.04258728027344
+            ],
+            "sample_rect": [
+              573.18359375,
+              218.16869888305663,
+              632.18359375,
+              245.15657272338868
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Erózió érzék eny pont",
+            "rect": [
+              633.18359375,
+              242.64505004882812,
+              744.3213500976562,
+              263.4049377441406
+            ],
+            "sample_rect": [
+              573.18359375,
+              239.53106689453125,
+              632.18359375,
+              266.5189208984375
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "Alábányászott terület",
+            "rect": [
+              633.18359375,
+              264.0075378417969,
+              743.8363037109375,
+              284.7674255371094
+            ],
+            "sample_rect": [
+              573.18359375,
+              260.8935546875,
+              632.18359375,
+              287.88140869140625
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "V   édőterület, védőtávolság , védősáv h a tára",
+            "rect": [
+              633.18359375,
+              285.3699645996094,
+              839.84619140625,
+              306.1298522949219
+            ],
+            "sample_rect": [
+              573.18359375,
+              282.2559814453125,
+              632.18359375,
+              309.24383544921875
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "restriction",
+            "label": "V   eszélyesség i övezet h a tára",
+            "rect": [
+              633.18359375,
+              306.7324523925781,
+              770.473876953125,
+              327.4923400878906
+            ],
+            "sample_rect": [
+              573.18359375,
+              303.61846923828125,
+              632.18359375,
+              330.6063232421875
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "parcel_boundary",
+            "label": "Földrészlet h a tár",
+            "rect": [
+              637.5040893554688,
+              531.5160522460938,
+              719.2245483398438,
+              551.814697265625
+            ],
+            "sample_rect": [
+              577.5040893554688,
+              528.4712554931641,
+              636.5040893554688,
+              554.8594940185546
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "utility_line",
+            "label": "Na g yfeszültség ű villa m   osenerg ia vezeték",
+            "rect": [
+              922.1727294921875,
+              452.4291687011719,
+              1122.5960693359375,
+              473.1890563964844
+            ],
+            "sample_rect": [
+              862.1727294921875,
+              449.315185546875,
+              921.1727294921875,
+              476.30303955078125
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "utility_line",
+            "label": "  Középfeszültség ű villa m   osenerg ia k ábel",
+            "rect": [
+              916.9876098632812,
+              504.7551574707031,
+              1119.4754638671875,
+              526.2351684570312
+            ],
+            "sample_rect": [
+              856.9876098632812,
+              501.5331558227539,
+              915.9876098632812,
+              529.4571701049805
+            ],
+            "PDF-oldal": 1
+          },
+          {
+            "role": "utility_line",
+            "label": "Na g ynyom   ású földg áz szállítóvezeték",
+            "rect": [
+              922.1727294921875,
+              526.8377685546875,
+              1104.8389892578125,
+              547.5977172851562
+            ],
+            "sample_rect": [
+              862.1727294921875,
+              523.7237762451172,
+              921.1727294921875,
+              550.7117095947266
+            ],
+            "PDF-oldal": 1
+          }
+        ]
+      }
+    }
+  },
+  "input_manifest_note": "A korábbi valódi próbák képkivágási geometriája a megadott Git-commit eredeti forrásjelentéséből; a nyers modellválaszok és eredeti képlenyomatok változatlanok. A javított jelmagyarázat-parser ma más nagyított jelmintakivágatot is adhat."
 }

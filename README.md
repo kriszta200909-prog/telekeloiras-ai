@@ -8,6 +8,7 @@ Magyarországi település és helyrajzi szám alapján a hatályos helyi épít
 ## Fájlok
 - `app.py` – a Streamlit alkalmazás.
 - `plan_labels.py` és `plan_ocr_worker.py` – tervlapfeliratok feldolgozása; a worker a tervlapolvasás része.
+- `plan_localization.py` – CAD-csoportosítástól független térképlapka-OCR, eredeti feliratkivágatok ellenőrzése és szomszédos HRSZ-ekkel végzett tervlapillesztési próba.
 - `rule_inventory.py` – a jogszabályi rendelkezések nyilvántartása.
 - `geopdf.py` – a PDF saját földrajzi koordinátáinak, jelmagyarázat szerinti vonalainak és poligonjainak feldolgozása.
 - `plan_legend.py` – saját hivatalos jelmagyarázat keresése, többoszlopos és kétsoros feliratok, natív/OCR-jelminták és tartós fájlgyorsítótár.
@@ -21,6 +22,11 @@ Magyarországi település és helyrajzi szám alapján a hatályos helyi épít
 
 ## Állapot és ellenőrzés
 Az öt vizsgálati helyrajzi szám: Tiszaújváros 2200/8; Budapest XII. 8448/46; Komádi 1558; Gersekarát 034/15; Miskolc 4755/11.
+
+A friss, forrásképeket is tartalmazó eredmények és a megmaradt akadályok a
+[forrásjelentésben](validation/reference-report.md) találhatók. A terven
+ellenőrzött HRSZ-felirat külön adat a mai kataszteri létezéstől, a teljes
+telekgeometriától és az övezeti besorolástól.
 
 **Egyik telek teljes, hatályos, pontos övezeti besorolással és összes előírással alátámasztott automatikus vizsgálata sincs még igazoltan kész.** A tesztfájlok megléte önmagában nem jelent sikeres tesztfutást.
 
@@ -167,3 +173,24 @@ Az országos telek–tervlap megfeleltetés továbbra is külön feladat: a mode
 már felismert környezet értelmezését ellenőrzi. Ismeretlen telekhelyhez még
 hivatalos vagy jogszerű, ellenőrizhető helyazonosítás kell. A saját jelmagyarázat
 és a hatályos HÉSZ ellenőrzése AI-válasz esetén is szükséges.
+
+## Ingyenes helyazonosítás több térképi módszerrel
+
+Ha a natív szöveg és a CAD-betűcsoportok nem adnak pontos találatot, a program
+átfedő képlapkákon is keres. Az index a forrás és az indexelő kód lenyomatához
+kötött, folytatható és más HRSZ-eknél újrahasználható. A jelölt feliratot az
+eredeti terv három nagyított kivágatában olvassa vissza; a keresztező térképi
+vonalaknál külön OCR-szegmentálást használ. Nem kell PDF-et feltölteni vagy
+képet kézzel kivágni, és ez az út nem függ a WMS elérhetőségétől.
+
+A több tervlapon ismétlődő feliratok összevetése ellenőrzött szomszédos HRSZ-ek
+geometriai egyezését vizsgálja. Legalább öt, térben eloszló támpont nélkül nem
+igazol illesztést. Az egy lapon több helyen szereplő HRSZ-t nem vonja össze
+telekgeometria nélkül; a forrásképen mindegyik helyet jelöli és C állapotot tart.
+Az ilyen illesztés önmagában nem földrajzi georeferálás vagy övezeti bizonyítás.
+
+A saját jelmagyarázat képi mintáinál az eltérő oszlopelrendezést és az apró
+pontvonásokat is vizsgálja. A helyi korlátozáskeresés csak a forráskivágatot
+érinti; egy HRSZ-felirat környezetének ellenőrzése nem állítja az egész telek
+korlátozásmentességét. A C állapotban kiolvasott egyetlen övezeti kódhoz
+megjelenített jogszabályi rendelkezések kifejezetten feltételesek.

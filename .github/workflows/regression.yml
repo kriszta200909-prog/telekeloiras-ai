@@ -21,7 +21,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt numpy
       - name: Syntax check
-        run: python -m compileall -q app.py plan_labels.py plan_ocr_worker.py rule_inventory.py test_plan_labels.py test_rule_inventory.py test_parcel_zones.py geopdf.py plan_legend.py plan_connections.py plan_geometry_audit.py zone_parameters.py gis_sources.py visual_plan.py test_visual_plan.py reference_checks.py test_gis_sources.py test_automatic_sources.py test_plan_legend.py test_zone_evidence.py test_plan_geometry_audit.py
+        run: python -m compileall -q app.py plan_labels.py plan_localization.py plan_ocr_worker.py rule_inventory.py test_plan_labels.py test_plan_localization.py test_rule_inventory.py test_parcel_zones.py geopdf.py plan_legend.py plan_connections.py plan_geometry_audit.py zone_parameters.py gis_sources.py visual_plan.py test_visual_plan.py reference_checks.py test_gis_sources.py test_automatic_sources.py test_plan_legend.py test_zone_evidence.py test_plan_geometry_audit.py
       - name: Unit and regression tests
         env:
           STREAMLIT_SERVER_HEADLESS: 'true'

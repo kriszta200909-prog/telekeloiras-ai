@@ -93,10 +93,15 @@ def drawing_style(drawing):
     dash=drawing.get('dashes') or '[] 0'
     numbers=[float(v) for v in re.findall(r'[\d.]+',dash.partition(']')[0])]
     total=sum(numbers)
-    return {'kind':'path','stroke':_colour(drawing.get('color')),
+    result={'kind':'path','stroke':_colour(drawing.get('color')),
             'fill':_colour(drawing.get('fill')),'width':round(drawing.get('width') or 0,4),
             'dash':([round(v/total,4) for v in numbers] if total else []),
             'closed':bool(drawing.get('closePath') or any(i[0] in ('re','qu') for i in drawing['items']))}
+    lines=[i for i in drawing['items'] if i[0]=='l']
+    if (lines and len(lines)==len(drawing['items']) and drawing.get('fill') is None
+            and all(math.dist(tuple(i[1]),tuple(i[2]))<=max(.2,2*(drawing.get('width') or 0)) for i in lines)):
+        result['primitive']='short_dot_strokes'
+    return result
 
 
 def matches_style(actual, expected):
@@ -106,6 +111,7 @@ def matches_style(actual, expected):
                 and actual.get('colour')==expected.get('colour')
                 and .7<=actual.get('size',0)/max(expected.get('size',0),1e-9)<=1.4)
     if actual['kind']=='path':
+        if expected.get('primitive') and actual.get('primitive')!=expected['primitive']:return False
         if expected.get('closed') and not actual.get('closed'):return False
         if expected.get('fill') is not None:
             return actual.get('fill')==expected['fill']
@@ -250,6 +256,20 @@ def parse_legend(page,rows):
     result=[]
     if not title:return result
     captions=[r for r in rows if r['role']!='legend_title']
+    # Some CAD legends have OCR captions and a distant, framed sample column.
+    # Locate the actual frames; a fixed left/right offset misses such layouts.
+    frames=[];rotation=page.rotation_matrix
+    def frame(d):
+        colour=d.get('color');r=fitz.Rect(d['rect'])*rotation
+        if (colour is not None and max(colour)-min(colour)<.025 and max(colour)<.85
+                and all(i[0]=='re' for i in d['items']) and 12<r.width<100 and 5<r.height<45):
+            frames.append(r)
+    page.get_cdrawings(callback=frame)
+    def associated(row,box):
+        r=fitz.Rect(row['rect'])
+        return (not r.intersects(box) and abs((r.y0+r.y1-box.y0-box.y1)/2)<max(r.height,box.height)/2
+                and min(abs(r.x0-box.x1),abs(box.x0-r.x1))<page.rect.width*.2)
+    column_support={}
     for row in captions:
         rect=fitz.Rect(row['rect']);height=rect.height
         # Find the sample immediately to the left of this caption. A semantic
@@ -258,6 +278,24 @@ def parse_legend(page,rows):
                          rect.y0-.15*height,rect.x0-1,rect.y1+.15*height)
         styles=sample_styles(page,sample)
         if not styles and row['recognition']!='native':styles=raster_sample(page,sample)
+        framed=[]
+        if row['recognition']!='native' and (not styles or all(s.get('kind')=='raster_sample' for s in styles)):
+            for candidate in frames:
+                if not associated(row,candidate):continue
+                key=(candidate.x0,candidate.height)
+                if key not in column_support:
+                    positions=sorted((fitz.Rect(other['rect']).y0+fitz.Rect(other['rect']).y1)/2 for other in captions
+                        if any(abs(box.x0-candidate.x0)<3 and associated(other,box) for box in frames))
+                    supporting=[]
+                    for y in positions:
+                        if not supporting or y-supporting[-1]>candidate.height*.5:supporting.append(y)
+                    column_support[key]=len(supporting)
+                if column_support[key]>=3:framed.append((candidate,column_support[key]))
+        sample_basis={}
+        if len(framed)==1:
+            sample=framed[0][0]+(-.1,-.1,.1,.1)
+            styles=sample_styles(page,sample) or raster_sample(page,sample)
+            sample_basis={'method':'source_rectangle_column','aligned_caption_rows':framed[0][1]}
         right=fitz.Rect(rect.x1+1,rect.y0-.15*height,
                         min(page.rect.x1,rect.x1+min(60,page.rect.width*.08)),rect.y1+.15*height)
         neighbour_column=any(other is not row
@@ -269,7 +307,7 @@ def parse_legend(page,rows):
         # caption permits automatic reversal of sample placement.
         right_styles=sample_styles(page,right) if not right.is_empty and row['recognition']=='native' and not neighbour_column else []
         left_styles=list(styles)
-        ambiguous=bool(styles and right_styles and styles!=right_styles)
+        ambiguous=bool(len(framed)>1 or (styles and right_styles and styles!=right_styles))
         if not styles and right_styles:sample=right;styles=right_styles
         if ambiguous:styles=[]
         # For OCR captions independently reread the caption crop at a second
@@ -277,6 +315,7 @@ def parse_legend(page,rows):
         stable=row['recognition']=='native'
         result.append({**row,'sample_rect':list(sample),'styles':styles,
                        'label_verified':stable,'ambiguous_sample':ambiguous,'PDF-oldal':page.number+1,
+                       'sample_column_evidence':sample_basis,
                        '_left_styles':left_styles if ambiguous else [],
                        '_right_styles':right_styles,'_right_rect':list(right)})
     # Multi-column legends can place the next column's graphic immediately
@@ -317,7 +356,19 @@ def discover_legend(doc,*,source_url,source_hash,plan_url,plan_hash,edition,ksh,
         except (ValueError,KeyError,TypeError):pass
     started=time.monotonic();records=[];scanned=0
     native_pages=[p.number for p in doc if any(r['role']=='legend_title' for r in caption_rows(p))]
-    page_order=native_pages+[i for i in range(len(doc)) if i not in native_pages]
+    coarse_pages=[]
+    if not native_pages and tessdata:
+        # Prioritisation only: a missed thumbnail title never proves absence.
+        # Reading a complete dense CAD map at full resolution can take minutes.
+        for page in doc:
+            if time.monotonic()-started>min(max_seconds*.25,45):break
+            thumbnail=ocr_rows(page,tessdata,scale=min(2,2000/max(page.rect.width,page.rect.height)))
+            if any(row['role']=='legend_title' for row in thumbnail):coarse_pages.append(page.number)
+    # A thumbnail can miss the tiny title of a detailed first-sheet legend
+    # while finding a simpler legend on another sheet. Always inspect the
+    # first source sheet before allowing an OCR-only title to reorder it.
+    preferred=native_pages if native_pages else list(dict.fromkeys([0]+coarse_pages))
+    page_order=preferred+[i for i in range(len(doc)) if i not in preferred]
     for page_index in page_order:
         page=doc[page_index]
         if time.monotonic()-started>max_seconds:break

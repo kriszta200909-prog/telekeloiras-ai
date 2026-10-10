@@ -1,10 +1,12 @@
 {
-  "checked_at_utc": "2026-10-10T07:31:37.794829+00:00",
-  "command": "python -m unittest discover -q",
+  "checked_at_utc": "2026-10-10T13:36:31.945230+00:00",
+  "command": "python -m unittest discover",
   "python": "3.12.14",
-  "tests_run": 124,
+  "tests_run": 171,
+  "elapsed_seconds": 9.31,
   "failures": 0,
   "errors": 0,
   "result": "OK",
-  "note": "124/124 teszt a végleges kódon; hét új A/B/C, feltételes szabálykapcsolati és API-szerződés regresszió. A multimodális HTTP-tesztek szimulált válaszok, nem élő AI-mérések. Streamlit kezdőfelület AppTest: 0 kivétel; kötelező telekadatok: település és HRSZ."
+  "log_sha256": "5c1148ad024941e1273cc72552468905af5da659663331c6a9db4701b26d0e61",
+  "note": "Teljes offline regressziós csomag, az eredeti 36 teszttel; HRSZ-pontosság, térképlapka-index, forráskivágat-ellenőrzés, bizonytalan ismétlődések, jelmagyarázati minták és Streamlit útvonalak. A valódi öttelekes forrásvizsgálat külön jegyzőkönyvben szerepel."
 }

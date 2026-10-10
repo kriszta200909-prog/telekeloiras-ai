@@ -1287,7 +1287,8 @@ def automatic_zone_rule_evidence(meta, page, inputs, identification):
     code=identification.get('zone') or identification.get('candidate_zone','')
     verified=identification.get('intersection_verified') is True
     out={'zone':code,'zone_verified':verified,'parameter_rows':[], 'clause_rows':[],
-         'errors':[],'complete':False,'missing_evidence':[]}
+         'errors':[],'complete':False,'missing_evidence':[],
+         'candidate_basis':identification.get('candidate_basis','')}
     if not identification.get('parcel_boundary_verified'):out['missing_evidence'].append('Forrásból igazolt teljes telekhatár')
     if not verified:out['missing_evidence'].append('A teljes telek igazolt övezeti fedése')
     out['missing_evidence'].extend(['Minden tervi korlátozás és védőterület telekspecifikus ellenőrzése',
@@ -1337,6 +1338,20 @@ def automatic_zone_rule_evidence(meta, page, inputs, identification):
                     'URL':source+'#'+urllib.parse.quote(reader.anchors[position],safe='.@()'),
                     'Teljes rendelkezés':clean_text(' '.join(parts)),
                     'Forrás SHA-256':expected})
+    else:
+        # Literal source-code references select complete legal sections, never
+        # a municipality/HRSZ-specific expected answer or a truncated snippet.
+        reader=TiszaLegalParagraphs(source.rsplit('/',1)[-1]);reader.feed(page.get('html',''))
+        code_match=re.compile(r'(?<![\w/.-])'+re.escape(code)+r'(?![\w/.-])',re.I)
+        sections={position[0] for position,parts in reader.blocks.items()
+                  if code_match.search(clean_text(' '.join(parts)))}
+        for position,parts in reader.blocks.items():
+            if position[0] not in sections or position[0] in reader.duplicates:continue
+            text=clean_text(' '.join(parts))
+            out['clause_rows'].append({'Forrás':f'{position[0]}. §'+(f' ({position[1]})' if position[1] else ''),
+                'URL':source+'#'+urllib.parse.quote(reader.anchors[position],safe='.@()'),
+                'Teljes rendelkezés':text,'Forrás SHA-256':source_digest(text),
+                'Kiválasztás':'A felismert kód szó szerinti említése a hatályos jogszabály teljes szakaszában'})
     for rows in (out['parameter_rows'],out['clause_rows']):
         for row in rows:
             row['Forrás időállapota']=edition
@@ -1344,15 +1359,23 @@ def automatic_zone_rule_evidence(meta, page, inputs, identification):
     return out
 
 
-def automatic_evidence_rows(parcel_api, plan_inputs, identification, *, rules_available=False):
+def automatic_evidence_rows(parcel_api, plan_inputs, identification, *, rules_available=False,visual=None):
     """Separate successful retrieval, map proof and complete rule applicability."""
-    candidate=identification.get('candidate_zone','')
+    visual=visual or {}
+    candidate=identification.get('candidate_zone','') or visual.get('zone','')
+    if not candidate:
+        observed={r['code'] for r in visual.get('candidate_labels',[])}
+        if len(observed)==1:candidate=next(iter(observed))
+    map_label=(visual.get('location',{}).get('verified_preliminary') or
+               visual.get('location',{}).get('plan_label_locations_verified') or visual.get('exact_hrsz_in_parcel'))
     geometry_ok=identification.get('parcel_boundary_verified') is True
     zone_ok=identification.get('intersection_verified') is True
     return [
-        {'Adat':'Helyrajzi szám','Bizonyított':bool(parcel_api),
-         'Eredmény':'pontos hivatalos HRSZ-találat' if parcel_api else 'nincs pontos hivatalos HRSZ-találat',
-         'Forrás':(parcel_api or {}).get('search_url','')},
+        {'Adat':'Helyrajzi szám','Bizonyított':bool(parcel_api or map_label),
+         'Eredmény':('pontos hivatalos HRSZ-találat' if parcel_api else
+                     'pontos HRSZ-felirat a hatályos terven; mai kataszteri állapot külön igazolandó' if map_label else
+                     'nincs pontos hivatalos HRSZ-találat'),
+         'Forrás':(parcel_api or {}).get('search_url','') or (plan_inputs.get('source_url','') if map_label else '')},
         {'Adat':'Telekgeometria','Bizonyított':geometry_ok,
          'Eredmény':('zárt tervlapi telekhatár; bizonytalanság: '+str(identification.get('uncertainty_m'))+' m'
                      if geometry_ok else 'csak megjelenítési poligon / nincs igazolt telekhatár'),
@@ -1414,7 +1437,7 @@ def select_plan_by_exact_label(meta, page, inputs, hrsz, on_progress=None):
             receipt.update(complete=spatial.get('scan',{}).get('complete',bool(hits)),
                 exact_label_hits=[{**hit,'pdf_rect':list(hit['pdf_rect'])} for hit in hits],
                 search=spatial.get('scan',{}))
-            if len(hits)==1:matched.append(index)
+            if hits:matched.append(index)
         else:receipt['error']=plan.get('error','Nincs ellenőrzött hatályos terv.')
         receipts.append(receipt)
     if len(matched)==1 and all(r.get('complete') for r in receipts):
@@ -1445,6 +1468,8 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
         page={};meta={}
     inputs=load_official_plan(page,meta,hrsz)
     meta,page,inputs=select_plan_by_exact_label(meta,page,inputs,hrsz,on_progress)
+    inputs['legal_zone_text']=page.get('text','')
+    inputs['legal_zone_text_sha256']=source_digest(inputs['legal_zone_text'])
     result['plan_inputs']=inputs
     inputs['supplementary_location_sources']=supplementary_location_documents(meta,hrsz)
     legend_profile=load_plan_legend(inputs,meta,result['ksh'])
@@ -1506,7 +1531,7 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
     result['classification'],rule_identification=visual_rule_identification(result['identification'],result['visual'])
     result['zone_rules']=automatic_zone_rule_evidence(meta,page,inputs,rule_identification)
     result['evidence']=automatic_evidence_rows(result['parcel_api'],inputs,result['identification'],
-                                              rules_available=bool(inventory['rows']))
+                                              rules_available=bool(inventory['rows']),visual=result['visual'])
     return result
 
 
@@ -1516,6 +1541,11 @@ def visual_rule_identification(identification, visual):
     scoped=dict(identification)
     if classification['category']=='B':
         scoped.update(zone='',candidate_zone=classification['zone'],intersection_verified=False)
+    elif classification['category']=='C':
+        observed={row['code'] for row in visual.get('candidate_labels',[])}
+        if len(observed)==1:
+            scoped.update(zone='',candidate_zone=next(iter(observed)),intersection_verified=False,
+                candidate_basis='Kiolvasott tervi kód; telekhez tartozása nem igazolt, a besorolás C marad.')
     return classification,scoped
 
 
@@ -1523,11 +1553,13 @@ def visual_plan_evidence(doc, plan_result, profile, inputs, ksh, hrsz, spatial=N
     from pathlib import Path
     import tempfile
     from visual_plan import inspect_visual_plan,inspect_label_location,add_source_legend,optional_vision_review
+    from plan_localization import source_zone_pattern
+    pattern=source_zone_pattern(inputs.get('legal_zone_text',''),ZONE_PATTERN)
     result=inspect_visual_plan(doc,plan_result,profile,ZONE_PATTERN,normalize_hrsz(hrsz),
         identity={'plan_url':inputs.get('source_url'),'plan_hash':inputs.get('source_hash'),
                   'edition':inputs.get('edition'),'ksh':ksh})
     if not plan_result.get('parcel_boundary_verified') and spatial:
-        result=inspect_label_location(doc,spatial,profile,ZONE_PATTERN,normalize_hrsz(hrsz),
+        result=inspect_label_location(doc,spatial,profile,pattern,normalize_hrsz(hrsz),
             {'plan_url':inputs.get('source_url'),'plan_hash':inputs.get('source_hash'),
              'edition':inputs.get('edition'),'ksh':ksh},ocr_rotated_crop,ink_components)
     if inputs.get('source_selection_ambiguous'):
@@ -2182,7 +2214,8 @@ def load_outlined_plan_labels(doc,hrsz,on_progress=None):
     digest=source_digest(raw)
     try:index=cached_outlined_plan_index(digest,'outlined-label-index-v4-separate-stroke',_doc=doc,_on_progress=on_progress)
     except IncompletePlanLabelIndex as exc:index=exc.result
-    result=verify_outlined_hrsz(doc,index,normalize_hrsz(hrsz),plan_ocr_data())
+    from plan_localization import verify_candidates
+    result=verify_candidates(doc,index,normalize_hrsz(hrsz),plan_ocr_data())
     result['source_sha256']=digest
     return result
 
@@ -2321,6 +2354,17 @@ def locate_parcel(doc, hrsz, outlined=False, on_progress=None):
     scan={}
     if not hits and outlined:
         scan=load_outlined_plan_labels(doc,hrsz,on_progress=on_progress)
+        if not scan['hits'] and scan.get('complete'):
+            from plan_localization import tiled_index,verify_candidates,repeated_sheet_labels,nearby_hrsz_candidates
+            index=tiled_index(doc,plan_ocr_data(),on_progress=on_progress)
+            supplemental=verify_candidates(doc,index,normalize_hrsz(hrsz),plan_ocr_data())
+            supplemental['hits']=nearby_hrsz_candidates(doc,index,supplemental['hits'],normalize_hrsz(hrsz),plan_ocr_data())
+            supplemental['method']='CAD-csoportosítástól független, átfedő térképlapkák OCR-keresése'
+            supplemental['source_sha256']=index['source_sha256']
+            supplemental['cad_search']=scan
+            supplemental['hits'],supplemental['sheet_equivalence']=repeated_sheet_labels(
+                doc,index,supplemental['hits'],normalize_hrsz(hrsz),plan_ocr_data())
+            scan=supplemental
         hits=[{**hit,'pdf_rect':fitz.Rect(hit['pdf_rect']),'coordinate_space':'display'}
               for hit in scan['hits']]
     if not hits:
@@ -5513,6 +5557,8 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
         with st.spinner("Szabályozási terv automatikus letöltésének kísérlete…"):
             plan_inputs = load_official_plan(page, meta or {}, hrsz)
             meta,page,plan_inputs=select_plan_by_exact_label(meta or {},page,plan_inputs,hrsz)
+            plan_inputs['legal_zone_text']=page.get('text','')
+            plan_inputs['legal_zone_text_sha256']=source_digest(plan_inputs['legal_zone_text'])
             source_valid=plan_inputs.get('source_valid',False)
             checks=plan_inputs.get('checks',{});attachments=plan_inputs.get('attachments',[])
             auto_plan_error = plan_inputs.get('error','')
@@ -5951,10 +5997,6 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     if national_rules:
         summary.append({"Adat":"Országos rendeltetési szabályok","Eredmény":f"{sum(r['ok'] for r in national_rules)}/4 ellenőrzött forráskiadás",
             "Forrás":"OTÉK és TÉKA – pontos § és bekezdés","Bizonyosság":("alkalmazási csomag kiválasztva; a konkrét építési feltételek még vizsgálandók" if applicability.get("ok") else "alkalmazási alap még igazolandó; építési jogosultság nem megállapított")})
-    automatic_rows = automatic_evidence_rows(parcel_api, plan_inputs, geometric_identification,
-                                             rules_available=bool(source_inventory['rows']))
-    st.subheader('Automatikus azonosítás – négy külön bizonyítottsági állapot')
-    st.dataframe(automatic_rows,hide_index=True,use_container_width=True)
     visual={'status':'not_identifiable','zone':''}
     if plan_doc is not None:
         visual=visual_plan_evidence(plan_doc,plan_zone,legend_profile,plan_inputs,ksh,hrsz,spatial=spatial)
@@ -5966,6 +6008,10 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
             png=visual.pop('annotated_png',None)
             if png:st.image(png,caption=visual['annotation_note'])
             st.json(visual)
+    automatic_rows = automatic_evidence_rows(parcel_api, plan_inputs, geometric_identification,
+                                             rules_available=bool(source_inventory['rows']),visual=visual)
+    st.subheader('Automatikus azonosítás – négy külön bizonyítottsági állapot')
+    st.dataframe(automatic_rows,hide_index=True,use_container_width=True)
     classification,rule_identification=visual_rule_identification(geometric_identification,visual)
     st.subheader(classification['title'])
     if classification['zone']:st.write('Övezet: '+classification['zone'])
@@ -5998,6 +6044,7 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     if zone_rule_evidence['parameter_rows'] or zone_rule_evidence['clause_rows']:
         with st.expander('Önállóan felismert kód forrásolt szabályai: '+zone_rule_evidence['zone']):
             st.caption('A kódhoz tartozó forrásszabályok. A teljes telekre és a konkrét építési ügyre alkalmazhatóságuk még nem igazolt.')
+            if zone_rule_evidence.get('candidate_basis'):st.warning(zone_rule_evidence['candidate_basis'])
             if zone_rule_evidence['parameter_rows']:
                 st.dataframe(zone_rule_evidence['parameter_rows'],hide_index=True,use_container_width=True)
             if zone_rule_evidence['clause_rows']:

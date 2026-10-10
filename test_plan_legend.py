@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import fitz
 
@@ -23,6 +24,68 @@ def legend_document(colour=(.2,.7,.1), dashed=False, right=False):
 
 
 class PlanLegendTests(unittest.TestCase):
+    def test_thumbnail_miss_cannot_replace_first_sheet_legend(self):
+        with tempfile.TemporaryDirectory() as cache,fitz.open() as doc:
+            for _ in range(2):doc.new_page(width=600,height=300)
+            def rows(page,tessdata,crop=None,scale=None):
+                if scale is not None and scale<=2 and page.number==0:return []
+                return [{'role':'legend_title','label':'Jelmagyarazat','rect':[100,30,200,40],
+                         'recognition':'native'}]
+            def parsed(page,rows):
+                return [{'role':'zone_boundary','label':'Ovezethatar','label_verified':True,'recognition':'native',
+                         'styles':[{'source_sheet':page.number+1}],'PDF-oldal':page.number+1}]
+            with patch('plan_legend.caption_rows',return_value=[]),\
+                 patch('plan_legend.ocr_rows',side_effect=rows),\
+                 patch('plan_legend.parse_legend',side_effect=parsed):
+                result=self.read(doc,cache,tessdata='available')
+            self.assertEqual(result['records'][0]['PDF-oldal'],1)
+
+    def test_distant_framed_sample_column_is_found_for_ocr_captions(self):
+        from plan_legend import parse_legend
+        doc=fitz.open();page=doc.new_page(width=1200,height=600)
+        rows=[{'role':'legend_title','label':'Jelmagyarazat','rect':[100,30,180,40],'recognition':'OCR candidate'}]
+        for i in range(3):
+            y=100+i*40
+            page.draw_rect(fitz.Rect(300,y,350,y+20),color=(0,0,0),width=.2)
+            page.draw_line((300,y+10),(350,y+10),color=(.7,.1,.3),width=1)
+            rows.append({'role':'zone_boundary','label':'Ovezethatar','rect':[100,y+3,160,y+17],'recognition':'two-scale OCR'})
+        parsed=parse_legend(page,rows)
+        self.assertEqual(len(parsed),3)
+        self.assertTrue(all(r['sample_rect'][0]>290 and r['styles'] for r in parsed))
+        self.assertTrue(all(r['sample_column_evidence']['aligned_caption_rows']==3 for r in parsed))
+
+    def test_source_dot_strokes_do_not_match_same_colour_contours(self):
+        from plan_legend import drawing_style
+        dot=drawing_style({'items':[('l',(10,10),(10.12,10))],'color':(1,0,0),'width':.6})
+        contour=drawing_style({'items':[('l',(10,10),(30,20))],'color':(1,0,0),'width':.6})
+        self.assertEqual(dot['primitive'],'short_dot_strokes')
+        self.assertFalse(matches_style(contour,dot));self.assertTrue(matches_style(dot,dot))
+
+    def test_ocr_caption_between_two_framed_columns_stays_ambiguous(self):
+        from plan_legend import parse_legend
+        doc=fitz.open();page=doc.new_page(width=1200,height=600)
+        rows=[{'role':'legend_title','label':'Jelmagyarazat','rect':[100,30,180,40],'recognition':'OCR candidate'}]
+        for i in range(3):
+            y=100+i*40
+            for x in (50,300):
+                page.draw_rect(fitz.Rect(x,y,x+45,y+20),color=(0,0,0),width=.2)
+                page.draw_line((x,y+10),(x+45,y+10),color=(.7,.1,.3),width=1)
+            rows.append({'role':'zone_boundary','label':'Ovezethatar','rect':[150,y+3,230,y+17],'recognition':'two-scale OCR'})
+        parsed=parse_legend(page,rows)
+        self.assertTrue(all(r['ambiguous_sample'] and not r['styles'] for r in parsed))
+
+    def test_existing_vector_sample_is_not_overridden_by_unrelated_frames(self):
+        from plan_legend import parse_legend
+        doc=fitz.open();page=doc.new_page(width=1200,height=600)
+        rows=[{'role':'legend_title','label':'Jelmagyarazat','rect':[100,30,180,40],'recognition':'OCR candidate'}]
+        for i in range(3):
+            y=100+i*40
+            page.draw_line((60,y+10),(90,y+10),color=(1,0,0),width=.6)
+            for x in (250,320):page.draw_rect(fitz.Rect(x,y,x+45,y+20),color=(0,0,0),width=.2)
+            rows.append({'role':'zone_boundary','label':'Ovezethatar','rect':[100,y+3,160,y+17],'recognition':'two-scale OCR'})
+        parsed=parse_legend(page,rows)
+        self.assertTrue(all(not r['ambiguous_sample'] and r['styles'][0]['stroke']==[1.,0.,0.] for r in parsed))
+
     def read(self,doc,cache,**changes):
         args=dict(source_url='https://njt.jog.gov.hu/document/legend.pdf',
                   source_hash=app.source_digest(doc.stream or doc.tobytes()),

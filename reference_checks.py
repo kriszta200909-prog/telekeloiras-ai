@@ -24,6 +24,7 @@ def public_result(result):
         result['parcel_source']['geometry_sha256'] = app.source_digest(
             json.dumps(parcel.get('geometry',{}).get('outline'), sort_keys=True))
     result['plan_inputs'].pop('path', None)
+    result['plan_inputs'].pop('legal_zone_text', None)
     def strip_templates(value):
         if isinstance(value,dict):
             value.pop('png_base64',None)
@@ -49,7 +50,7 @@ def main():
               'outlined_label_search': True,
               'legacy_outlined_flag': args.outlined,
               'code_sha256': {name:app.source_digest(Path(name).read_bytes())
-                              for name in ('app.py','plan_labels.py','geopdf.py','plan_legend.py','plan_connections.py','plan_geometry_audit.py','zone_parameters.py','gis_sources.py','visual_plan.py','reference_checks.py')}, 'cases': []}
+                              for name in ('app.py','plan_labels.py','plan_localization.py','plan_ocr_worker.py','geopdf.py','plan_legend.py','plan_connections.py','plan_geometry_audit.py','zone_parameters.py','gis_sources.py','visual_plan.py','reference_checks.py')}, 'cases': []}
     for place, hrsz in CASES:
         print(place + ' ' + hrsz + ': hivatalos forráslekérés…', flush=True)
         def progress(page, pages, scanned, labels):

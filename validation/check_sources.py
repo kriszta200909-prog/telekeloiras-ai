@@ -9,10 +9,11 @@ import json
 from pathlib import Path
 import sys
 import tempfile
+from datetime import datetime,timezone
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import app
-from reference_checks import CASES
+from reference_checks import CASES,public_result
 
 
 def check_report(report, cache, history=None):
@@ -22,11 +23,20 @@ def check_report(report, cache, history=None):
         checks.append(name)
     check('Mind az öt kért telek szerepel',
           [(c['place'],c['hrsz']) for c in report['cases']]==CASES)
-    for filename,expected in report['code_sha256'].items():
+    active_hashes=report.get('revalidation',{}).get('code_sha256',report['code_sha256'])
+    check('Újraellenőrzés ugyanazokat a feldolgozómodulokat köti a forrásadatokhoz',
+          set(active_hashes)==set(report['code_sha256']))
+    for filename,expected in active_hashes.items():
         check('Feldolgozó lenyomata: '+filename,
               app.source_digest(Path(filename).read_bytes())==expected)
     for case in report['cases']:
         name=case['place']+' '+case['hrsz'];inputs=case['plan_inputs']
+        print(name+': eredeti terv és saját jelmagyarázat újraellenőrzése…',flush=True)
+        if inputs.get('legal_zone_text_sha256'):
+            legal=app.fetch_njt_page(case['legal_source_url'])
+            check(name+': övezeti kódszintaxis tényleges hatályos jogszabályszövegből',
+                legal.get('ok') and app.source_digest(legal.get('text',''))==inputs['legal_zone_text_sha256'])
+            inputs=dict(inputs,legal_zone_text=legal['text'])
         check(name+': hivatalos, hatályos NJT-terv',
               inputs.get('current_verified') is True and inputs.get('source_valid') is True
               and app.is_official_njt_url(inputs['source_url']))
@@ -40,6 +50,14 @@ def check_report(report, cache, history=None):
         source=identity['source_url'];legend_path=cache/(hashlib.sha256(source.encode()).hexdigest()+'.pdf')
         check(name+': eredeti jelmagyarázat-bájtok lenyomata',
               legend_path.is_file() and app.source_digest(legend_path.read_bytes())==identity['source_hash'])
+        if 'plan_localization.py' in report['code_sha256']:
+            from plan_legend import discover_legend
+            import fitz
+            with tempfile.TemporaryDirectory() as uncached,fitz.open(legend_path) as legend_doc:
+                reconstructed=discover_legend(legend_doc,**{k:v for k,v in identity.items() if k!='implementation'},
+                    tessdata=app.plan_ocr_data(),cache_dir=uncached)
+            check(name+': saját jelmagyarázat mintái eredeti PDF-ből gyorsítótár nélkül újraolvasva',
+                public_result({'plan_inputs':{},'records':reconstructed['records']})['records']==profile['records'])
         evidence=case['evidence'];identification=case['identification']
         check(name+': külön bizonyítottsági állapotok',len(evidence)==4)
         check(name+': a jelölt nem bizonyított övezet',
@@ -72,6 +90,12 @@ def check_report(report, cache, history=None):
                   and heritage.get('current_legal_protection_verified') is not True)
         visual=case.get('visual')
         if visual:
+            if case['zone_rules'].get('candidate_basis'):
+                _,scope=app.visual_rule_identification(identification,visual)
+                recomputed=app.automatic_zone_rule_evidence({},legal,inputs,scope)
+                check(name+': C jelölt teljes szakasza és hivatkozásai hatályos jogszabályból újraolvasva',
+                    recomputed==case['zone_rules'] and case['classification']['category']=='C'
+                    and not recomputed['zone_verified'] and not recomputed['complete'])
             if visual.get('illustration_file'):
                 illustration=Path('validation')/visual['illustration_file']
                 check(name+': megőrzött képi bizonyíték lenyomata',
@@ -86,7 +110,8 @@ def check_report(report, cache, history=None):
             check(name+': élő ellenőrzésben nincs kitalált modellhívás vagy API-költség',
                   visual.get('ai_review',{}).get('external_ai_requests')==0 and
                   visual.get('ai_review',{}).get('external_ai_cost')==0)
-            if visual.get('location',{}).get('verified_preliminary'):
+            if (visual.get('location',{}).get('verified_preliminary') or
+                    visual.get('location',{}).get('plan_label_locations_verified')):
                 import fitz
                 with fitz.open(path) as doc:
                     located=app.locate_parcel(doc,case['hrsz'],outlined=True)
@@ -99,6 +124,15 @@ def check_report(report, cache, history=None):
                 check(name+': előzetes HRSZ-hely nem igazolt teljes telekgeometria',
                     visual['location']['parcel_boundary_verified'] is False and
                     visual['intersection_verified'] is False)
+                hits=located.get('hits',[])
+                check(name+': három felbontású HRSZ-olvasat és eredeti képkivágatok lenyomatai',
+                    bool(hits) and all(len(h.get('source_readings',[]))==3 and
+                        len(h.get('source_crop_sha256',[]))==3 for h in hits))
+                if visual.get('location',{}).get('plan_label_locations_verified'):
+                    check(name+': ismételt HRSZ-feliratból nem lett hamis egyértelmű besorolás',
+                        len(hits)>1 and case['classification']['category']=='C' and visual['zone']=='')
+                check(name+': csak az eredeti feliratot jelöljük, nem feltételezett telekhatárt',
+                    rebuilt['location']==visual['location'])
                 if visual.get('circle_layout_from_own_legend'):
                     check(name+': kör alakú kódmező a saját jelmagyarázatból igazolt',
                         visual.get('circle_layout_examples')==rebuilt.get('circle_layout_examples') and
@@ -111,6 +145,12 @@ def check_report(report, cache, history=None):
                 alternative_path=cache/(hashlib.sha256(alternative['plan_url'].encode()).hexdigest()+'.pdf')
                 check(name+': alternatív hivatalos terv eredeti bájtjai',
                     alternative_path.is_file() and app.source_digest(alternative_path.read_bytes())==alternative['plan_hash'])
+                if 'plan_localization.py' in report['code_sha256']:
+                    import fitz
+                    with fitz.open(alternative_path) as alternative_doc:
+                        located=app.locate_parcel(alternative_doc,case['hrsz'],outlined=True)
+                    check(name+': alternatív KÉSZ feliratai eredeti PDF-ből újraellenőrizve',
+                        located.get('hits',[])==alternative.get('exact_label_hits',[]))
             for supplement in inputs.get('supplementary_location_sources',[]):
                 if not supplement.get('source_hash'):continue
                 supplement_path=cache/(hashlib.sha256(supplement['source_url'].encode()).hexdigest()+'.pdf')
@@ -118,7 +158,31 @@ def check_report(report, cache, history=None):
                     supplement_path.is_file() and app.source_digest(supplement_path.read_bytes())==supplement['source_hash'])
                 check(name+': történeti nyom nem hatályos övezeti bizonyítás',
                     supplement['current_plan_verified'] is False and supplement['zone_verified'] is False)
+    for control in report.get('additional_localization_checks',[]):
+        import fitz
+        from plan_localization import tiled_index,verify_candidates,repeated_sheet_labels
+        path=cache/(hashlib.sha256(control['plan_url'].encode()).hexdigest()+'.pdf')
+        check('További HRSZ '+control['hrsz']+': eredeti hivatalos térképbájtok',
+              app.source_digest(path.read_bytes())==control['plan_sha256'])
+        with fitz.open(path) as doc:
+            index=tiled_index(doc,app.plan_ocr_data())
+            verified=verify_candidates(doc,index,control['hrsz'],app.plan_ocr_data())
+            _,audit=repeated_sheet_labels(doc,index,verified['hits'],control['hrsz'],app.plan_ocr_data())
+        check('További HRSZ '+control['hrsz']+': valódi forrásból ellenőrzött tervlapi átfedés',
+              verified['hits']==control['verified_hits'] and audit==control['sheet_equivalence'])
+        check('További HRSZ '+control['hrsz']+': elégtelen támpontból nincs kitalált övezet',
+              control['zone_assigned'] is False)
     miskolc=report['cases'][-1]
+    if report.get('revalidation'):
+        from shapely import wkt
+        from shapely.geometry import mapping
+        coverage=app.parcel_zone_coverage(mapping(wkt.loads(miskolc['plan_result']['parcel_wkt'])),
+            miskolc['plan_result'].get('zone_features',[]),'EPSG:23700')
+        check('Miskolc: aktuális fedési döntés az eredeti telekgeometriából sem igazolt',
+              coverage['status'] not in ('single_zone_spatial','multiple_zones'))
+        from gis_sources import public_url
+        check('Tényleges hivatalos GIS-katalóguscím az aktuális URL-ellenőrzővel elfogadott',
+              public_url('https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/csw'))
     check('Miskolc: önállóan azonosított 4755/11 telekhatár',
           miskolc['identification']['parcel_boundary_verified'] is True)
     if miskolc.get('visual',{}).get('candidate_labels'):
@@ -265,11 +329,21 @@ def check_local_models(local_report, report, cache):
     expected={}
     for place,hrsz in targets:
         case=next(c for c in report['cases'] if c['place']==place and c['hrsz']==hrsz)
+        original=local_report.get('image_input_manifests',{}).get(hrsz)
+        if original:
+            identity=original['legend']['identity']
+            check(place+': korábbi valódi próba eredeti képbemenete ugyanazon hivatalos forrásból',
+                original['place']==place and original['plan_source_url']==case['plan_inputs']['source_url']
+                and original['plan_source_sha256']==case['plan_inputs']['source_hash']
+                and all(identity.get(k)==case['legend']['identity'].get(k) for k in
+                        ('source_url','source_hash','plan_url','plan_hash','edition','ksh')))
+        visual=original['visual'] if original else case['visual']
+        legend=original['legend'] if original else case['legend']
         path=cache/(hashlib.sha256(case['plan_inputs']['source_url'].encode()).hexdigest()+'.pdf')
         with fitz.open(path) as doc:
-            images=source_images(doc,case['visual'],case['legend'],cache)
+            images=source_images(doc,visual,legend,cache)
         expected[hrsz]=[hashlib.sha256(raw).hexdigest() for raw in images]
-        check(place+': eredeti, ellenőrzött AI-képbemenetek',expected[hrsz][0]==case['visual']['context_image_sha256'])
+        check(place+': eredeti, ellenőrzött AI-képbemenetek',expected[hrsz][0]==visual['context_image_sha256'])
     for key,receipt in local_report['models'].items():
         spec=MODELS[key]
         check(key+': nyílt Apache modell rögzített revízióval',receipt['model']==spec['model'] and receipt['revision']==spec['revision'] and receipt['license']=='Apache-2.0')
@@ -298,7 +372,9 @@ if __name__=='__main__':
     if args.local_vision_report:
         checks+=check_local_models(json.loads(Path(args.local_vision_report).read_text()),report,Path(args.pdf_cache))
     result={'report_sha256':app.source_digest(Path(args.report).read_bytes()),
-            'passed':len(checks),'checks':checks}
+            'passed':len(checks),'checks':checks,
+            'checked_at_utc':datetime.now(timezone.utc).isoformat(),
+            'code_sha256':report.get('revalidation',{}).get('code_sha256',report['code_sha256'])}
     if history is not None:result['history_report_sha256']=app.source_digest(Path(args.history_report).read_bytes())
     if args.local_vision_report:result['local_vision_report_sha256']=app.source_digest(Path(args.local_vision_report).read_bytes())
     if args.output:Path(args.output).write_text(json.dumps(result,ensure_ascii=False,indent=2))

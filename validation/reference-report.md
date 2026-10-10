@@ -1,192 +1,129 @@
-# Hivatalos források és saját jelmagyarázatok – 2026. október 10.
+# Országos telekazonosítás – ellenőrzött fejlesztési eredmények
 
-**A fő cél még nem teljesült: 0/5 teleknek van teljesen bizonyított, hatályos építési előíráslistája.**
+A végleges öttelekes forrásvizsgálat kezdete: **2026-10-10T12:51:16.528354+00:00**.
+A PR ágára közben beérkezett hibás GIS-URL és keskeny fedési rés javítását
+megőriztük. Az egyesített kódon az összes teszt és a PDF-/jelmagyarázat-/
+HRSZ-/képi/jogszabályi forrásellenőrzés újra sikeres. A JSON eredeti
+`code_sha256` mezője az élő forrásfuttatás verzióját őrzi; a `revalidation`
+mező és a forrásellenőrzés külön kódlenyomatai az aktuális újraszámítást
+kötik a forrásadatokhoz. Így az eredeti vizsgálatot nem tüntetjük fel új
+élő adatlekérésként.
 
-151/151 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
-Streamlit vizsgálati útvonalát. Az öt mintatelek élő forrásvizsgálata után
-222/222 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
-időállapotok, jelmagyarázat–tervlap kötés, feldolgozólenyomatok,
-bizonyítottsági állapotok és a miskolci paraméterkód feloldása.
-Ez a forráskezelés helyességét ellenőrzi; nem állít sikeres telekbesorolást.
+**Tervlapi HRSZ-környezet: 3/5 → 5/5. Övezeti besorolás: 0 A, 3 B, 2 C.
+Teljesen bizonyított, hatályos telekspecifikus előíráslista: 0/5.**
+A fő cél még nem teljesült. A két új felirathely nem jelent két új bizonyított
+földrészletet, B besorolást vagy mai kataszteri létezési bizonyítékot.
 
-**3/5 teleknek van azonosított tervlapi helye és előzetes B övezeti eredménye; A besorolás: 0/5.**
+| Telek | Tervlapi hely és képi bizonyíték | Övezeti eredmény | Minősítés | Fennmaradó akadály |
+|---|---|---|---|---|
+| Miskolc 4755/11 | [20-4 szelvény, 31. PDF-oldal](miskolc-plan-context.png); zárt tervlapi telek igazolt | Gipe-60.63.5 | B | Négy nyitott övezeti csatlakozás és eltérő útkitöltés; teljes övezeti fedés nincs igazolva. |
+| Tiszaújváros 2200/8 | [35. PDF-oldal](tiszaújváros-2200-8.png); pontos felirat | Gip/3 | B | Teljes, igazolt telekpoligon és övezeti fedés hiányzik. |
+| Komádi 1558 | [1. PDF-oldal](komádi-1558.png); pontos felirat | Lke/1.2 | B | Teljes telekpoligon és a teljes telek korlátozásvizsgálata hiányzik. |
+| Budapest XII. 8448/46 | [Déli KÉSZ, 8. PDF-oldal](budapest-xii.-kerület-8448-46.png); két külön felirat | Nincs kiválasztott övezet; Lke-2/D-2, Lke-2/D-1 és Lk-2/D-6 környezeti feliratok | C | A feliratok közös telekhez rendelése, az északi/déli KÉSZ átfedése és a teljes övezeti kapcsolat nem igazolt. |
+| Gersekarát 034/15 | [Hatályos rendelethez kapcsolt közigazgatási terv, 1. PDF-oldal](gersekarát-034-15.png); pontos felirat | Kb-Nk: kiolvasott jelölt | C | Csak 6/9 helyi kapcsolat; mai kataszteri állapot és teljes telek-/övezeti fedés nem igazolt. |
 
-| Telek | Tervlapi HRSZ-hely | Övezet | Minősítés | Kép | Fennmaradó akadály |
-|---|---|---|---|---|---|
-| Tiszaújváros 2200/8 | igen | Gip/3 | B | [tervrészlet és saját jelmagyarázat](tiszaújváros-2200-8.png) | Teljes telek- és övezeti fedés nincs igazolva. |
-| Budapest XII. kerület 8448/46 | nem | nem azonosítható | C | [nem lokalizált forrásáttekintés](budapest-xii.-kerület-8448-46.png) | Egyik hatályos KÉSZ-ben sincs igazolt felirathely; engedélyezett OÉNY WMS-próba térkép helyett hibaoldalt adott. |
-| Komádi 1558 | igen | Lke/1.2 | B | [tervrészlet és saját jelmagyarázat](komádi-1558.png) | Teljes telekpoligon és teljes övezeti fedés nincs igazolva. |
-| Gersekarát 034/15 | nem | nem azonosítható | C | [nem lokalizált forrásáttekintés](gersekarát-034-15.png) | Nincs pontos OÉNY-találat vagy igazolt mai tervi hely; saját határjelmagyarázat nem egyértelmű. |
-| Miskolc 4755/11 | igen | Gipe-60.63.5 | B | [tervrészlet és saját jelmagyarázat](miskolc-plan-context.png) | Nyitott övezeti csatlakozások és eltérő útkitöltés; teljes fedés nem igazolt. |
+A képek az eredeti hivatalos PDF-ből készültek, a saját jelmagyarázat
+kivágásaival. A cián jelölés a felirathelyet, Miskolcnál az igazolt tervlapi
+telket mutatja. Az alkalmazás magyarázó színei nem hivatalos tervjelölések.
+B: előzetes képi kapcsolat, feltételes előírásokkal. C: a besorolás nem
+azonosítható, akkor is, ha egy térképi kód vagy HRSZ-felirat kiolvasható.
+A kategóriák nem kalibrált valószínűségek.
 
-A C képek az ellenőrzött forrás első PDF-oldalát mutatják „nem lokalizált”
-jelzéssel. Nem bizonyítják az adott telek helyét. A pontos OÉNY-találat és az
-igazolt tervlapi hely külön állapot. Teljes bizonyított előíráslista: **0/5**.
+## Ellenőrzött javítások
 
-Az eljárás a kitöltött és a vonalas CAD-betűket külön csoportosítja, a forgatott
-lapokon megjelenítési koordinátákat használ, és az indexet az eredeti dokumentum
-és a futó algoritmus lenyomatához köti. A folytatható index lemezre is mentődik.
-A pontos feliratot három felbontásban ellenőrzi. A saját jelmagyarázatban a
-kódmező körvonalát és osztóvonalát is megkeresi: a felirat önmagában nem elég.
-A helyi kapcsolatteszt a B kategóriához nem igényel teljes telekpoligont;
-sem a 4 pontos HRSZ-környezet, sem a 9 mintapont nem válik telekgeometriává.
+A kisméretű, szürke CAD-feliratokat az eredeti betűcsoport-index nem mindig
+olvasta ki. Az új, átfedő térképlapka-OCR ettől függetlenül keres az egész
+forrásban; forrás- és indexelőkód-lenyomathoz kötött, folytatható, más
+HRSZ-ekhez is újrahasználható. A jelölt eredeti kivágatát 16×, 24× és 32×
+léptékben ellenőrzi. A vonalakkal keresztezett feliratok külön ingyenes OCR-
+szegmentálást kapnak. Lapkaeredetű helyet csak három stabil betűdobozból fogad
+el; a helyes szöveg egy pontatlan térképi dobozban önmagában nem helybizonyíték.
 
-A mintakeret nem térképi határ. A javítás geometria alapján szűri a színes
-mintát körülvevő keretet, megtartja a fekete szimbólumokat, és zárt jelalakot
-nem illeszt nyitott vonalra. Zárt alakzatot puszta színazonosságból nem azonosít.
-A terv eredeti határjelei változatlanok. Vonalakat, sarkokat és lapszélt nem
-köt össze nem igazolt folytonossággal. Tiszaújvárosnál a kivágásban nincs
-illeszkedő natív határszakasz: a raszteres, saját stílusú jelvizsgálat ad helyi
-jelöltkapcsolatot, nem zárt övezetpoligont. B kategória, nem kalibrált valószínűség.
+Gersekarát pontos feliratát a 24× olvasat végén álló pont miatt korábban
+elutasította. Csak ezt a záró írásjelet engedi elhagyni; a vezető nulla,
+a belső számok és utótagok változatlanok. A közeli ismétlődő feliratokat külön
+keresi és újraolvassa, majd ugyanazon lapon nem vonja össze telekgeometria
+nélkül. A nagy CAD-övezeti betűket két nagyításban, kisebb kivágatokból is
+vizsgálja. A tisztán számszerű építési paraméter nem válik övezeti kóddá.
+A kiegészítő kódszintaxist a tényleges hatályos jogszabályból vezeti le;
+szavak belsejéből kivágott részleges kódot nem fogad el.
 
-Független utcahálózati/épületalaprajzi illesztés még nincs igazolva. A helyi
-utcafeliratok és szomszédos HRSZ-ek OCR-nyomai ellenőrizendő környezeti adatok.
-Az eredménytelen teleknél a program nem választ közeli övezeti feliratot.
-A budapesti északi és déli KÉSZ-t külön, hatályos hivatalos forrásként ellenőrzi;
-csak egyetlen pontos, teljes keresésben megerősített találatnál vált rendeletet.
-Többértelmű vagy részleges alternatív keresés nem ad A besorolást.
+Az eltérő elrendezésű saját jelmagyarázatnál legalább három külön feliratsor
+alapján találja meg a távoli, keretezett mintaoszlopot. Az apró pontvonásokat
+nem azonosítja az ugyanilyen színű folytonos szintvonalakkal. A meglevő,
+helyesen olvasott vektormintákat megőrzi. A kis felbontású címkeresés nem
+cserélheti le az első forráslap részletes jelmagyarázatát egy másik lap
+részleges jelmagyarázatára: ezt a Komádi élő próbán feltárt regressziót is
+javította. A helyi korlátozáskeresés csak a releváns kivágat natív rajzait
+értékeli; az eredeti szakaszokat nem vágja le és nem zárja a kép szélével.
 
-Az automatikus jóváhagyási ellenőrzés elutasította a pontos telekkoordinátás
-Nominatim-próbát és az OÉNY saját `hrsz/wms` szolgáltatásának GetMap-próbáját.
-Indoka: pontos, telekből származtatott helyadat külső célhelyre továbbítása
-nincs külön jóváhagyva. A kérések nem mentek ki; WMS-válaszhibát nem állítunk.
-Az OÉNY hivatalos frontendjében a `foldreszlet`, `felirat_kat` és `epulet`
-rétegeket azonosítottuk. Az OÉNY-koordinátás kérés engedélye fennmaradó akadály.
+Mindhárom B kontrollt az eredeti forrásból újra megvizsgálta: Miskolc 5/9,
+Tiszaújváros és Komádi 9/9 helyi kapcsolat. Ezek nem a teljes telek fedési
+arányai. Gersekarát 6/9 eredményénél a küszöböt nem csökkentette. Az esetleges
+többövezetes érintettség és a helyi korlátozások hiányának bizonyítása egyik
+B/C vizsgálatnál sem teljes. A megoldásban nincs HRSZ-hez beégetett övezet.
+Független, koordinátákkal igazolt utcahálózati/épületalaprajzi térképillesztés
+még nem működik; országos kataszteri ellátottságot az öt próba nem bizonyít.
 
-A forrásjegyzék a gersekaráti önkormányzati tanulmány pontos HRSZ-említéseit
-és azok PDF-oldalát megőrzi. Ezek történeti nyomok, nem mai telekhely vagy
-hatályos övezet bizonyítékai; a forrásbájtok külön ellenőrzöttek.
+## Budapest XII. kerület 8448/46
 
-## Helyi vizuális vizsgálat – 2026. október 10.
+Mindkét rendelet 2026.06.08. időállapotú hivatalos tervét teljes indexeléssel
+vizsgálta. A [déli, 36/2021. KÉSZ](https://njt.jog.gov.hu/jogszabaly/2021-36-SP-5Y261)
+[tervének](https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf)
+8. PDF-oldalán két külön 8448/46 felirat látható a Thomán István utca és a
+Sólyom utca környezetében. Az [északi, 26/2020. KÉSZ](https://njt.jog.gov.hu/jogszabaly/2020-26-SP-5Y261)
+[peremlapjain](https://njt.jog.gov.hu/document/2a/2afbLL_EJR_99704828-20250806__-Hegyvid_k_K_SZ_1_mell_klet.pdf)
+is megtalálhatók HRSZ-feliratok a 63–64. PDF-oldalon. A háttértérképi felirat
+nem bizonyítja az adott rendelet területi hatályát. A program ezért az
+északi/déli forrásválasztás bizonytalanságát külön megőrzi.
 
-A miskolci képfeldolgozó útvonal az igazolt tervlapi telek környezetét vizsgálja.
-A többi tervnél az önálló, pontos felirathelyet használó B útvonal működik. A telek EOV-geometriáját a terv saját GEO-illesztésével
-helyezi a képre, és a telekbelsőben levő pontos HRSZ-felirattal ellenőrzi.
-A környező telekfeliratok pozícióit kigyűjti; ezek **szomszédsági jelöltek**,
-nem bizonyított szomszédos földrészletek. A környezet utcafeliratait is keresi;
-a miskolci kivágásban teljes utcanevet nem sikerült automatikusan kiolvasni.
-Önálló kataszteri–tervi utcahálózat- és épületalaprajz-egyeztetés még nincs.
+A déli terv saját telekhatármintájával kiválasztott natív szakaszokból végzett
+helyi poligonizálás nem adott mindkét feliratot tartalmazó zárt telekterületet.
+A 0,00001–0,001 PDF-pontos kerekítési próbák sem változtatták meg ezt. Apró
+betűalakokból keletkező zárt felületek nem telekpoligonok. A szomszédos
+Lke-2/D-2 és Lke-2/D-1 felirat közelségéből nem választ övezetet.
 
-A saját hivatalos jelmagyarázat színeiből és jelalakjaiból olvas akadályokat,
-és valamennyi helyi övezeti felirat kapcsolatát több, a telekbelsőben levő
-ponthoz vizsgálja. A natív pontozott jel forrásbeli sorrendjét is ellenőrzi:
-a fehér képpontok miatt nem lehet átmenni a saját jelmagyarázat szerinti
-határon. Más sorok végét, sarkokat és a képkivágás szélét nem köti össze.
-Fekete, színes, folytonos és pontozott helyi minták nem országos alapértékek.
+Két további valódi kontroll, 8448/47 és 8448/56, szomszédos lapokon is
+visszaolvasható. Az összevetés csak három közös, eredeti kivágatokból
+ellenőrzött támpontot adott, az előírt legalább öt helyett: a próbák nem
+igazolnak tervlapillesztést vagy övezetet. A receiptek a JSON
+`additional_localization_checks` mezőjében vannak; a forrásellenőrzés külön
+újraszámítja őket. Egy szintetikus pozitív illesztési teszt nem valós telekpróba.
 
-**Miskolc 4755/11:** a `Gipe-60.63.5` felirat 5/9 telekbelső ponthoz ad
-helyi, akadálymentes jelöltkapcsolatot. A túloldali `Gksz-71.62.6` felirat
-0/9 ponthoz: a forrásból felismert határ blokkolja. A Gipe-felirat ténylegesen
-**a vizsgált teleken kívül** található. A kapcsolata ezért **valószínű,
-nem bizonyított**; nem helyettesíti a teljes telek övezeti hozzárendelését.
-A vizuális állapot a Streamlitben az igazolt geometriai besorolástól külön
-jelenik meg, és nem teszi alkalmazhatóvá a feltételes előírásokat.
+Az engedélyezett OÉNY WMS-próba korábbi HTML-hibaválaszát a
+[meglévő jegyzőkönyv](budapest-xii-wms-receipt.json) megőrzi. Nem ismételtük meg,
+nem kerültük meg a korlátozást és nem küldtünk koordinátákat új célhelyre.
 
-[Képi bizonyíték](miskolc-plan-context.png): cián a vizsgált telek; zöld a
-saját jelmagyarázathoz illesztett eredeti szakasz; lila a felirat és a
-jelöltkapcsolat; kék kör az eredeti nyitott csatlakozás. Ezek az alkalmazás
-magyarázó jelölései. A kép alatt a hivatalos jelmagyarázat eredeti kivágásai
-láthatók. Az eredeti tervrészlet és a magyarázó ábra külön SHA-256 lenyomatot
-kap; a jelmagyarázat forrásbájtjait megjelenítés előtt ellenőrzi.
-A meglévő képi bizonyítékot frissítettem, nem új tervváltozatot hoztam létre.
+## Gersekarát 034/15
 
-**AI és költség:** a helyi PDF-/Tesseract-/numpy/Pillow-felismerés kontrollként
-megmaradt. A fizetős OpenAI-adapter és a korábbi API-próba futtatása letiltva,
-régi engedélyező kapcsoló és kulcs mellett is. Külső AI-hívás és API-költség: 0.
-A nyílt súlyú Qwen3-VL 2B és SmolVLM 500M modellekkel már valódi, helyi,
-offline képelemzést végeztünk mindhárom lokalizált telken. A nyers válaszok,
-modellek/súlyok lenyomatai, képbemeneti lenyomatok és erőforrásmérések a
-[helyi modelljegyzőkönyvben](local-vision-results.json) találhatók.
-A modellvélemény nem geometriai vagy jogi igazolás; a részletes összevetés
-alább szerepel. A meglévő gépen futtattunk; új előfizetés, fizetős szolgáltatás
-vagy pénzügyi kötelezettség nem keletkezett.
+A [hatályos rendelet](https://njt.jog.gov.hu/jogszabaly/2007-2-SP-5Y3101)
+2019.06.01. időállapotához kapcsolt [hivatalos közigazgatási terv](https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf)
+1. PDF-oldalán a 034/15 felirat három felbontásban visszaolvasható.
+Ez az ábrázolt tervállapotot igazolja. Az OÉNY pontos találatának hiánya és a
+korábbi önkormányzati tanulmány nem bizonyítja a telek mai megszűnését,
+átnevezését vagy jelenlegi kataszteri alakját.
 
-**Genspark:** a [Team/Enterprise hivatalos súgója](https://www.genspark.ai/helpcenter/team-enterprise-plans)
-API-kulcsok adminisztrációját említi, tehát nem állítjuk, hogy semmilyen API
-nem létezik. A [connector-dokumentáció](https://www.genspark.ai/helpcenter/connectors-and-integrations)
-azonban külső szolgáltatások Gensparkon belüli használatát írja le. A vizsgált
-hivatalos oldalakon nem találtunk dokumentált, külső alkalmazásból hívható
-képelemző végpontot, hozzá tartozó sémát, díjszabást és a felhasználó konkrét
-előfizetésének jogosultságát. Genspark-előfizetés ezért nem tekinthető igazolt
-API-hozzáférésnek; webes munkamenetből visszafejtett nem hivatalos adapter
-nem készült. Hivatalos API-szerződés/dokumentáció nélkül ez az integráció blokkolt.
+A helyi tervkivágaton a Kb-Nk kód két nagyításban kiolvasható; határkapcsolata
+6/9, ezért **C jelölt**. Feltételesen kapcsolódik a teljes
+[21/A. §](https://njt.jog.gov.hu/jogszabaly/2007-2-SP-5Y3101#SZ21A@BE0):
+a naperőmű technológiai építményei és műtárgyai; az épületek legnagyobb
+építménymagassága 10,0 m, a nem épület technológiai műtárgyak kivételével;
+a beépíthető telekrészen kívül gyepszintű növényzetet kell fenntartani,
+fás növény nem tartható meg és új nem ültethető. Ezek **forrásszabályok,
+nem a 034/15 telken igazolt építési jogosultságok**. A teljes a) és b)
+rendelkezés, hivatkozás, időállapot és szöveglenyomat a JSON-ban megmarad.
 
-**A/B/C eredmény:** a Streamlit és a letölthető bizonyíték-JSON ugyanazt a
-kategóriát tartalmazza. A: igazolt geometriai besorolás; B: vizuálisan nagy
-valószínűséggel azonosított besorolás, feltételes előírásokkal; C: nem
-azonosítható. A B megnevezés kategória, nem kalibrált számszerű valószínűség.
-A végső élő ellenőrzés a végleges forráskód lenyomatát rögzíti.
-A vizuális kód közvetlenül a forrásolt paraméter- és rendelkezésolvasóhoz
-kapcsolódik; nem egy korábbi közeli geometriai jelöltet használ. Az eredeti
-geometriai azonosítást nem módosítja, az építési jogosultságot nem igazolja.
-Miskolc, Tiszaújváros és Komádi B; Budapest XII. és Gersekarát C; teljes bizonyított előíráslista továbbra is 0/5.
+## Komádi 1558 – előírások és megmaradt hiány
 
-Az [e-közmű hozzáférési feltételeit](https://www.e-epites.hu/gyik?temakor=177)
-október 10-én újra ellenőriztem: KAÜ-azonosításhoz kötött. Új, igazolt,
-hitelesítés nélküli kataszteri adatkapcsolat nem került elő; az OÉNY és a
-hatályos NJT-források maradnak az ellenőrzött alternatívák.
-
-A vizuális módszer országos övezeti kódot, települést vagy HRSZ-eredményt
-nem éget be. Jelenlegi korlátja az igazolt, koordinátával összekapcsolható
-tervlapi telekgeometria; forgatott lap vagy hiányzó illesztés esetén elutasítja
-a következtetést. A másik négy telek teljes vizuális egyeztetése és a teljes
-telekspecifikus építési előíráslista továbbra sem kész. A bizonyítás akadályait
-a korábbi tervi geometriai audit változatlanul megőrzi.
-
-## Hivatalos GIS-források – élő vizsgálat
-
-A program a nyilvános [Lechner INSPIRE-katalógust](https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/catalog.search)
-szabványos CSW GetRecords lapozással dolgozza fel. A három lap összesen
-286 külön azonosítójú rekordot tartalmaz; ismétlődő vagy hiányos lapozás nem
-minősül teljes keresésnek. A közzétett szolgáltatáscímeket követi, rejtett
-végpontok találgatása és hitelesített munkamenetek megkerülése nélkül.
-
-- A kataszteri `CP:CP.CadastralParcels` WFS GetCapabilities működik, de saját
-  rétegleírása **Mesterszállás mintaterületét** nevezi meg. Ez nem igazolja az öt
-  mintatelek országos kataszteri ellátottságát. A CSW absztrakt országos adatról
-  szóló általános mondata nem írhatja felül a tényleges szolgáltatás területét.
-- A `LU.NGMHU` LandUse2023 WMS működik; ez meglévő területhasználati térképkép,
-  nem hatályos helyi építési övezetek igazolt vektoros szolgáltatása.
-- A vízügyi katalógusban közzétett WFS-cím HTTP 400-at ad. Ez elérési hiba,
-  nem annak bizonyítéka, hogy a telek nem érintett vízügyi korlátozásban.
-- Az országos [örökségvédelmi ZIP](https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip)
-  ténylegesen letölthető: hat SHP-réteg, összesen 7452 rekord. A hivatalos,
-  azonosítóhoz kötött ISO-metaadat igazolja a nyilvános CC BY 4.0
-  újrafelhasználást. Forrás: Lechner Tudásközpont; a TelekElőírás AI a
-  térbeli metszést számítja újra. [Licenc](https://creativecommons.org/licenses/by/4.0/).
-  Az eredeti ZIP-ben **6 NULL geometria és 2 érvénytelen poligon** található.
-  Ezeket a program megszámolja, nem javítja és nem használja bizonyítékként.
-  A pillanatkép nem teljes védettségi/korlátozási nyilvántartás.
-- Tiszaújváros hivatalos térképnézője elérhető, de a betöltő oldal nem közöl
-  igazolt hatályos övezeti vektorletöltést. A felület belső eseménykezelőjét
-  a program nem kezeli dokumentált nyilvános GIS API-ként.
-- A XII. kerületi MINERVA hivatalos belépőoldala HTTP 503 hibát ad.
-- Miskolc, Komádi és Gersekarát hivatalos oldalainak vizsgálata nem adott
-  a kért telkekhez hatályos HÉSZ-hez kötött, igazolt övezeti vektorforrást.
-  Ez a vizsgált források eredménye, nem országos szolgáltatások nemlétezési állítása.
-
-Az [E-TÉR hivatalos leírása](https://data.lechnerkozpont.hu/szolgaltatas/elektronikus-tersegi-tervezest-tamogato-rendszer-e-ter)
-részben nyilvános rendszert ír le. A belépőoldal betöltődik; a nyilvános
-JavaScript projektazonosítóhoz kötött WFS-útvonalat is tartalmaz, de ez nem
-igazol szabadon használható, hatályos miskolci övezeti végpontot. A belső API-ra
-és kitalált projektazonosítókra nem épül integráció.
-
-Az [e-közmű hivatalos GYIK](https://www.e-epites.hu/gyik?temakor=177)
-KAÜ-azonosítást, a vektoros közműadatokhoz kamarai jogosultságot és
-tervezéstámogatási kérelmet ír le. A nyilvános belépőoldal elérhető, de
-ellenőrzött, díjmentes és hitelesítés nélküli vektoros API-t nem találtam.
-A közműkorlátozások teljes vizsgálata ezért továbbra sem automatizált.
-
-A GIS-feldolgozás a meglévő fej nélküli vizsgálatba és a Streamlit felületbe
-került. A WMS, a WFS és a jogilag igazolt övezet külön állapot; a letöltési
-SHA-256, HTTP-státusz, forráscím és licencbizonyíték megmarad. A már meglévő
-hivatalos PDF és annak saját jelmagyarázata továbbra is vizsgált forrás.
-Az új téradatok egyike sem ad igazolt övezeti poligont az öt mintatelekhez.
-Miskolc igazolt telekpoligonja az országos örökségvédelmi pillanatkép érvényes
-geometriáival nem metsződik. Ez nem igazolja a védelem hiányát a hiányos
-geometriák és a nem teljes jogi adatkapcsolat miatt. A másik három elérhető
-OÉNY-körvonal vizsgálata csak jelöltgeometriás előszűrés. Gersekarát esetén
-telekgeometria hiányában a metszés nem végezhető el.
+Az Lke/1.2 kód saját kör alakú kódmezőből olvasható, 9/9 helyi kapcsolattal.
+A [hatályos rendelet](https://njt.jog.gov.hu/jogszabaly/2007-1-SP-5Y1608)
+2025.12.22. állapotához kapcsolt
+[egységes HÉSZ-PDF](https://njt.jog.gov.hu/document/3e/3ef5LL_EJR_109881481-Helyi__p_t_si_Szabalyzat_EGYS_GES_202512_-_pirossal_a_v_ltoz_s_F_zesiAttila.pdf)
+teljes szakaszait a forrásleltár betölti; a 15. § összefoglaló táblázata a
+14. PDF-oldaltól szerepel. A táblázat kör alakú övezeti jelképét még nem
+oldja fel ellenőrzött, strukturált Lke/1.2 paramétersorként. Emiatt nincs
+ilyen igazolt paraméterlista. A teljes forrásszakaszok megtartása nem
+helyettesíti a táblázat és a teljes telek kapcsolatának igazolását.
 
 ## Saját hivatalos jelmagyarázat
 
@@ -200,7 +137,7 @@ a natív jelalak lenyomatát. Nincs országos szín- vagy vonaltípus-tábla.
 | Tiszaújváros | [hivatalos terv](https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf), 2. PDF-oldal | két felbontású OCR-felirat és natív rajzi minta |
 | Budapest XII. | [hivatalos terv](https://njt.jog.gov.hu/document/c3/c3f0LL_EJR_99708274-20250806_D-Hegyvid_k_K_SZ_1_mell_klet.pdf), 4. PDF-oldal | natív felirat és rajzi minta |
 | Komádi | [hivatalos terv](https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf), 1. PDF-oldal | két felbontású OCR-felirat és natív rajzi minta |
-| Gersekarát | [hivatalos közigazgatási terv](https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf), 1. PDF-oldal | a felirat felismerhető; a hozzá tartozó minta nem igazolt |
+| Gersekarát | [hivatalos közigazgatási terv](https://njt.jog.gov.hu/document/ff/ffecLL_EJR_55522770-2._mell_klet_H_SZ.pdf), 1. PDF-oldal | két felbontásban egyező felirat; a távoli, keretezett mintaoszlopból kiolvasott apró piros pontvonások |
 | Miskolc | [külön hivatalos jelmagyarázat](https://njt.jog.gov.hu/document/03/0366LL_EJR_83921015-Jelmagyarazat_modositasa.pdf), 1. PDF-oldal | natív felirat és beágyazott körjel |
 
 A jelmagyarázat és a tervlap URL-je, eredeti SHA-256 lenyomata, PDF-oldala,
@@ -369,94 +306,102 @@ kinyert helyi forrásleltárat a [miskolc-source-clauses.md](miskolc-source-clau
 fájl tartalmazza. Az általános és más területek rendelkezéseit is tartalmazó
 leltár nem tekinthető a 4755/11 teljes alkalmazható előíráslistájának.
 
-## A további telkek
+## Hivatalos GIS-források – élő vizsgálat
 
-Budapest XII. 8448/46: pontos OÉNY-találat; az északi 26/2020. és a déli
-36/2021. KÉSZ hatályos tervét is külön megkereste az algoritmus. Egyik teljes
-OCR-indexben sincs igazolt pontos felirat. Ez nem a telek hiányának bizonyítása; nincs
-igazolt telekhatár–övezet kapcsolat. A MINERVA-adapter besorolása saját
-jelmagyarázat szerinti vonalosztályozás nélkül letiltva.
+A program a nyilvános [Lechner INSPIRE-katalógust](https://inspire.lechnerkozpont.hu/geonetwork/srv/eng/catalog.search)
+szabványos CSW GetRecords lapozással dolgozza fel. A három lap összesen
+286 külön azonosítójú rekordot tartalmaz; ismétlődő vagy hiányos lapozás nem
+minősül teljes keresésnek. A közzétett szolgáltatáscímeket követi, rejtett
+végpontok találgatása és hitelesített munkamenetek megkerülése nélkül.
 
-Komádi 1558: pontos OÉNY-találat, automatikus háromfelbontásos tervlapi
-felirat az 1. PDF-oldalon. A saját kör alakú kódmező ellenőrzése után Lke/1.2
-olvasható; 9/9 helyi feliratkapcsolat, B kategória. Teljes telek- és övezetpoligon
-nincs igazolva; az esetleges paraméter-/előíráslista alkalmazhatósága feltételes.
+- A kataszteri `CP:CP.CadastralParcels` WFS GetCapabilities működik, de saját
+  rétegleírása **Mesterszállás mintaterületét** nevezi meg. Ez nem igazolja az öt
+  mintatelek országos kataszteri ellátottságát. A CSW absztrakt országos adatról
+  szóló általános mondata nem írhatja felül a tényleges szolgáltatás területét.
+- A `LU.NGMHU` LandUse2023 WMS működik; ez meglévő területhasználati térképkép,
+  nem hatályos helyi építési övezetek igazolt vektoros szolgáltatása.
+- A vízügyi katalógusban közzétett WFS-cím HTTP 400-at ad. Ez elérési hiba,
+  nem annak bizonyítéka, hogy a telek nem érintett vízügyi korlátozásban.
+- Az országos [örökségvédelmi ZIP](https://inspire.lechnerkozpont.hu/inspire/cultural_heritage/cultural_heritage.zip)
+  ténylegesen letölthető: hat SHP-réteg, összesen 7452 rekord. A hivatalos,
+  azonosítóhoz kötött ISO-metaadat igazolja a nyilvános CC BY 4.0
+  újrafelhasználást. Forrás: Lechner Tudásközpont; a TelekElőírás AI a
+  térbeli metszést számítja újra. [Licenc](https://creativecommons.org/licenses/by/4.0/).
+  Az eredeti ZIP-ben **6 NULL geometria és 2 érvénytelen poligon** található.
+  Ezeket a program megszámolja, nem javítja és nem használja bizonyítékként.
+  A pillanatkép nem teljes védettségi/korlátozási nyilvántartás.
+- Tiszaújváros hivatalos térképnézője elérhető, de a betöltő oldal nem közöl
+  igazolt hatályos övezeti vektorletöltést. A felület belső eseménykezelőjét
+  a program nem kezeli dokumentált nyilvános GIS API-ként.
+- A XII. kerületi MINERVA hivatalos belépőoldala HTTP 503 hibát ad.
+- Miskolc, Komádi és Gersekarát hivatalos oldalainak vizsgálata nem adott
+  a kért telkekhez hatályos HÉSZ-hez kötött, igazolt övezeti vektorforrást.
+  Ez a vizsgált források eredménye, nem országos szolgáltatások nemlétezési állítása.
 
-Gersekarát 034/15: az OÉNY pontos keresése nem ad találatot, a 2019-es
-közigazgatási terv OCR-próbája sem igazol pontos feliratot. Ez nem bizonyítja
-a telek hiányát vagy átnevezését. A 2._mell_klet_H_SZ.pdf fájlnév ellenére
-valódi tervlap; a korábbi téves mellékletválasztás javítva.
-Az önkormányzati módosítási tanulmányban a 034/15 pontos említései bekerültek
-a forrásjegyzékbe: nyugati nyúlvány, napelempark, 13,32 ha történeti adat.
-A tanulmány nem hatályos besorolási bizonyíték, mai telekhelyet nem igazol.
+Az [E-TÉR hivatalos leírása](https://data.lechnerkozpont.hu/szolgaltatas/elektronikus-tersegi-tervezest-tamogato-rendszer-e-ter)
+részben nyilvános rendszert ír le. A belépőoldal betöltődik; a nyilvános
+JavaScript projektazonosítóhoz kötött WFS-útvonalat is tartalmaz, de ez nem
+igazol szabadon használható, hatályos miskolci övezeti végpontot. A belső API-ra
+és kitalált projektazonosítókra nem épül integráció.
 
-## Megismételhetőség
+Az [e-közmű hivatalos GYIK](https://www.e-epites.hu/gyik?temakor=177)
+KAÜ-azonosítást, a vektoros közműadatokhoz kamarai jogosultságot és
+tervezéstámogatási kérelmet ír le. A nyilvános belépőoldal elérhető, de
+ellenőrzött, díjmentes és hitelesítés nélküli vektoros API-t nem találtam.
+A közműkorlátozások teljes vizsgálata ezért továbbra sem automatizált.
+
+A GIS-feldolgozás a meglévő fej nélküli vizsgálatba és a Streamlit felületbe
+került. A WMS, a WFS és a jogilag igazolt övezet külön állapot; a letöltési
+SHA-256, HTTP-státusz, forráscím és licencbizonyíték megmarad. A már meglévő
+hivatalos PDF és annak saját jelmagyarázata továbbra is vizsgált forrás.
+Az új téradatok egyike sem ad igazolt övezeti poligont az öt mintatelekhez.
+Miskolc igazolt telekpoligonja az országos örökségvédelmi pillanatkép érvényes
+geometriáival nem metsződik. Ez nem igazolja a védelem hiányát a hiányos
+geometriák és a nem teljes jogi adatkapcsolat miatt. A másik három elérhető
+OÉNY-körvonal vizsgálata csak jelöltgeometriás előszűrés. Gersekarát esetén
+telekgeometria hiányában a metszés nem végezhető el.
+
+## Megismételhetőség és eredményellenőrzés
+
+**171/171 offline automatikus teszt sikeres**, a 36 eredeti teszttel.
+**260/260 forrásalapú ellenőrzés sikeres**: eredeti PDF-bájtok,
+friss NJT-szöveg, saját jelmagyarázat gyorsítótár nélküli újraolvasása,
+háromfelbontásos feliratok, az alternatív KÉSZ-ek, az öt képi bizonyíték,
+a két további HRSZ-kontroll, feltételes jogszabályi szakaszok és a korábbi
+valódi helyi modellreceiptek ellenőrzése. A tesztszám nem besorolási pontosság.
 
 ```sh
 python -m unittest discover
-python reference_checks.py --output work/reference-results.json --visual-image work/miskolc-plan-context.png
-python validation/check_sources.py work/reference-results.json --history-report validation/miskolc-legend-history.json --output work/source-check-results.json
-python reference_checks.py --outlined --output work/reference-outlined-results.json
+python reference_checks.py --resume-attempts 3 --visual-images validation --visual-image validation/miskolc-plan-context.png --output validation/reference-results.json
+python validation/check_sources.py validation/reference-results.json --history-report validation/miskolc-legend-history.json --local-vision-report validation/local-vision-results.json --output validation/source-check-results.json
 ```
 
-reference-results.json: aktuális öttelekes vizsgálat és forrásreceiptek.
-source-check-results.json: 222 sikeres ellenőrzés, a jelentés lenyomatával.
-reference-outlined-results.json: külön HRSZ-feliratpróba, saját forrás- és
-feliratfeldolgozó-lenyomatokkal; nem övezeti bizonyíték.
-conditional-zone-parameters.json: a Gip/3 forrássor feltételes ellenőrzése.
-test-results.json: helyi tesztfutás. A GitHub Actions külön futtatja a teljes
-offline csomagot a meglévő PR #1-en.
+A két kiegészítő kontroll külön kísérleti receipt, nem a fenti öttelekes
+parancs automatikus kimenete. A JSON-ban a forrás URL-je, eredeti lenyomata,
+futókód-lenyomatok, jogszabályi kiadás és a kivágási koordináták szerepelnek.
+A [forrásellenőrzés](source-check-results.json) a teljes jelentés lenyomatát
+is rögzíti. A GitHub Actions a PR ágának aktuális commitján futtatja az
+offline regressziót; a PR nincs beolvasztva.
 
-## Fennmaradó külső adatfüggőség és folytatási állapot
+A következő bizonyításhoz aktuális, jogszerűen elérhető kataszteri telekhatár,
+a terv saját jeleivel összevethető övezeti topológia és az átfedő tervek
+hivatalos területi határa szükséges. Miskolcnál a nyitott csatlakozások és
+útjelváltozat hivatalos feloldása, Gersekarát esetében a mai kataszteri állapot
+ellenőrzése külön akadály. A teljes korlátozáslista és az országos/átmeneti
+jogszabályi feltételek telekspecifikus alkalmazhatósága továbbra is hiányzik.
+Országos teljes automatizálást vagy A eredményt nem állítunk.
 
-Miskolc esetén a hatályos szabályozási tervhez hivatalosan kötött, zárt
-övezeti vektorpoligon hiányzik az ellenőrzött hozzáférhető forrásokból.
-Alternatíva a terv nyitott csatlakozásait és eltérő útterületi jelváltozatát
-hitelesen feloldó hivatalos geometriai adat. A feltárt katalógus/WFS/WMS ezt
-nem helyettesíti. Az országos GIS-övezeti azonosító és a teljes telekspecifikus
-előíráslista ezért még nem kész: jelenleg forrásfelderítés és egy ellenőrzött
-licencű SHP-pillanatkép metszésvizsgálata működik. A vektoros övezetadat
-bekötéséhez az aktuális rendelet/tervkiadás, területi lefedettség, kódmező,
-CRS, letöltési teljesség és jogi felhasználhatóság együttes bizonyítéka kell.
-Nem kértem új hozzáférést, nem nyújtottam be kérelmet és nem olvasztottam
-be a PR-t a főágba.
+Ebben a munkamenetben nincs új nagy modell, fizetős API-hívás vagy új pénzügyi
+kötelezettség. A meglévő helyi modelleket nem futtattuk újra: az alábbi
+összevetés a korábbi tényleges, ingyenes próbák megőrzött jegyzőkönyve.
 
-## Budapest XII. 8448/46: külön engedélyezett WMS-ellenőrzés (2026-10-10)
+## Korábbi ingyenes multimodális modellek valódi összevetése
 
-A felhasználó kifejezetten engedélyezte e telek EOV-koordinátáinak egyszeri
-elküldését az OÉNY hivatalos WMS-szolgáltatásának helyazonosítás és tervi
-összevetés céljából. Más szolgáltatáshoz nem küldtünk koordinátákat.
-
-A [nyilvános OÉNY kereső](https://www.oeny.hu/oeny/hrsz-kereso/) célja
-a helyrajzi számok térképi azonosítása. A
-[hivatalos futásidejű konfiguráció](https://www.oeny.hu/oeny/hrsz-kereso/assets/env.js)
-geoUrl értéke `https://www.oeny.hu/hk-geoserver`; a kereső térképi modulja
-a `/hrsz/wms` végpont `hrsz:foldreszlet`, `hrsz:felirat_kat`,
-`hrsz:epulet` rétegeit használja. A lekérdezés ugyanezekre a nyilvános
-térképi rétegekre irányult, hitelesítés vagy hozzáférési korlátozás
-megkerülése nélkül. Ez nem jelent általános adat-újraközlési licencet vagy
-hiteles földhivatali telekhatár-bizonyítékot.
-
-Az engedélyezett EPSG:23700 GetMap kérés lefutott. A válasz **HTTP 200,
-Content-Type text/html, 2035 bájt**, címe **OENY Hiba**, nem PNG térképkép.
-A HTTP sikerstátusz ezért nem térképi siker. A kérés nem koordinátás paraméterei, időpontja,
-a teljes kapott hibaoldal és SHA-256 lenyomata a
-[WMS-ellenőrzési jegyzőkönyvben](budapest-xii-wms-receipt.json) szerepelnek.
-A pontos EOV-koordináták csak a helyi munkajegyzőkönyvben maradnak;
-a GitHubra kerülő változat nem tartalmazza őket.
-A szolgáltatás a válaszban nem közölt konkrét szerveroldali hibaokot;
-hitelesítési követelmény vagy hiányzó telek ebből nem állapítható meg.
-Nem történt második koordinátás kérés, sem alternatív szolgáltatásnak küldés.
-
-**Eredmény: C.** Nincs új térképi bizonyíték, ezért továbbra sincs igazolt
-megfeleltetés a telek és az északi/déli KÉSZ megfelelő tervrészlete között.
-Az eddigi XII. kerületi kép csak nem lokalizált terváttekintés, nem
-telekhely-bizonyíték. A továbblépéshez működő hivatalos térképkép vagy más
-jogszerű, ellenőrizhető térképi helyazonosítás szükséges.
-A korábbi automatikus elutasításra vonatkozó részek történeti események;
-az új, kifejezett engedély alapján ez a kérés már ténylegesen lefutott.
-
-## Ingyenes multimodális modellek valódi összevetése
+A korábbi próba eredeti képkivágási geometriáját a modelljegyzőkönyv
+`image_input_manifests` mezője őrzi, az eredeti Git-commit hivatkozásával.
+A mai jelmagyarázat-parser új nagyított jelmintákat is felismer: ezekkel új
+modellpróba nem futott. Az eredeti térképrészlet és teljes jelmagyarázat
+megmaradt; a korábbi modellválaszok és képlenyomatok változatlanok.
 
 Mindkét modell Apache 2.0 licencű, nyilvánosan letölthető; nem használtunk
 hostolt inference API-t. Modellazonosítók és rögzített revíziók a
@@ -473,7 +418,7 @@ az általánosan újrahasználható megoldáshoz a Qwen3-VL 2B-t választottuk.
 
 **Egyezés a helyi kontrollal: Qwen 1/3, SmolVLM 0/3.** Ez nem hiteles
 pontossági arány: a három helyi B kontrollhoz sincs függetlenül igazolt A
-referencia. Az előzetesen azonosított telkek száma nem nőtt: továbbra is 3/5 B,
+referencia. A korábbi modellpróba az övezeti eredmények számát nem növelte: 3/5 B,
 2/5 C; teljes bizonyított előíráslista 0/5. A modellek gyakorlati előnye itt
 nem bizonyított. A Qwen önállóan olvasott egyező miskolci kódot, de nem adott
 megbízható telek–övezet topológiát; a hagyományos módszert nem váltja ki.

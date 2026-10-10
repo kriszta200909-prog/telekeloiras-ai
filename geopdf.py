@@ -111,7 +111,7 @@ def named_layer_paths(page, names):
     return paths
 
 
-def legend_layer_paths(page, profile, role):
+def legend_layer_paths(page, profile, role, clip=None):
     """Match own legend styles; preserve explicitly named cadastral CAD data.
 
     A cadastral layer may be printed thin/grey despite the legend's thicker
@@ -130,6 +130,11 @@ def legend_layer_paths(page, profile, role):
                 term=compact(record['label'])
                 if term.endswith('hatar'):cadastral_names.add(term[:-5])
     def collect(drawing):
+        # Filtering keeps complete source paths, never creates artificial clip
+        # edges or connects geometry. It avoids decoding an entire CAD town
+        # when the caller only examines one parcel's immediate surroundings.
+        if clip is not None and not fitz.Rect(clip).intersects(fitz.Rect(drawing['rect'])+(-.01,-.01,.01,.01)):
+            return
         style=drawing_style(drawing)
         visual_match=any(matches_style(style,expected) for expected in styles)
         semantic_match=compact(drawing.get('layer','').rstrip('\0')) in cadastral_names

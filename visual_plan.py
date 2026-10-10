@@ -191,7 +191,39 @@ def inspect_label_location(doc, spatial, profile, zone_pattern, hrsz, identity, 
          'location':{'verified_preliminary':False,'parcel_boundary_verified':False}}
     hits=spatial.get('hits',[])
     if len(hits)!=1:
-        out['reasons']=['Nincs egyetlen, pontos és ellenőrizhető tervlapi HRSZ-hely.'];return unlocated_plan_image(doc,out)
+        out['reasons']=['Nincs egyetlen, pontos és ellenőrizhető tervlapi HRSZ-hely.']
+        if (doc is not None and hits and all('page_number' in h and 'pdf_rect' in h for h in hits)
+                and len({h['page_number'] for h in hits})==1):
+            # Show actual ambiguous inscriptions rather than an unrelated cover.
+            page=doc[hits[0]['page_number']];rects=[]
+            for h in hits:
+                r=fitz.Rect(h['pdf_rect'])
+                if h.get('coordinate_space')!='display':r=r*page.rotation_matrix
+                rects.append(r)
+            bounds=fitz.Rect(rects[0])
+            for r in rects[1:]:bounds|=r
+            clip=(bounds+(-150,-150,150,150))&page.rect
+            scale=min(5,1800/max(clip.width,clip.height));pix=page.get_pixmap(matrix=fitz.Matrix(scale,scale),clip=clip,alpha=False)
+            canvas=Image.frombytes('RGB',(pix.width,pix.height),pix.samples);draw=ImageDraw.Draw(canvas)
+            for r in rects:draw.rectangle([(r.x0*scale-pix.x,r.y0*scale-pix.y),(r.x1*scale-pix.x,r.y1*scale-pix.y)],outline=(0,160,220),width=4)
+            buf=io.BytesIO();canvas.save(buf,format='PNG')
+            from plan_localization import large_cad_codes
+            from app import plan_ocr_data
+            codes=large_cad_codes(page,clip,zone_pattern,plan_ocr_data())
+            bound=profile.get('identity',{})
+            out.update(annotated_png=buf.getvalue(),pdf_page=page.number+1,clip_pdf=list(clip),
+                context_image_sha256=hashlib.sha256(pix.tobytes('png')).hexdigest(),
+                context_png=pix.tobytes('png'),
+                legend_bound=bool(styles_for(profile,'zone_boundary') and bound.get('source_hash') and
+                    all(bound.get(k)==identity.get(k) for k in ('plan_url','plan_hash','edition','ksh'))),
+                candidate_labels=[{'code':code,'label_rect_pdf':list(r),'relationship_tested':False} for code,r in codes],
+                location={'verified_preliminary':False,'plan_label_locations_verified':True,
+                    'parcel_boundary_verified':False,'hrsz':hrsz,'hrsz_rects_display_pdf':[list(r) for r in rects],
+                    'method':'Több, három felbontásban ellenőrzött azonos HRSZ-felirat; a telekhez rendelés nem egyértelmű.'},
+                annotation_note='Cián: külön ellenőrzött HRSZ-feliratok; nem telekhatár. C: a feliratok és a teljes telek kapcsolata tisztázatlan.')
+            out['reasons'].append('Az ismétlődő HRSZ-feliratokat teljes telekhatár nélkül nem vonjuk össze.')
+            return out
+        return unlocated_plan_image(doc,out)
     hit=hits[0];scan=spatial.get('scan',{})
     if scan and not scan.get('complete'):
         out['reasons']=['A HRSZ-keresés nem teljes; további azonos felirat nem zárható ki.'];return unlocated_plan_image(doc,out)
@@ -218,25 +250,33 @@ def inspect_label_location(doc, spatial, profile, zone_pattern, hrsz, identity, 
     out['circle_layout_examples']=source_circle_layout(doc,profile)
     out['circle_layout_from_own_legend']=bool(out['circle_layout_examples'])
     if out['circle_layout_from_own_legend']:labels.extend((code,rect) for code,rect in circle_labels(page,clip,ocr,components) if zone_pattern.fullmatch(code))
-    styles=styles_for(profile,'zone_boundary')+styles_for(profile,'regulatory_line')
+    if not labels:
+        from plan_localization import verified_zone_labels,large_cad_codes
+        from app import plan_ocr_data
+        labels=verified_zone_labels(page,clip,zone_pattern,plan_ocr_data())
+        if not labels:labels=large_cad_codes(page,clip,zone_pattern,plan_ocr_data())
+        out['zone_text_method']='eredeti helyi tervkivágat OCR-je két felbontásban; teljes kód, beépítési paraméter nélkül'
+    out['sheet_equivalence']=scan.get('sheet_equivalence',{})
+    styles=styles_for(profile,'zone_boundary')+styles_for(profile,'regulatory_line')+styles_for(profile,'landuse_boundary')
     from geopdf import legend_layer_paths
     from shapely.affinity import affine_transform
     m=page.rotation_matrix
     barriers=[];local=box(*clip)
-    for role in ('zone_boundary','regulatory_line'):
-        for path in legend_layer_paths(page,profile,role):
+    for role in ('zone_boundary','regulatory_line','landuse_boundary'):
+        for path in legend_layer_paths(page,profile,role,clip=clip*page.derotation_matrix):
             for line in path['segments']:
                 transformed=affine_transform(line,[m.a,m.c,m.b,m.d,m.e,m.f])
                 if transformed.intersects(local):barriers.append(transformed)
     # Cover actual dotted ink in a corridor, rather than treating white gaps as
     # openings. Width comes from source ink component spacing, never a colour default.
-    zone_colours=[np.asarray(v)*255 for s in styles_for(profile,'zone_boundary') for k in ('fill','stroke')
+    zone_colours=[(np.asarray(v)*255,s) for s in styles_for(profile,'zone_boundary') for k in ('fill','stroke')
         if (v:=s.get(k)) is not None and max(v)-min(v)>.08]
     dots=[]
-    for colour in zone_colours:
+    for colour,style in zone_colours:
         mask=np.linalg.norm(rgb.astype(float)-colour,axis=2)<35
         for x0,y0,x1,y1 in components(mask):
-            if 1<min(x1-x0,y1-y0) and max(x1-x0,y1-y0)<scale*6 and .65<(x1-x0)/(y1-y0)<1.5:
+            size_limit=(scale*style['width']*2+2 if style.get('primitive')=='short_dot_strokes' else scale*6)
+            if 1<min(x1-x0,y1-y0) and max(x1-x0,y1-y0)<size_limit and .65<(x1-x0)/(y1-y0)<1.5:
                 dots.append(((pix.x+(x0+x1)/2)/scale,(pix.y+(y0+y1)/2)/scale))
     clearance=0.
     if len(dots)>3:
@@ -262,6 +302,21 @@ def inspect_label_location(doc, spatial, profile, zone_pattern, hrsz, identity, 
     out.update(candidate_labels=associations,local_source_boundary_segments=len(barriers),
         source_dot_clearance_pdf=clearance,anchor_role='HRSZ-felirat környezete, nem telekpoligon',
         context_image_sha256=hashlib.sha256(pix.tobytes('png')).hexdigest(),context_png=pix.tobytes('png'))
+    out['full_parcel_coverage']={'verified':False,'multi_zone_status':'nem kizárt',
+        'reason':'A HRSZ-hely mintapontjai nem fedik a teljes telekterületet.'}
+    territorial=[];missing_roles=[]
+    for role in ('restriction','prohibition','utility_line','building_line'):
+        if not styles_for(profile,role):missing_roles.append(role);continue
+        for path in legend_layer_paths(page,profile,role,clip=clip*page.derotation_matrix):
+            segments=[affine_transform(line,[m.a,m.c,m.b,m.d,m.e,m.f]) for line in path['segments']]
+            local_segments=[line for line in segments if line.intersects(local)]
+            if local_segments:
+                territorial.append({'role':role,'local_segments':len(local_segments),
+                    'intersects_hrsz_neighbourhood':any(line.intersects(patch) for line in local_segments),
+                    'parcel_applicability_verified':False})
+    out['local_restriction_audit']={'scope':'tervkivágat és HRSZ-környezet; nem teljes telek',
+        'signs':territorial,'roles_without_verified_sample':missing_roles,
+        'complete':False,'absence_is_not_proof':True}
     canvas=Image.fromarray(rgb.copy());draw=ImageDraw.Draw(canvas)
     def xy(p):return ((p[0]-pix.x/scale)*scale,(p[1]-pix.y/scale)*scale)
     draw.rectangle([xy(rect.tl),xy(rect.br)],outline=(0,160,220),width=4)
@@ -287,7 +342,7 @@ def supported_labels(rgb, origin, scale, parcel, labels, styles, source_barriers
     for style in styles:
         # Colour alone cannot establish a closed symbol's shape. Its native
         # source geometry is checked through source_barriers instead.
-        if style.get('closed'):continue
+        if style.get('closed') or style.get('primitive')=='short_dot_strokes':continue
         for field in ('colour','stroke','fill'):
             value=style.get(field)
             if value is not None and (max(value)<.98 or max(value)-min(value)>.08):
