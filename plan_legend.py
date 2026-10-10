@@ -37,7 +37,7 @@ def role_for_label(text):
     if 'megyei' in key or 'megyeteruletrendezesi' in key:return 'restriction'
     if 'veszelyessegiovezet' in key or any(word in key for word in ('natura2000','vedoterulet','vedosav','vedotavolsag','vedettterulet','hidrogeologia','vizbazis','nagyvizimeder')):return 'restriction'
     if re.search(r'ovezet(?:i)?hatar',key):return 'zone_boundary'
-    if any(term in key for term in ('epitesiovezetiparameter','ovezetiparameter','szabalyozasijel','ovezetijel','ovezetkod')):return 'zone_code'
+    if any(term in key for term in ('epitesiovezetiparameter','ovezetiparameter','szabalyozasijel','ovezetijel','ovezetjele','ovezetkod')):return 'zone_code'
     if ('szabalyozasivonal' in key or 'szabayozasivonal' in key):return 'regulatory_line'
     if 'banyatelek' in key:return 'restriction'
     if any(word in key for word in ('levezetosav','aramlasiholtter','partisav','tolteslab',
