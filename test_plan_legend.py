@@ -24,6 +24,10 @@ def legend_document(colour=(.2,.7,.1), dashed=False, right=False):
 
 
 class PlanLegendTests(unittest.TestCase):
+    def test_ujpest_official_zone_legend_captions(self):
+        self.assertEqual(role_for_label('Építési övezet, övezet jele'), 'zone_code')
+        self.assertEqual(role_for_label('Építési övezet, övezet határa'), 'zone_boundary')
+
     def test_thumbnail_miss_cannot_replace_first_sheet_legend(self):
         with tempfile.TemporaryDirectory() as cache,fitz.open() as doc:
             for _ in range(2):doc.new_page(width=600,height=300)
