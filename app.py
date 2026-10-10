@@ -56,6 +56,16 @@ def pdf_processing_lock():
 # Validált hivatalos forrásindex.
 # Új település később egyetlen új rekorddal felvehető.
 HESZ_INDEX = {
+    "kondoros": {
+        "municipality": "Kondoros",
+        "title": "Kondoros Nagyközség helyi építési szabályzatáról",
+        "regulation": "2/2005. (I. 21.) önkormányzati rendelet",
+        "url": "https://njt.jog.gov.hu/jogszabaly/2005-2-SP-5Y1804",
+        # The current 4th annex was replaced by 15/2025 (X.17.) § 1.
+        # Do not pin a zone or historic PDF: discover the current annex
+        # from the consolidated NJT page at run time.
+        "plan_scope": "belterület",
+    },
     "komadi": {
         "municipality": "Komádi",
         "title": "Komádi város Szabályozási Tervének és Helyi Építési Szabályzatának elfogadásáról",
