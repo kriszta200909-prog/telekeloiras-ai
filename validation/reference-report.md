@@ -14,7 +14,7 @@ Ez a forráskezelés helyességét ellenőrzi; nem állít sikeres telekbesorol�
 | Telek | Tervlapi HRSZ-hely | Övezet | Minősítés | Kép | Fennmaradó akadály |
 |---|---|---|---|---|---|
 | Tiszaújváros 2200/8 | igen | Gip/3 | B | [tervrészlet és saját jelmagyarázat](tiszaújváros-2200-8.png) | Teljes telek- és övezeti fedés nincs igazolva. |
-| Budapest XII. kerület 8448/46 | nem | nem azonosítható | C | [nem lokalizált forrásáttekintés](budapest-xii.-kerület-8448-46.png) | Egyik hatályos KÉSZ-ben sincs igazolt felirathely; koordinátás WMS-próba elutasítva. |
+| Budapest XII. kerület 8448/46 | nem | nem azonosítható | C | [nem lokalizált forrásáttekintés](budapest-xii.-kerület-8448-46.png) | Egyik hatályos KÉSZ-ben sincs igazolt felirathely; engedélyezett OÉNY WMS-próba térkép helyett hibaoldalt adott. |
 | Komádi 1558 | igen | Lke/1.2 | B | [tervrészlet és saját jelmagyarázat](komádi-1558.png) | Teljes telekpoligon és teljes övezeti fedés nincs igazolva. |
 | Gersekarát 034/15 | nem | nem azonosítható | C | [nem lokalizált forrásáttekintés](gersekarát-034-15.png) | Nincs pontos OÉNY-találat vagy igazolt mai tervi hely; saját határjelmagyarázat nem egyértelmű. |
 | Miskolc 4755/11 | igen | Gipe-60.63.5 | B | [tervrészlet és saját jelmagyarázat](miskolc-plan-context.png) | Nyitott övezeti csatlakozások és eltérő útkitöltés; teljes fedés nem igazolt. |
@@ -439,3 +439,38 @@ bekötéséhez az aktuális rendelet/tervkiadás, területi lefedettség, kódme
 CRS, letöltési teljesség és jogi felhasználhatóság együttes bizonyítéka kell.
 Nem kértem új hozzáférést, nem nyújtottam be kérelmet és nem olvasztottam
 be a PR-t a főágba.
+
+## Budapest XII. 8448/46: külön engedélyezett WMS-ellenőrzés (2026-10-10)
+
+A felhasználó kifejezetten engedélyezte e telek EOV-koordinátáinak egyszeri
+elküldését az OÉNY hivatalos WMS-szolgáltatásának helyazonosítás és tervi
+összevetés céljából. Más szolgáltatáshoz nem küldtünk koordinátákat.
+
+A [nyilvános OÉNY kereső](https://www.oeny.hu/oeny/hrsz-kereso/) célja
+a helyrajzi számok térképi azonosítása. A
+[hivatalos futásidejű konfiguráció](https://www.oeny.hu/oeny/hrsz-kereso/assets/env.js)
+geoUrl értéke `https://www.oeny.hu/hk-geoserver`; a kereső térképi modulja
+a `/hrsz/wms` végpont `hrsz:foldreszlet`, `hrsz:felirat_kat`,
+`hrsz:epulet` rétegeit használja. A lekérdezés ugyanezekre a nyilvános
+térképi rétegekre irányult, hitelesítés vagy hozzáférési korlátozás
+megkerülése nélkül. Ez nem jelent általános adat-újraközlési licencet vagy
+hiteles földhivatali telekhatár-bizonyítékot.
+
+Az engedélyezett EPSG:23700 GetMap kérés lefutott. A válasz **HTTP 200,
+Content-Type text/html, 2035 bájt**, címe **OENY Hiba**, nem PNG térképkép.
+A HTTP sikerstátusz ezért nem térképi siker. A kérés nem koordinátás paraméterei, időpontja,
+a teljes kapott hibaoldal és SHA-256 lenyomata a
+[WMS-ellenőrzési jegyzőkönyvben](budapest-xii-wms-receipt.json) szerepelnek.
+A pontos EOV-koordináták csak a helyi munkajegyzőkönyvben maradnak;
+a GitHubra kerülő változat nem tartalmazza őket.
+A szolgáltatás a válaszban nem közölt konkrét szerveroldali hibaokot;
+hitelesítési követelmény vagy hiányzó telek ebből nem állapítható meg.
+Nem történt második koordinátás kérés, sem alternatív szolgáltatásnak küldés.
+
+**Eredmény: C.** Nincs új térképi bizonyíték, ezért továbbra sincs igazolt
+megfeleltetés a telek és az északi/déli KÉSZ megfelelő tervrészlete között.
+Az eddigi XII. kerületi kép csak nem lokalizált terváttekintés, nem
+telekhely-bizonyíték. A továbblépéshez működő hivatalos térképkép vagy más
+jogszerű, ellenőrizhető térképi helyazonosítás szükséges.
+A korábbi automatikus elutasításra vonatkozó részek történeti események;
+az új, kifejezett engedély alapján ez a kérés már ténylegesen lefutott.
