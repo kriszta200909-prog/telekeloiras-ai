@@ -59,6 +59,16 @@ class ParcelZoneTests(unittest.TestCase):
             self.assertEqual(app.cadastral_plan_overlay(doc,{
                 **parcel,'geometry_crs':'EPSG:4326'})['overlays'],[])
 
+    def test_cadastral_overlay_rejects_partially_off_sheet_parcel(self):
+        from test_automatic_sources import geo_document
+        from shapely.geometry import mapping,box
+        with geo_document() as doc:
+            parcel={'parcel_boundary_verified':True,'geometry_crs':'EPSG:23700',
+                    'cadastral_geometry':mapping(box(600900,249600,601100,249700))}
+            result=app.cadastral_plan_overlay(doc,parcel)
+        self.assertEqual(result['status'],'unavailable')
+        self.assertEqual(result['overlays'],[])
+
     def test_cadastral_overlay_on_georeferenced_source(self):
         from test_automatic_sources import geo_document
         from shapely.geometry import mapping,box
