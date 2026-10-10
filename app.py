@@ -1555,6 +1555,33 @@ def select_plan_by_exact_label(meta, page, inputs, hrsz, on_progress=None):
     return selected_meta,selected_page,selected_inputs
 
 
+def parcel_search_method_evidence(parcel_api, plan_result, label_hits=None, minerva_detail=''):
+    """Retain independent search methods without conflating a label and a boundary.
+
+    A previously useful source remains visible as a candidate method even if
+    a different method wins; only explicit verification elevates its status.
+    """
+    methods=[]
+    api=parcel_api or {}
+    methods.append({'method':'public_hrsz','found':bool(api.get('id')),
+                    'boundary_verified':api.get('parcel_boundary_verified') is True,
+                    'source':api.get('search_url',''),
+                    'detail':api.get('geometry_evidence_note','')})
+    for hit in label_hits or []:
+        methods.append({'method':'pdf_label','found':True,
+                        'boundary_verified':False,'page':hit.get('page'),
+                        'detail':hit.get('method','')})
+    plan=plan_result or {}
+    if plan.get('hrsz_method'):
+        methods.append({'method':'plan_geometry','found':True,
+                        'boundary_verified':plan.get('parcel_boundary_verified') is True,
+                        'detail':plan.get('hrsz_method','')})
+    if minerva_detail:
+        methods.append({'method':'municipal_gis','found':False,
+                        'boundary_verified':False,'detail':minerva_detail})
+    return methods
+
+
 def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
     """Headless integration path using the same loaders and adapters as the UI."""
     result={'place':place,'hrsz':normalize_hrsz(hrsz),'ksh':'','errors':[],
@@ -1618,6 +1645,9 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
         if doc is not None:doc.close()
     plan_result.pop('preview',None)
     result['plan_result']=plan_result
+    result['search_methods']=parcel_search_method_evidence(
+        result['parcel_api'],plan_result,result.get('label_hits'),
+        result.get('minerva_detail',''))
     result['identification']=connect_automatic_zone(result['parcel_api'],plan_result,inputs,result['ksh'],hrsz)
     from gis_sources import automatic_gis_evidence
     from shapely.geometry import mapping
