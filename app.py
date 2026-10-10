@@ -989,7 +989,12 @@ def parcel_outline_match(candidate, reference, *, tolerance_m=0):
             return False
         intersection = candidate.intersection(reference).area
         union = candidate.union(reference).area
-        if union <= 0 or intersection / union < .95:
+        # The public locator can return a display polygon expanded by a
+        # couple of metres. Its IoU with an exact closed cadastral square is
+        # only ~0.925 (100 x 100 m with a 2 m display buffer), despite the
+        # correct boundary. Reject materially different or shifted shapes,
+        # but do not demand near-identical areas from display outlines.
+        if union <= 0 or intersection / union < .90:
             return False
         return candidate.hausdorff_distance(reference) <= 3 + tolerance_m
     except (ValueError, TypeError, AttributeError):
