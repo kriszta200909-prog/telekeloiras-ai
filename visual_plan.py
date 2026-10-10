@@ -288,12 +288,42 @@ def inspect_label_location(doc, spatial, profile, zone_pattern, hrsz, identity, 
         clearance=float(np.median(nearest)/2)
         if 0<clearance<12:barriers.extend(Point(p).buffer(clearance) for p in dots)
         else:clearance=0.
+    # When no GeoPDF registration exists, closed source vector zone faces
+    # still provide a meaningful map-space topology. Keep regulatory lines
+    # separate: only the municipality's verified zone-boundary style may
+    # enclose a zone. Do not connect gaps or use a nearest-label shortcut.
+    from geopdf import polygon_faces, source_zone_polygons
+    zone_paths=legend_layer_paths(page,profile,'zone_boundary',clip=clip*page.derotation_matrix)
+    closed_faces=source_zone_polygons(zone_paths)
+    closed_faces.extend(polygon_faces([p for p in zone_paths if p.get('fill') is None]))
+    local_faces=[]
+    for face in closed_faces:
+        mapped=affine_transform(face,[m.a,m.c,m.b,m.d,m.e,m.f])
+        if mapped.is_valid and mapped.area>0 and mapped.covers(center):
+            local_faces.append(mapped)
+    # A plan-space zone code must be INSIDE the same closed face as the
+    # cadastral label. Repeated codes in that face are acceptable; different
+    # codes are ambiguous. This is preliminary until full parcel coverage.
+    topology_candidates=[]
+    for face in local_faces:
+        codes={code for code,label_rect in labels
+               if face.covers(Point((label_rect.x0+label_rect.x1)/2,
+                                    (label_rect.y0+label_rect.y1)/2))}
+        if len(codes)==1:
+            topology_candidates.append({'zone':next(iter(codes)),'area_pdf':round(face.area,2)})
+    if len(local_faces)==1 and len(topology_candidates)==1 and legend_bound:
+        out.update(status='probable',zone=topology_candidates[0]['zone'],
+                   zone_face_relationship='HRSZ és övezeti felirat ugyanabban a zárt vektoros övezeti poligonban')
+    out['closed_zone_faces_at_hrsz']=len(local_faces)
+    out['closed_zone_face_candidates']=topology_candidates
     # Small anchor patch means labelled location only, never invented parcel extent.
     patch=box(center.x-2,center.y-2,center.x+2,center.y+2)
     associations=supported_labels(rgb,(pix.x/scale,pix.y/scale),scale,patch,labels,styles,barriers)
     supported={r['code'] for r in associations if r['clear_paths']>=7}
-    if legend_bound and len(supported)==1 and styles:
+    if legend_bound and len(supported)==1 and styles and not local_faces:
         out.update(status='probable',zone=next(iter(supported)))
+    elif local_faces and not topology_candidates:
+        out.update(status='not_identifiable',zone='')
     context_text,context_words=ocr(page,clip,4)
     out['context_text']=context_text
     out['context_landmarks']=[{'text':word,'centre_display_pdf':list(point),'independent_map_match_verified':False}
