@@ -909,7 +909,9 @@ def parcel_zone_coverage(parcel_geojson, zone_features, crs):
             return out
         covered = unary_union(pieces).area
         out["coverage"] = round(covered / parcel.area, 8)
-        if sum(part.area for part in pieces) - covered > 0.000001 * parcel.area:
+        if sum(part.area for part in pieces) - covered > max(1e-8, 1e-10 * parcel.area):
+            # Two distinct zoning codes cannot claim the same measurable
+            # parcel strip. Even narrow overlaps require source review.
             out["status"] = "overlapping_zones"
         elif parcel.area - covered > max(1e-8, 1e-10 * parcel.area):
             # Even a narrow uncovered strip can contain a binding setback or
