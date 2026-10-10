@@ -1646,9 +1646,12 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
         result['parcel_api']=exc.result
         result['errors'].append('Telekgeometria: '+str(exc))
     except Exception as exc:result['errors'].append('HRSZ/telek: '+str(exc))
-    meta=source_for_town(resolved_place) if result['ksh'] else None
+    # Legal-source discovery is independent of a failed cadastral lookup.
+    # Only unresolved Budapest needs a district before choosing its KÉSZ.
+    can_resolve_law=key_text(place)!='budapest' or bool(result.get('resolved_district'))
+    meta=source_for_town(resolved_place) if can_resolve_law else None
     if meta is None:
-        meta,page=discover_njt_source(resolved_place,hrsz) if result['ksh'] else ({},{})
+        meta,page=discover_njt_source(resolved_place,hrsz) if can_resolve_law else ({},{})
     else:page=fetch_njt_page(meta['url'])
     if not meta:
         result['errors'].append('Nincs tartalmilag ellenőrzött NJT-forrás.')
