@@ -269,8 +269,22 @@ def shapefile_intersections(body, parcel_geometry, parcel_crs):
                 if not geometry.is_valid or geometry.is_empty:
                     invalid_count+=1;invalid_geometry+=1
                     continue
-                projected=transform(convert.transform,geometry)
-                if parcel.intersects(projected):
+                try:
+                    projected=transform(convert.transform,geometry)
+                    if projected.is_empty or not projected.is_valid:
+                        invalid_count+=1;invalid_geometry+=1
+                        continue
+                    intersects=parcel.intersects(projected)
+                except Exception as exc:
+                    # Invalid projected geometry or CRS transformation must not
+                    # be interpreted as a negative restriction check.
+                    from pyproj.exceptions import ProjError
+                    from shapely.errors import GEOSException
+                    if not isinstance(exc,(ProjError,GEOSException)):
+                        raise
+                    invalid_count+=1;invalid_geometry+=1
+                    continue
+                if intersects:
                     hits.append({'layer':stem,'attributes':item.record.as_dict(),
                                  'legal_applicability_verified':False})
             layers.append({'layer':stem,'features':count,'missing_geometry':null_count,
