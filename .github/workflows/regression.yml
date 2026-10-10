@@ -77,6 +77,34 @@ jobs:
           STREAMLIT_SERVER_HEADLESS: 'true'
         run: python -m unittest discover -v
 
+  kondoros-end-to-end:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install existing pipeline dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng tesseract-ocr-hun
+          python -m pip install -r requirements.txt numpy
+      - name: Run actual Kondoros 1570 official-source pipeline
+        env:
+          STREAMLIT_SERVER_HEADLESS: 'true'
+        run: |
+          mkdir -p work
+          timeout --signal=TERM --kill-after=15s 1500s python -u reference_checks.py --case-index 7 --resume-attempts 1 --visual-images work --output work/kondoros-1570.json
+      - name: Preserve original engine output and evidence map
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kondoros-1570-engine-evidence
+          path: |
+            work/kondoros-1570.json
+            work/kondoros-1570.png
+          if-no-files-found: warn
+
   live-six-parcel-check:
     runs-on: ubuntu-latest
     timeout-minutes: 90
