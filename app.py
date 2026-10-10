@@ -635,7 +635,7 @@ def discover_njt_source(town, hrsz, selected_district=""):
     # This function is also executed standalone by source-discovery checks.
     # Use the same whitespace-only HRSZ normalization without relying on
     # another global symbol in the extracted execution scope.
-    exact_hrsz = re.sub(r"\\s+", "", str(hrsz or "").strip())
+    exact_hrsz = "".join(str(hrsz or "").split())
     queries = [
         # A municipality may have several separate KÉSZ documents. Prefer
         # exact-HRSZ hits in official annexes before generic title matches;
