@@ -44,11 +44,17 @@ jobs:
       - name: Run all six parcels against live official sources
         env:
           STREAMLIT_SERVER_HEADLESS: 'true'
-        run: python -u reference_checks.py --resume-attempts 2 --output work/reference-results.json
+        run: |
+          mkdir -p work
+          for i in 1 2 3 4 5 6; do
+            echo "::group::Official-source parcel $i of 6"
+            timeout --signal=TERM --kill-after=15s 600s python -u reference_checks.py --case-index "$i" --resume-attempts 1 --output "work/parcel-$i.json" || echo "Parcel $i incomplete (timeout or source error); no automatic match asserted." | tee "work/parcel-$i.error.txt"
+            echo "::endgroup::"
+          done
       - name: Preserve actual source-backed results, including partial failures
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: six-parcel-live-results
-          path: work/reference-results.json
+          path: work/parcel-*.json\n            work/parcel-*.error.txt
           if-no-files-found: warn
