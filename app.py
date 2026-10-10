@@ -1467,7 +1467,8 @@ def connect_automatic_zone(parcel_api, plan_result, plan_inputs, ksh, hrsz):
     source={'ksh_code':ksh,'edition':plan_inputs.get('edition',''),
             'source_url':plan_inputs.get('source_url',''),'source_hash':plan_inputs.get('source_hash',''),
             'current_verified':plan_inputs.get('current_verified') is True,
-            'boundary_verified':bool(features),'features':features}
+            'boundary_verified':bool(features),'features':features,
+            'regulatory_lines':plan_result.get('regulatory_lines',[])}
     result=identify_parcel_zones(parcel,source,ksh_code=ksh,hrsz=hrsz,
                                  edition=plan_inputs.get('edition',''))
     result['parcel_boundary_verified']=bool(parcel_verified and plan_inputs.get('current_verified'))
@@ -1802,7 +1803,14 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
     result['search_methods']=parcel_search_method_evidence(
         result['parcel_api'],plan_result,result.get('label_hits'),
         result.get('minerva_detail',''))
-    result['identification']=connect_automatic_zone(result['parcel_api'],plan_result,inputs,result['ksh'],hrsz)
+    # Feed verified closed PDF faces into the existing coverage and crossing
+    # engines. Never promote a visual candidate without a registered parcel.
+    if (result['visual'].get('source_zone_features')
+            and plan_result.get('parcel_boundary_verified') is True
+            and not inputs.get('source_selection_ambiguous')):
+        plan_result['zone_features']=result['visual']['source_zone_features']
+        plan_result['regulatory_lines']=result['visual'].get('source_regulatory_lines',[])
+        result['identification']=connect_automatic_zone(result['parcel_api'],plan_result,inputs,result['ksh'],hrsz)
     from gis_sources import automatic_gis_evidence
     from shapely.geometry import mapping
     from shapely import wkt
