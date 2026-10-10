@@ -1001,6 +1001,54 @@ def parcel_outline_match(candidate, reference, *, tolerance_m=0):
         return False
 
 
+def cadastral_plan_overlay(doc, parcel_api):
+    """Project an independently verified cadastral parcel onto a GeoPDF.
+
+    Display/bounding-box outlines are never promoted to cadastral evidence.
+    Coordinates must be verified EOV metres; no invented registration points.
+    """
+    from shapely.geometry import shape, Polygon, MultiPolygon
+    from geopdf import page_registrations, to_pdf
+    result={'status':'unavailable','reason':'Nincs igazolt kataszteri telekpoligon.',
+            'overlays':[]}
+    if not isinstance(parcel_api,dict) or parcel_api.get('parcel_boundary_verified') is not True:
+        return result
+    if parcel_api.get('geometry_crs')!='EPSG:23700':
+        result['reason']='A kataszteri geometria nem igazolt EOV koordinátarendszerű.'
+        return result
+    geometry=parcel_api.get('cadastral_geometry')
+    if not isinstance(geometry,dict) or geometry.get('type') not in ('Polygon','MultiPolygon'):
+        result['reason']='A kataszteri forrás nem adott teljes Polygon/MultiPolygon geometriát.'
+        return result
+    try:
+        parcel=shape(geometry)
+        if not parcel.is_valid or parcel.is_empty or parcel.area<=0:
+            return result
+        for page in doc:
+            for registration in page_registrations(page):
+                if not registration['world_frame'].intersects(parcel):
+                    continue
+                # Transform each ring, including holes. The overlay is a
+                # rendering aid, not a new inferred parcel boundary.
+                def project(poly):
+                    return {'exterior':[list(to_pdf(p,registration['matrix']))
+                                        for p in poly.exterior.coords],
+                            'holes':[[list(to_pdf(p,registration['matrix']))
+                                      for p in ring.coords] for ring in poly.interiors]}
+                parts=parcel.geoms if isinstance(parcel,MultiPolygon) else [parcel]
+                result['overlays'].append({
+                    'page':page.number+1,'rings':[project(part) for part in parts],
+                    'registration_residual_m':registration['residual_m'],
+                    'registration_uncertainty_m':registration['error_m']})
+        if result['overlays']:
+            result.update(status='georeferenced',reason='Igazolt kataszteri telek EOV koordinátái a GeoPDF saját illesztésével ábrázolva.')
+        else:
+            result['reason']='Nincs a kataszteri poligont lefedő igazolt GeoPDF-illesztés.'
+    except (ValueError,TypeError,KeyError,AttributeError):
+        result['reason']='A kataszteri poligon vagy az illesztés érvénytelen.'
+    return result
+
+
 def geopdf_parcel_zone(doc, parcel_api, hrsz, legend_profile=None):
     """Read the parcel boundary from a georeferenced official source layer.
 
