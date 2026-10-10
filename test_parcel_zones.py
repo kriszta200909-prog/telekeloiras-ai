@@ -52,6 +52,19 @@ class ParcelZoneTests(unittest.TestCase):
         self.assertEqual(result['source']['source_hash'], 'a' * 64)
         self.assertEqual(before, (self.parcel, self.source))
 
+    def test_multiple_zones_keep_separate_rule_sets(self):
+        identification=self.identify(source={**self.source,'features':[
+            self.feature('A',0,4),self.feature('B',4,10)]})
+        self.assertEqual(identification['status'],'multiple_zones')
+        result=app.automatic_zone_rule_evidence(
+            {},{'url':'https://njt.jog.gov.hu/jogszabaly/example','html':''},
+            {'source_valid':True,'edition':'2026.01.01.','attachments':[]},
+            {**identification,'parcel_boundary_verified':True})
+        self.assertEqual(result['zone'],'')
+        self.assertEqual([z['code'] for z in result['per_zone']],['A','B'])
+        self.assertEqual([z['fraction'] for z in result['per_zone']],[.4,.6])
+        self.assertFalse(result['complete'])
+
     def test_multiple_zones_preserve_fractions_without_single_code(self):
         self.source['features'] = [self.feature('A', 0, 4), self.feature('B', 4, 10)]
         result = self.identify()
