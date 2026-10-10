@@ -1,0 +1,371 @@
+{
+  "checked_at_local": "2026-10-10T12:57:20.003656+02:00",
+  "status": "completed_real_local_inference",
+  "external_ai_requests": 0,
+  "external_ai_cost_usd": 0,
+  "hardware": {
+    "visible_cpu_count": 3,
+    "effective_cpu_quota": 2,
+    "cgroup_memory_limit_mib": 8192,
+    "gpu_available": false,
+    "benchmark_threads": 3,
+    "current_worker_threads": 2,
+    "note": "Benchmarks ran while live source checks also used CPU; these are observed times, not a controlled performance comparison."
+  },
+  "inspected_models": [
+    {
+      "model": "HuggingFaceTB/SmolVLM-256M-Instruct",
+      "license": "Apache-2.0",
+      "parameters": 256484928,
+      "tested": false,
+      "source": "https://huggingface.co/HuggingFaceTB/SmolVLM-256M-Instruct"
+    },
+    {
+      "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+      "license": "qwen-research",
+      "parameters": 3754622976,
+      "tested": false,
+      "reason": "Custom research license and approximately 7.5 GB BF16 weights; not selected for this 8 GiB environment."
+    }
+  ],
+  "preliminary_failures": [
+    {
+      "model": "SmolVLM-500M",
+      "dtype": "float32",
+      "default_image_longest_edge": 2048,
+      "result": "process killed, exit 137; cgroup oom_kill increased",
+      "fix": "BF16, explicit 1024 pixel longest-edge limit and offline CPU run succeeded"
+    },
+    {
+      "model": "Qwen3-VL-2B",
+      "result": "missing torchvision before inference",
+      "fix": "matching CPU torchvision 0.23.0 installed"
+    }
+  ],
+  "models": {
+    "smolvlm-500m": {
+      "model": "HuggingFaceTB/SmolVLM-500M-Instruct",
+      "revision": "a7da5b986cb59b408707209984f360a5f4ad7e47",
+      "license": "Apache-2.0",
+      "device": "CPU",
+      "dtype": "bfloat16",
+      "torch": "2.8.0+cpu",
+      "transformers": "4.57.6",
+      "load_seconds": 0.289,
+      "cases": [
+        {
+          "hrsz": "4755/11",
+          "status": "completed",
+          "raw_answer": " {\n    \"hrsz\": \"115007\",\n    \"parcel_identified\": \"false\",\n    \"zone\": \"EV\",\n    \"boundary_state\": \"closed\",\n    \"visual_evidence\": [\n        \"115007/11\",\n        \"4755/11\",\n        \"4756/11\",\n        \"4757/11\",\n        \"4758/11\",\n        \"4759/11\",\n        \"4760/11\",\n        \"4761/11\",\n        \"4762/11\",\n        \"4763/11\",\n        \"4764/11\",\n        \"4765/11\",\n        \"4766/11\",\n        \"4767/11\",\n       ",
+          "prompt": "Inspect these official zoning-plan images. Find parcel number 4755/11. Image 1 is the unannotated plan crop; other images are its own official legend. Read the zone code belonging to the parcel, not just the nearest label. Use only this legend to distinguish parcel lines, zoning boundaries and restrictions. Do not invent connections across missing corners. If unreadable, use an empty zone. Return JSON with keys: hrsz, parcel_identified (boolean), zone (string), boundary_state (closed/open/unclear), visual_evidence (list of strings), uncertainties (list of strings). No legal proof can be inferred.",
+          "image_sha256": [
+            "7c87670b7b5514eba5227e3283b0c2f7aeed6f9b5281a556e4a3ae50a36dca45",
+            "f7b1a851f7f860f77332cd379dde98c4d0ce665809dd560558f54e7f21ecb664",
+            "f864ed5c234249e15ba39f39376922c9cbd1041eeb0eaa9357289609c2b82738"
+          ],
+          "preprocessing": {
+            "longest_edge": 1024,
+            "image_splitting": true,
+            "pixel_tensor_shape": [
+              1,
+              15,
+              3,
+              512,
+              512
+            ]
+          },
+          "generated_tokens": 192,
+          "elapsed_seconds": 90.113,
+          "peak_rss_mib": 2677.3,
+          "external_ai_requests": 0,
+          "external_ai_cost": 0,
+          "intersection_verified": false,
+          "legal_classification_verified": false,
+          "structured_answer_valid": false,
+          "zone_suggestion": "",
+          "agrees_with_local_zone": false,
+          "reason": "Valódi modellválasz, de nem érvényes, ellenőrizhető telek-/övezeti állítás.",
+          "place": "Miskolc",
+          "local_control_zone": "Gipe-60.63.5",
+          "local_control_category": "B",
+          "plan_source": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
+          "legend_source": "https://njt.jog.gov.hu/document/03/0366LL_EJR_83921015-Jelmagyarazat_modositasa.pdf",
+          "edition": "2026.09.26."
+        },
+        {
+          "hrsz": "2200/8",
+          "status": "completed",
+          "raw_answer": " {\n    \"parcel_identified\": true,\n    \"zone\": \"SZ\",\n    \"boundary_state\": \"closed\",\n    \"visual_evidence\": [\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"12,5\",\n        \"1",
+          "prompt": "Inspect these official zoning-plan images. Find parcel number 2200/8. Image 1 is the unannotated plan crop; other images are its own official legend. Read the zone code belonging to the parcel, not just the nearest label. Use only this legend to distinguish parcel lines, zoning boundaries and restrictions. Do not invent connections across missing corners. If unreadable, use an empty zone. Return JSON with keys: hrsz, parcel_identified (boolean), zone (string), boundary_state (closed/open/unclear), visual_evidence (list of strings), uncertainties (list of strings). No legal proof can be inferred.",
+          "image_sha256": [
+            "a3509dde592d5e9e0fe74f39c067f7c288c9762f69c35c5fef17dc07ae86d436",
+            "0baba804c3093cb0436b6c7ff0dc1abe437324c7ddf29fb9399d238b8658bfba",
+            "be4e4039a343bb810afcee587369b65a4da339c69d0ac2d483ad37d27e620a12"
+          ],
+          "preprocessing": {
+            "longest_edge": 1024,
+            "image_splitting": true,
+            "pixel_tensor_shape": [
+              1,
+              13,
+              3,
+              512,
+              512
+            ]
+          },
+          "generated_tokens": 192,
+          "elapsed_seconds": 77.657,
+          "peak_rss_mib": 3786.4,
+          "external_ai_requests": 0,
+          "external_ai_cost": 0,
+          "intersection_verified": false,
+          "legal_classification_verified": false,
+          "structured_answer_valid": false,
+          "zone_suggestion": "",
+          "agrees_with_local_zone": false,
+          "reason": "Valódi modellválasz, de nem érvényes, ellenőrizhető telek-/övezeti állítás.",
+          "place": "Tiszaújváros",
+          "local_control_zone": "Gip/3",
+          "local_control_category": "B",
+          "plan_source": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+          "legend_source": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+          "edition": "2024.10.10."
+        },
+        {
+          "hrsz": "1558",
+          "status": "completed",
+          "raw_answer": " {\n    \"hrsz\": \"1558\",\n    \"parcel_identified\": \"false\",\n    \"zone\": \"EK2\",\n    \"boundary_state\": \"closed\",\n    \"visual_evidence\": [\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2\",\n        \"EK2",
+          "prompt": "Inspect these official zoning-plan images. Find parcel number 1558. Image 1 is the unannotated plan crop; other images are its own official legend. Read the zone code belonging to the parcel, not just the nearest label. Use only this legend to distinguish parcel lines, zoning boundaries and restrictions. Do not invent connections across missing corners. If unreadable, use an empty zone. Return JSON with keys: hrsz, parcel_identified (boolean), zone (string), boundary_state (closed/open/unclear), visual_evidence (list of strings), uncertainties (list of strings). No legal proof can be inferred.",
+          "image_sha256": [
+            "2b0f19a08067a9f6ca99c21a5a108f10110237479b51beddf91f5461808f3999",
+            "1f8b11bd7478ea9fa7442634764bae1dcd4b312d22298742bdda616e80f1da64",
+            "cdea4548355d0a7194e06121c6c80df0ea86dec7bcc6e76d8c13b736d23a0ae1"
+          ],
+          "preprocessing": {
+            "longest_edge": 1024,
+            "image_splitting": true,
+            "pixel_tensor_shape": [
+              1,
+              15,
+              3,
+              512,
+              512
+            ]
+          },
+          "generated_tokens": 192,
+          "elapsed_seconds": 99.432,
+          "peak_rss_mib": 4101.5,
+          "external_ai_requests": 0,
+          "external_ai_cost": 0,
+          "intersection_verified": false,
+          "legal_classification_verified": false,
+          "structured_answer_valid": false,
+          "zone_suggestion": "",
+          "agrees_with_local_zone": false,
+          "reason": "Valódi modellválasz, de nem érvényes, ellenőrizhető telek-/övezeti állítás.",
+          "place": "Komádi",
+          "local_control_zone": "Lke/1.2",
+          "local_control_category": "B",
+          "plan_source": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+          "legend_source": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+          "edition": "2025.12.22."
+        }
+      ],
+      "weight_sha256": "d05b567eeaf534e83d375551f068ed57b5f52d37c657197f644af5ef9db091a2",
+      "weight_verified_after_run": true,
+      "license_source": "https://huggingface.co/HuggingFaceTB/SmolVLM-500M-Instruct/blob/a7da5b986cb59b408707209984f360a5f4ad7e47/README.md",
+      "benchmark_cpu_threads": 3,
+      "agreement_with_local_control_count": 0,
+      "source_supported_suggestions": 0
+    },
+    "qwen3-vl-2b": {
+      "model": "Qwen/Qwen3-VL-2B-Instruct",
+      "revision": "89644892e4d85e24eaac8bacfd4f463576704203",
+      "license": "Apache-2.0",
+      "device": "CPU",
+      "dtype": "bfloat16",
+      "implementation_sha256": "673af80ed43f3f3042732498300f7cd9ac699265281dbffb12f1a7affa2b2972",
+      "weight_sha256": "7de1838c87a5349b016c26a1c3f7d2bc400a3d485f95ef39a7059ffd734977a0",
+      "torch": "2.8.0+cpu",
+      "transformers": "4.57.6",
+      "load_seconds": 4.016,
+      "cases": [
+        {
+          "hrsz": "4755/11",
+          "status": "completed",
+          "raw_answer": "```json\n{\n  \"hrsz\": \"4755/11\",\n  \"parcel_identified\": true,\n  \"zone\": \"Gipe-60.63.5\",\n  \"boundary_state\": \"closed\",\n  \"visual_evidence\": [\n    \"The parcel is labeled 'Gipe-60.63.5' in the image.\",\n    \"The parcel is enclosed by a solid line, indicating a closed boundary.\"\n  ],\n  \"uncertainties\": [\n    \"The parcel is not fully visible in the image, so the boundary state cannot be confirmed.\",\n    \"The zone code '4755/11' is not explicitly labeled on the parcel in the image.\"\n  ]\n}\n```",
+          "prompt": "Inspect these official zoning-plan images. Find parcel number 4755/11. Image 1 is the unannotated plan crop; other images are its own official legend. Read the zone code belonging to the parcel, not just the nearest label. Use only this legend to distinguish parcel lines, zoning boundaries and restrictions. Do not invent connections across missing corners. If unreadable, use an empty zone. Return JSON with keys: hrsz, parcel_identified (boolean), zone (string), boundary_state (closed/open/unclear), visual_evidence (list of strings), uncertainties (list of strings). Use at most two short evidence items and two uncertainties. No legal proof can be inferred.",
+          "image_sha256": [
+            "7c87670b7b5514eba5227e3283b0c2f7aeed6f9b5281a556e4a3ae50a36dca45",
+            "f7b1a851f7f860f77332cd379dde98c4d0ce665809dd560558f54e7f21ecb664",
+            "f864ed5c234249e15ba39f39376922c9cbd1041eeb0eaa9357289609c2b82738"
+          ],
+          "preprocessing": {
+            "size": {
+              "shortest_edge": 65536,
+              "longest_edge": 1048576
+            },
+            "image_splitting": false,
+            "pixel_tensor_shape": [
+              11004,
+              1536
+            ]
+          },
+          "generated_tokens": 154,
+          "elapsed_seconds": 340.892,
+          "peak_rss_mib": 5759.4,
+          "external_ai_requests": 0,
+          "external_ai_cost": 0,
+          "intersection_verified": false,
+          "legal_classification_verified": false,
+          "answer": {
+            "hrsz": "4755/11",
+            "parcel_identified": true,
+            "zone": "Gipe-60.63.5",
+            "boundary_state": "closed",
+            "visual_evidence": [
+              "The parcel is labeled 'Gipe-60.63.5' in the image.",
+              "The parcel is enclosed by a solid line, indicating a closed boundary."
+            ],
+            "uncertainties": [
+              "The parcel is not fully visible in the image, so the boundary state cannot be confirmed.",
+              "The zone code '4755/11' is not explicitly labeled on the parcel in the image."
+            ]
+          },
+          "structured_answer_valid": true,
+          "reported_zone": "Gipe-60.63.5",
+          "zone_suggestion": "Gipe-60.63.5",
+          "agrees_with_local_zone": true,
+          "zone_in_local_candidates": true,
+          "closed_boundary_claim_verified": false,
+          "boundary_claim_requires_gap_review": true,
+          "place": "Miskolc",
+          "local_control_zone": "Gipe-60.63.5",
+          "local_control_category": "B",
+          "plan_source": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
+          "legend_source": "https://njt.jog.gov.hu/document/03/0366LL_EJR_83921015-Jelmagyarazat_modositasa.pdf",
+          "edition": "2026.09.26."
+        },
+        {
+          "hrsz": "2200/8",
+          "status": "completed",
+          "raw_answer": "```json\n{\n  \"hrsz\": \"2200/8\",\n  \"parcel_identified\": true,\n  \"zone\": \"12,5* 20 %\",\n  \"boundary_state\": \"closed\",\n  \"visual_evidence\": [\n    \"The parcel is located in the area marked with the zone code 12,5* 20 % on the plan.\",\n    \"The parcel is enclosed by a solid line, indicating a closed boundary.\"\n  ],\n  \"uncertainties\": [\n    \"The zone code 12,5* 20 % is not clearly visible on the plan, making it difficult to confirm.\",\n    \"The parcel's boundary is not fully defined, possibly due to a missing corner or a misinterpretation of the drawing.\"\n  ]\n}\n```",
+          "prompt": "Inspect these official zoning-plan images. Find parcel number 2200/8. Image 1 is the unannotated plan crop; other images are its own official legend. Read the zone code belonging to the parcel, not just the nearest label. Use only this legend to distinguish parcel lines, zoning boundaries and restrictions. Do not invent connections across missing corners. If unreadable, use an empty zone. Return JSON with keys: hrsz, parcel_identified (boolean), zone (string), boundary_state (closed/open/unclear), visual_evidence (list of strings), uncertainties (list of strings). Use at most two short evidence items and two uncertainties. No legal proof can be inferred.",
+          "image_sha256": [
+            "a3509dde592d5e9e0fe74f39c067f7c288c9762f69c35c5fef17dc07ae86d436",
+            "0baba804c3093cb0436b6c7ff0dc1abe437324c7ddf29fb9399d238b8658bfba",
+            "be4e4039a343bb810afcee587369b65a4da339c69d0ac2d483ad37d27e620a12"
+          ],
+          "preprocessing": {
+            "size": {
+              "shortest_edge": 65536,
+              "longest_edge": 1048576
+            },
+            "image_splitting": false,
+            "pixel_tensor_shape": [
+              11436,
+              1536
+            ]
+          },
+          "generated_tokens": 168,
+          "elapsed_seconds": 640.883,
+          "peak_rss_mib": 6622.6,
+          "external_ai_requests": 0,
+          "external_ai_cost": 0,
+          "intersection_verified": false,
+          "legal_classification_verified": false,
+          "answer": {
+            "hrsz": "2200/8",
+            "parcel_identified": true,
+            "zone": "12,5* 20 %",
+            "boundary_state": "closed",
+            "visual_evidence": [
+              "The parcel is located in the area marked with the zone code 12,5* 20 % on the plan.",
+              "The parcel is enclosed by a solid line, indicating a closed boundary."
+            ],
+            "uncertainties": [
+              "The zone code 12,5* 20 % is not clearly visible on the plan, making it difficult to confirm.",
+              "The parcel's boundary is not fully defined, possibly due to a missing corner or a misinterpretation of the drawing."
+            ]
+          },
+          "structured_answer_valid": true,
+          "reported_zone": "12,5* 20 %",
+          "zone_suggestion": "12,5* 20 %",
+          "agrees_with_local_zone": false,
+          "zone_in_local_candidates": false,
+          "closed_boundary_claim_verified": false,
+          "boundary_claim_requires_gap_review": false,
+          "place": "Tiszaújváros",
+          "local_control_zone": "Gip/3",
+          "local_control_category": "B",
+          "plan_source": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+          "legend_source": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+          "edition": "2024.10.10."
+        },
+        {
+          "hrsz": "1558",
+          "status": "completed",
+          "raw_answer": "```json\n{\n  \"hrsz\": \"1558\",\n  \"parcel_identified\": true,\n  \"zone\": \"K\",\n  \"boundary_state\": \"closed\",\n  \"visual_evidence\": [\n    \"The parcel number 1558 is located in the area marked with a red dotted line, which is part of the 'K' zone.\",\n    \"The red dotted line is labeled 'K' in the legend, indicating the zone code for this parcel.\"\n  ],\n  \"uncertainties\": [\n    \"The legend in image 2 is not fully visible, making it difficult to confirm the exact zone code for parcel 1558.\",\n    \"The visual evidence in image 1 may be misaligned or partially obscured, leading to potential misinterpretation of the parcel's zone.\"\n  ]\n}\n```",
+          "prompt": "Inspect these official zoning-plan images. Find parcel number 1558. Image 1 is the unannotated plan crop; other images are its own official legend. Read the zone code belonging to the parcel, not just the nearest label. Use only this legend to distinguish parcel lines, zoning boundaries and restrictions. Do not invent connections across missing corners. If unreadable, use an empty zone. Return JSON with keys: hrsz, parcel_identified (boolean), zone (string), boundary_state (closed/open/unclear), visual_evidence (list of strings), uncertainties (list of strings). Use at most two short evidence items and two uncertainties. No legal proof can be inferred.",
+          "image_sha256": [
+            "2b0f19a08067a9f6ca99c21a5a108f10110237479b51beddf91f5461808f3999",
+            "1f8b11bd7478ea9fa7442634764bae1dcd4b312d22298742bdda616e80f1da64",
+            "cdea4548355d0a7194e06121c6c80df0ea86dec7bcc6e76d8c13b736d23a0ae1"
+          ],
+          "preprocessing": {
+            "size": {
+              "shortest_edge": 65536,
+              "longest_edge": 1048576
+            },
+            "image_splitting": false,
+            "pixel_tensor_shape": [
+              11416,
+              1536
+            ]
+          },
+          "generated_tokens": 173,
+          "elapsed_seconds": 422.396,
+          "peak_rss_mib": 6622.6,
+          "external_ai_requests": 0,
+          "external_ai_cost": 0,
+          "intersection_verified": false,
+          "legal_classification_verified": false,
+          "answer": {
+            "hrsz": "1558",
+            "parcel_identified": true,
+            "zone": "K",
+            "boundary_state": "closed",
+            "visual_evidence": [
+              "The parcel number 1558 is located in the area marked with a red dotted line, which is part of the 'K' zone.",
+              "The red dotted line is labeled 'K' in the legend, indicating the zone code for this parcel."
+            ],
+            "uncertainties": [
+              "The legend in image 2 is not fully visible, making it difficult to confirm the exact zone code for parcel 1558.",
+              "The visual evidence in image 1 may be misaligned or partially obscured, leading to potential misinterpretation of the parcel's zone."
+            ]
+          },
+          "structured_answer_valid": true,
+          "reported_zone": "K",
+          "zone_suggestion": "K",
+          "agrees_with_local_zone": false,
+          "zone_in_local_candidates": false,
+          "closed_boundary_claim_verified": false,
+          "boundary_claim_requires_gap_review": false,
+          "place": "Komádi",
+          "local_control_zone": "Lke/1.2",
+          "local_control_category": "B",
+          "plan_source": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+          "legend_source": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+          "edition": "2025.12.22."
+        }
+      ],
+      "license_source": "https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct/blob/89644892e4d85e24eaac8bacfd4f463576704203/README.md",
+      "benchmark_cpu_threads": 3,
+      "agreement_with_local_control_count": 1,
+      "source_supported_suggestions": 1
+    }
+  },
+  "local_control_is_ground_truth": false,
+  "proven_legal_rule_lists": 0,
+  "control_reference": "reference-results.json"
+}

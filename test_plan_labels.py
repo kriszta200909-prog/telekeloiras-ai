@@ -147,7 +147,9 @@ app.main()
         doc=fitz.open();doc.new_page().insert_text((30,40),'1558')
         doc=fitz.open(stream=doc.tobytes(),filetype='pdf')
         complete={'labels':[],'complete':True,'scanned':1,'candidates':1,'pages':1}
-        with patch.object(app,'outlined_label_index',return_value=complete) as scan:
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder, patch('tempfile.gettempdir',return_value=folder), \
+             patch.object(app,'outlined_label_index',return_value=complete) as scan:
             a=app.load_outlined_plan_labels(doc,'1558')
             b=app.load_outlined_plan_labels(doc,'1559')
             self.assertEqual(scan.call_count,1)

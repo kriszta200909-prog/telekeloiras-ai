@@ -2,9 +2,9 @@
 
 **A fő cél még nem teljesült: 0/5 teleknek van teljesen bizonyított, hatályos építési előíráslistája.**
 
-134/134 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
+151/151 offline automatikus teszt sikeres, beleértve a 36 eredeti tesztet és a
 Streamlit vizsgálati útvonalát. Az öt mintatelek élő forrásvizsgálata után
-177/177 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
+222/222 forrásalapú ellenőrzés is sikeres: eredeti PDF-bájtok, NJT-források,
 időállapotok, jelmagyarázat–tervlap kötés, feldolgozólenyomatok,
 bizonyítottsági állapotok és a miskolci paraméterkód feloldása.
 Ez a forráskezelés helyességét ellenőrzi; nem állít sikeres telekbesorolást.
@@ -90,35 +90,16 @@ láthatók. Az eredeti tervrészlet és a magyarázó ábra külön SHA-256 leny
 kap; a jelmagyarázat forrásbájtjait megjelenítés előtt ellenőrzi.
 A meglévő képi bizonyítékot frissítettem, nem új tervváltozatot hoztam létre.
 
-**AI és költség:** működő helyi PDF-feldolgozás, Tesseract OCR és numpy/Pillow
-képfeldolgozás. Az új képi kapcsolatvizsgálat determinisztikus, nem LLM.
-A környezet aktuális, ellenőrzött konfigurációjában nincs OpenAI API-hozzáférés.
-A tényleges élő övezeti felismerést a helyi képfeldolgozó végezte;
-multimodális modell pontosságjavulását nem mértük. Külső AI-hívás: 0;
-külső AI API-költség: 0. Az alkalmazás tárhelyére ez nem tesz költségállítást.
-
-Az OpenAI [képbemenetes API-ja](https://developers.openai.com/api/docs/guides/images-vision)
-és a [GPT-4.1 mini modell dokumentációja](https://developers.openai.com/api/docs/models/gpt-4.1-mini)
-alapján elkészült egy alapértelmezésben kikapcsolt Responses API-adapter.
-A rögzített modell `gpt-4.1-mini-2025-04-14`; az eredeti, rárajzolás nélküli
-tervrészletet és az adott hivatalos jelmagyarázat eredeti mintáit kapja meg,
-beleértve a telekhatárt és az építési vonalat. A promptban kizárólag a keresett
-HRSZ szerepel; nincs referenciaövezet, helyi algoritmusválasz vagy elvárt kód.
-Szigorú JSON-séma, 1200 kimeneti tokenkorlát, 60 másodperces időkorlát,
-átirányítás-tiltás, ismételt képkérés gyorsítótára és helyi eredménnyel való
-összevetés működik. Modellválasz soha nem ad geometriai vagy jogi igazolást.
-A HTTP-adaptert szimulált válasszal ellenőriztük; ez **nem élő AI-vizsgálat**.
-
-Üzemeltetői beállítás: `TELEKELOIRAS_VISION_ENABLED=1` és szerveroldali
-`OPENAI_API_KEY`. Nem kértem kulcsot, nem aktiváltam fizetős hívást. A
-modelladatlap jelenlegi alapára 0,40 USD / millió bemeneti és 1,60 USD /
-millió kimeneti token; a képbemenet is díjköteles, a tényleges összeg a
-képfelbontástól és felhasznált tokenektől függ. A program nem ígér fix
-telekenkénti díjat; hívás esetén a tényleges usage megőrződik, a számlázott
-összeget nem találja ki. Az AI hozzáadott értékét azonos forrásképeken,
-helyi algoritmussal összehasonlított, kulcs birtokában végzett élő teszttel
-kell igazolni aktiválás előtt. Az OpenAI dokumentációja a változó vonaljelek
-és a pontos térbeli lokalizáció értelmezését is korlátként jelöli.
+**AI és költség:** a helyi PDF-/Tesseract-/numpy/Pillow-felismerés kontrollként
+megmaradt. A fizetős OpenAI-adapter és a korábbi API-próba futtatása letiltva,
+régi engedélyező kapcsoló és kulcs mellett is. Külső AI-hívás és API-költség: 0.
+A nyílt súlyú Qwen3-VL 2B és SmolVLM 500M modellekkel már valódi, helyi,
+offline képelemzést végeztünk mindhárom lokalizált telken. A nyers válaszok,
+modellek/súlyok lenyomatai, képbemeneti lenyomatok és erőforrásmérések a
+[helyi modelljegyzőkönyvben](local-vision-results.json) találhatók.
+A modellvélemény nem geometriai vagy jogi igazolás; a részletes összevetés
+alább szerepel. A meglévő gépen futtattunk; új előfizetés, fizetős szolgáltatás
+vagy pénzügyi kötelezettség nem keletkezett.
 
 **Genspark:** a [Team/Enterprise hivatalos súgója](https://www.genspark.ai/helpcenter/team-enterprise-plans)
 API-kulcsok adminisztrációját említi, tehát nem állítjuk, hogy semmilyen API
@@ -419,7 +400,7 @@ python reference_checks.py --outlined --output work/reference-outlined-results.j
 ```
 
 reference-results.json: aktuális öttelekes vizsgálat és forrásreceiptek.
-source-check-results.json: 177 sikeres ellenőrzés, a jelentés lenyomatával.
+source-check-results.json: 222 sikeres ellenőrzés, a jelentés lenyomatával.
 reference-outlined-results.json: külön HRSZ-feliratpróba, saját forrás- és
 feliratfeldolgozó-lenyomatokkal; nem övezeti bizonyíték.
 conditional-zone-parameters.json: a Gip/3 forrássor feltételes ellenőrzése.
@@ -474,3 +455,55 @@ telekhely-bizonyíték. A továbblépéshez működő hivatalos térképkép vag
 jogszerű, ellenőrizhető térképi helyazonosítás szükséges.
 A korábbi automatikus elutasításra vonatkozó részek történeti események;
 az új, kifejezett engedély alapján ez a kérés már ténylegesen lefutott.
+
+## Ingyenes multimodális modellek valódi összevetése
+
+Mindkét modell Apache 2.0 licencű, nyilvánosan letölthető; nem használtunk
+hostolt inference API-t. Modellazonosítók és rögzített revíziók a
+[nyers futási jegyzőkönyvben](local-vision-results.json). A SmolVLM 256M
+licencét és 256 millió paraméterét ellenőriztük, de nem futtattuk. A Qwen2.5-VL
+3B egyedi `qwen-research` licencű és kb. 7,5 GB BF16 súlyt igényelne, ezért
+az általánosan újrahasználható megoldáshoz a Qwen3-VL 2B-t választottuk.
+
+| Telek | Helyi kontroll, B | Qwen3-VL 2B tényleges válasz | SmolVLM 500M tényleges válasz |
+|---|---|---|---|
+| Miskolc 4755/11 | Gipe-60.63.5 | Gipe-60.63.5, HRSZ egyezik; határzártsági indoklás hibás/önellentmondó | EV, hibás HRSZ és csonka/hibás szerkezet; elutasítva |
+| Tiszaújváros 2200/8 | Gip/3 | „12,5* 20 %”: építési paramétert nézett övezetnek; elutasított övezeti eredmény | SZ, hiányzó HRSZ és csonka/hibás szerkezet; elutasítva |
+| Komádi 1558 | Lke/1.2 | K; a helyi forrásolvasás nem támasztja alá, nem fogadjuk el övezeti eredményként | EK2, hibás logikai mező/csonka válasz; elutasítva |
+
+**Egyezés a helyi kontrollal: Qwen 1/3, SmolVLM 0/3.** Ez nem hiteles
+pontossági arány: a három helyi B kontrollhoz sincs függetlenül igazolt A
+referencia. Az előzetesen azonosított telkek száma nem nőtt: továbbra is 3/5 B,
+2/5 C; teljes bizonyított előíráslista 0/5. A modellek gyakorlati előnye itt
+nem bizonyított. A Qwen önállóan olvasott egyező miskolci kódot, de nem adott
+megbízható telek–övezet topológiát; a hagyományos módszert nem váltja ki.
+
+A modell a nyers, utólagos kontrolljelölések nélküli tervkivágatot, a saját
+teljes jelmagyarázatot és nagyított jelmintákat kapta. A prompt a keresett
+HRSZ-t tartalmazza, **nem az elvárt kódot**, nem helyi OCR-feliratlistát.
+Az eredeti forrás-PDF-ekből visszaállított képek hash-egyezését külön ellenőrzés
+vizsgálja. A kontrollövezet csak a válasz után kerül az összevetésbe.
+
+**Tényleges hardver:** GPU nincs; 3 látható CPU-mag, de cgroup-kvóta szerint
+2 CPU és 8192 MiB memória. A Qwen próbák 341/641/422 másodpercig tartottak,
+a mért kumulatív RSS-csúcs 6623 MiB. A SmolVLM 90/78/99 másodperc,
+legfeljebb 4102 MiB. A mérések részben párhuzamos forrásellenőrzéssel futottak;
+nem szabványos sebességbenchmarkok. A modell súlyai BF16 formátumban futottak.
+Az első float32/alapértelmezett nagy képes SmolVLM-kísérlet OOM miatt kilépett
+(137); BF16 és explicit képméretkorlát mellett mindhárom próba sikeresen
+lefutott. A Qwen betöltésének hiányzó torchvision-függőségét pótoltuk.
+
+A futtató immár figyelembe veszi a tényleges CPU-kvótát. A felületi próba
+legfeljebb 15 percet enged; hiba esetén a kontroll megmarad. A modell
+telepítése és indítása a felület gombjaival történik, nem kell Python-kódot
+írni vagy térképet kézzel feldolgozni. A gombok a gyorsítótárazott vizsgálaton
+kívül vannak; ennek regressziós hibáját javítottuk. A tesztcache ismételt
+futtatásokból származó szennyeződését is megszüntettük izolált tesztmappával;
+a települési jelmagyarázatok és az országos OCR-cache újrahasználata megmaradt.
+
+A hibás HRSZ, logikai mező és csonka JSON nem ad elfogadott modelljelöltet.
+A helyi forrásfeliratokkal nem alátámasztott modellszöveg külön figyelmeztetést
+kap. A modell zártsági állítása mellett a forrásbeli megszakadásokat is
+láthatóvá tesszük, és nem állítunk igazolt övezeti poligont. A teljes jogi
+előíráslista továbbra is hivatalos, hatályos forrásokra és a telek tényleges
+övezeti/korlátozási kapcsolatának bizonyítására szorul.

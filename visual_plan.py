@@ -5,9 +5,6 @@ import os
 import re
 import json
 import base64
-import urllib.request
-import urllib.error
-import copy
 import shutil
 import subprocess
 import fitz
@@ -17,18 +14,15 @@ from shapely.geometry import Point, Polygon, LineString, box
 from geopdf import page_registrations, to_pdf
 from plan_legend import styles_for
 
-_VISION_CACHE={}
-
 
 def model_availability():
     # Presence is reported without printing values or issuing billable requests.
-    configured=(os.environ.get('TELEKELOIRAS_VISION_ENABLED')=='1' and
-                bool(os.environ.get('OPENAI_API_KEY')))
+    configured=False  # Free-only policy: paid API is disabled even with credentials.
     return {'multimodal_api_configured':configured,
             'credential_present':bool(os.environ.get('OPENAI_API_KEY')),
             'multimodal_model_verified':False,'external_ai_requests':0,
             'external_ai_cost':0,'method':'PDF natív szöveg + Tesseract OCR + helyi képfeldolgozás',
-            'reason':'Nincs ellenőrzött multimodális modellkapcsolat; képfeldolgozó útvonal.'}
+            'reason':'Fizetős API letiltva; az ingyenes helyi AI külön panelen indítható.'}
 
 
 def classification_result(identification, visual):
@@ -78,41 +72,9 @@ def validate_vision_answer(answer, visual, hrsz):
 
 
 def optional_vision_review(visual, hrsz):
-    """Explicit operator opt-in only. No retries and no redirected credentials."""
-    out={'status':'not_run','external_ai_requests':0,'external_ai_cost':0,
-         'intersection_verified':False,'reason':'Opcionális API nincs engedélyezve vagy nincs hozzáférés.'}
-    if not model_availability()['multimodal_api_configured']:return out
-    images=[visual.get('context_png'),visual.get('legend_png')]
-    if not (all(images) and visual.get('legend_image_source_verified') and visual.get('legend_bound')):
-        out['reason']='Hiányzó igazolt tervrészlet vagy saját jelmagyarázat.';return out
-    payload=vision_request(images,hrsz)
-    cache_key=hashlib.sha256((json.dumps(payload,sort_keys=True)+
-        hashlib.sha256(os.environ['OPENAI_API_KEY'].encode()).hexdigest()).encode()).hexdigest()
-    if cache_key in _VISION_CACHE:
-        cached=copy.deepcopy(_VISION_CACHE[cache_key])
-        cached.update(cache_hit=True,external_ai_requests=0,external_ai_cost=0)
-        return cached
-    class NoRedirect(urllib.request.HTTPRedirectHandler):
-        def redirect_request(self,*args,**kwargs):return None
-    request=urllib.request.Request('https://api.openai.com/v1/responses',
-        data=json.dumps(payload).encode(),headers={'Authorization':'Bearer '+os.environ['OPENAI_API_KEY'],
-                                                  'Content-Type':'application/json'})
-    out.update(external_ai_requests=1,external_ai_cost=None,model=payload['model'])
-    try:
-        with urllib.request.build_opener(NoRedirect).open(request,timeout=60) as response:
-            raw=response.read(1024*1024+1)
-        if len(raw)>1024*1024:raise ValueError('Túl nagy modellválasz.')
-        data=json.loads(raw)
-        if data.get('status')!='completed':raise ValueError('Nem teljes modellválasz.')
-        answer=json.loads(''.join(c['text'] for item in data.get('output',[]) if item.get('type')=='message'
-            for c in item.get('content',[]) if c.get('type')=='output_text'))
-        out.update(validate_vision_answer(answer,visual,hrsz),status='completed',
-                   response_id=data.get('id',''),usage=data.get('usage',{}))
-    except (OSError,ValueError,KeyError,TypeError,AttributeError):
-        out.update(status='failed',reason='Az API-vizsgálat nem adott ellenőrizhető választ; a helyi eredmény megmarad.')
-    if len(_VISION_CACHE)>=32:_VISION_CACHE.pop(next(iter(_VISION_CACHE)))
-    _VISION_CACHE[cache_key]=copy.deepcopy(out)
-    return out
+    """Compatibility path; paid API disabled under the free-only project policy."""
+    return {'status':'not_run','external_ai_requests':0,'external_ai_cost':0,
+            'intersection_verified':False,'reason':'Fizetős API letiltva; kizárólag ingyenes helyi modell használható.'}
 
 
 def circle_labels(page, clip, ocr, components):

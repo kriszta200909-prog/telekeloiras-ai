@@ -45,37 +45,13 @@ class VisionTrialTests(unittest.TestCase):
                 with self.assertRaises(ValueError):run(folder, True, 1)
                 opener.assert_not_called()
 
-    def test_blind_request_and_disagreement_are_preserved_without_proof(self):
-        with tempfile.TemporaryDirectory() as root:
-            folder = self.fixture(root)
-            answer = {'zone':'OTHER/2', 'hrsz':'999/7','boundary_explanation':'actual line',
-                'legend_explanation':'own legend','neighbour_zones':[], 'uncertainties':['open corner'], 'parcel_identified':True,
-                'visual_evidence':['parcel number at centre'], 'boundary_state':'open'}
-            data = {'status':'completed', 'usage':{'input_tokens':100, 'output_tokens':50},
-                'output':[{'type':'message','content':[{'type':'output_text','text':json.dumps(answer)}]}]}
-            with patch.dict(os.environ, {'OPENAI_API_KEY':'mock-only'}), patch('urllib.request.build_opener') as opener:
-                opener.return_value.open.return_value.__enter__.return_value.read.return_value=json.dumps(data).encode()
-                result = run(folder, True, 1)
-                request = opener.return_value.open.call_args.args[0]
-                self.assertNotIn(b'CONTROL/9',request.data)
-                self.assertEqual(request.full_url,'https://api.openai.com/v1/responses')
-                self.assertFalse(result['agrees_with_local_zone'])
-                self.assertEqual(result['answer']['zone'],'OTHER/2')
-                self.assertFalse(result['legal_classification_verified'])
-                self.assertFalse(result['intersection_verified'])
-                self.assertAlmostEqual(result['actual_usd'], .00012)
-
-    def test_failure_has_unknown_cost_and_no_retry(self):
+    def test_paid_transport_disabled_despite_key_and_approval(self):
         with tempfile.TemporaryDirectory() as root:
             folder = self.fixture(root)
             with patch.dict(os.environ, {'OPENAI_API_KEY':'mock-only'}), patch('urllib.request.build_opener') as opener:
-                opener.return_value.open.side_effect = TimeoutError()
-                result = run(folder, True, 1)
-                self.assertEqual(opener.return_value.open.call_count, 1)
-                self.assertEqual(result['status'],'failed')
-                self.assertIsNone(result['actual_usd'])
-                self.assertFalse(result['intersection_verified'])
-
+                with self.assertRaisesRegex(ValueError,'Fizetős API letiltva'):
+                    run(folder, True, 1)
+                opener.assert_not_called()
     def test_existing_attempt_cannot_accidentally_spend_again(self):
         with tempfile.TemporaryDirectory() as root:
             folder = self.fixture(root)

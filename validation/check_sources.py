@@ -253,16 +253,53 @@ def check_report(report, cache, history=None):
     return checks
 
 
+
+def check_local_models(local_report, report, cache):
+    import fitz
+    from local_vision import MODELS, compare, source_images
+    checks=[]
+    def check(name,condition):
+        if not condition:raise AssertionError(name)
+        checks.append(name)
+    targets=[('Miskolc','4755/11'),('Tiszaújváros','2200/8'),('Komádi','1558')]
+    expected={}
+    for place,hrsz in targets:
+        case=next(c for c in report['cases'] if c['place']==place and c['hrsz']==hrsz)
+        path=cache/(hashlib.sha256(case['plan_inputs']['source_url'].encode()).hexdigest()+'.pdf')
+        with fitz.open(path) as doc:
+            images=source_images(doc,case['visual'],case['legend'],cache)
+        expected[hrsz]=[hashlib.sha256(raw).hexdigest() for raw in images]
+        check(place+': eredeti, ellenőrzött AI-képbemenetek',expected[hrsz][0]==case['visual']['context_image_sha256'])
+    for key,receipt in local_report['models'].items():
+        spec=MODELS[key]
+        check(key+': nyílt Apache modell rögzített revízióval',receipt['model']==spec['model'] and receipt['revision']==spec['revision'] and receipt['license']=='Apache-2.0')
+        check(key+': hivatalos modell-súly lenyomata',receipt.get('weight_sha256')==spec['weight_sha256'])
+        check(key+': mindhárom tényleges próba megőrizve',[c['hrsz'] for c in receipt['cases']]==[h for _,h in targets])
+        for row in receipt['cases']:
+            name=key+' '+row['hrsz'];control=next(c['visual'] for c in report['cases'] if c['hrsz']==row['hrsz'])
+            check(name+': eredeti képek egyeznek a tervvel és saját jelmagyarázattal',row['image_sha256']==expected[row['hrsz']])
+            check(name+': vak próba, kontrollkód nincs a promptban',control['zone'] not in row['prompt'])
+            check(name+': valódi helyi futási jegyzőkönyv',row['status']=='completed' and row['generated_tokens']>0 and row['elapsed_seconds']>0 and row['peak_rss_mib']>0 and bool(row['raw_answer']))
+            check(name+': nincs külső AI vagy költség',row['external_ai_requests']==0 and row['external_ai_cost']==0)
+            check(name+': modellvélemény nem jogi bizonyítás',row['intersection_verified'] is False and row['legal_classification_verified'] is False)
+            fresh=compare(dict(row),control,row['hrsz'])
+            check(name+': hibás telek/JSON és eltérés helyesen megmarad',fresh['structured_answer_valid']==row['structured_answer_valid'] and fresh['zone_suggestion']==row['zone_suggestion'] and fresh['agrees_with_local_zone']==row['agrees_with_local_zone'])
+    return checks
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('report');parser.add_argument('--output')
+    parser.add_argument('--local-vision-report',help='Actual offline model receipts; never legal zoning proof.')
     parser.add_argument('--history-report',help='Separate historical own-legend receipt; never an active zoning source.')
     parser.add_argument('--pdf-cache',default=str(Path(tempfile.gettempdir())/'telekeloiras_pdf_cache'))
     args=parser.parse_args();report=json.loads(Path(args.report).read_text())
     history=json.loads(Path(args.history_report).read_text()) if args.history_report else None
     checks=check_report(report,Path(args.pdf_cache),history)
+    if args.local_vision_report:
+        checks+=check_local_models(json.loads(Path(args.local_vision_report).read_text()),report,Path(args.pdf_cache))
     result={'report_sha256':app.source_digest(Path(args.report).read_bytes()),
             'passed':len(checks),'checks':checks}
     if history is not None:result['history_report_sha256']=app.source_digest(Path(args.history_report).read_bytes())
+    if args.local_vision_report:result['local_vision_report_sha256']=app.source_digest(Path(args.local_vision_report).read_bytes())
     if args.output:Path(args.output).write_text(json.dumps(result,ensure_ascii=False,indent=2))
     print(str(len(checks))+'/'+str(len(checks))+' forrásalapú ellenőrzés sikeres.')

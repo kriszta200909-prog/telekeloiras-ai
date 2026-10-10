@@ -5322,6 +5322,8 @@ def main():
     render_report_download(result['report'],hrsz)
     if result.get('automatic_evidence'):
         render_automatic_download(result['automatic_evidence'])
+        from local_vision import render_free_evidence
+        render_free_evidence(json.loads(result['automatic_evidence']))
     if result.get('minerva_geometry'):
         st.download_button('Övezeti geometria ellenőrzési adatainak letöltése',
             data=result['minerva_geometry'],file_name='minerva_geometry_snapshot.json',

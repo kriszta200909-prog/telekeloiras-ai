@@ -1,15 +1,10 @@
-"""Isolated, blind multimodal trial. Preparation is offline; run requires spend consent."""
+"""Source-bound image preparation. Historical paid execution is disabled."""
 import argparse
-import base64
 import hashlib
 import io
 import json
-import math
 import os
 from pathlib import Path
-import time
-import urllib.request
-import urllib.error
 
 import fitz
 from PIL import Image
@@ -117,7 +112,7 @@ def prepare(report, destination, cache):
             'legend_source': identity, 'legend_pages': pages, 'files': files,
             'image_sha256': [digest(i) for i in images], 'request_sha256': digest((folder/'request.json').read_bytes()),
             'cost': estimate(images)})
-    manifest = {'status': 'prepared_not_run', 'external_ai_requests': 0, 'model': MODEL,
+    manifest = {'paid_execution_disabled':True, 'status': 'prepared_not_run', 'external_ai_requests': 0, 'model': MODEL,
         'credential_present': bool(os.environ.get('OPENAI_API_KEY')), 'api_access_verified': False,
         'source_report_sha256': digest(json.dumps(report, sort_keys=True).encode()), 'cases': entries,
         'total_usd_estimate_upper': round(sum(e['cost']['usd_estimate_upper'] for e in entries), 6)}
@@ -126,63 +121,8 @@ def prepare(report, destination, cache):
 
 
 def run(folder, consent, max_usd):
-    """One call, no retry/redirect; no claim of legal proof or calibrated confidence."""
-    folder = Path(folder)
-    manifest = json.loads((folder.parent/'manifest.json').read_text())
-    entry = next(e for e in manifest['cases'] if e['folder'] == folder.name)
-    if not consent or not math.isfinite(max_usd) or max_usd < entry['cost']['usd_estimate_upper']:
-        raise ValueError('Explicit paid-call approval and sufficient estimated budget required')
-    if (folder/'result.json').exists():
-        raise ValueError('Trial already attempted; preserve its result and prepare a new reviewed output directory')
-    if not os.environ.get('OPENAI_API_KEY'):
-        raise ValueError('OPENAI_API_KEY unavailable; no external request made')
-    raw = (folder/'request.json').read_bytes()
-    if digest(raw) != entry['request_sha256']:
-        raise ValueError('Prepared request changed; prepare again before approval')
-    payload = json.loads(raw)
-    if payload['model'] != MODEL or payload.get('store') is not False:
-        raise ValueError('Unsupported trial model or storage policy')
-    class NoRedirect(urllib.request.HTTPRedirectHandler):
-        def redirect_request(self, *args, **kwargs):
-            return None
-    request = urllib.request.Request('https://api.openai.com/v1/responses', data=raw,
-        headers={'Authorization': 'Bearer '+os.environ['OPENAI_API_KEY'], 'Content-Type': 'application/json'})
-    started = time.monotonic()
-    result = {'status': 'failed', 'external_ai_requests': 1, 'intersection_verified': False,
-              'legal_classification_verified': False, 'actual_usd': None, 'model': MODEL,
-              'api_access_verified': False}
-    try:
-        with urllib.request.build_opener(NoRedirect).open(request, timeout=60) as response:
-            data = response.read(1024*1024+1)
-        if len(data) > 1024*1024:
-            raise ValueError('Response too large')
-        data = json.loads(data)
-        if data.get('status') != 'completed':
-            raise ValueError('Incomplete model answer')
-        answer = json.loads(''.join(c['text'] for item in data.get('output', []) if item.get('type') == 'message'
-            for c in item.get('content', []) if c.get('type') == 'output_text'))
-        required = ('zone', 'hrsz', 'boundary_explanation', 'legend_explanation', 'neighbour_zones', 'uncertainties')
-        if (not isinstance(answer, dict) or not all(k in answer for k in required)
-                or not all(isinstance(answer[k], str) for k in required[:4])
-                or not all(isinstance(answer[k], list) and all(isinstance(v, str) for v in answer[k]) for k in required[4:])
-                or answer['hrsz'] != entry['hrsz']
-                or not isinstance(answer.get('parcel_identified'), bool)
-                or answer.get('boundary_state') not in ('closed', 'open', 'unclear')
-                or not isinstance(answer.get('visual_evidence'), list)
-                or not all(isinstance(v,str) for v in answer['visual_evidence'])):
-            raise ValueError('Invalid answer or wrong parcel identifier')
-        control = json.loads((folder/'control.json').read_text())
-        usage = data.get('usage', {})
-        result.update(status='completed', api_access_verified=True, response_id=data.get('id'), answer=answer, usage=usage,
-            agrees_with_local_zone=answer['zone'] == control['zone'], local_zone=control['zone'],
-            actual_usd=(usage['input_tokens']*.40+usage['output_tokens']*1.60)/1e6 if
-                'input_tokens' in usage and 'output_tokens' in usage else None,
-            cost_note='Conservative standard-rate calculation; cached-input discount not applied. Not an invoice.')
-    except (OSError, ValueError, KeyError, TypeError):
-        result['reason'] = 'API/answer failure; no source or legal proof claimed. Cost may still have incurred.'
-    result['elapsed_seconds'] = round(time.monotonic()-started, 3)
-    (folder/'result.json').write_text(json.dumps(result, ensure_ascii=False, indent=2))
-    return result
+    """Historical paid trial is disabled, regardless of flags or credentials."""
+    raise ValueError('Fizetős API letiltva. Használd a felület ingyenes helyi modelljét.')
 
 
 def main():

@@ -121,70 +121,49 @@ kapcsolat ellenőrizhető. Ez nem igazolja a teljes övezeti fedést vagy az
 lokalizált telek. Az alternatív KÉSZ-ek területi hatályát a program nem
 feltételezi; történeti tanulmányból nem állapít meg hatályos övezetet.
 
-### Elkülönített, valódi képes AI-próba
+### Ingyenes, helyi multimodális AI-vizsgálat
 
-A `vision_trial.py` a meglévő OpenAI képbemeneti kérésépítőt használja,
-a Streamlit és a helyi felismerés eredményének módosítása nélkül. A három
-próba sorrendje Miskolc 4755/11, Tiszaújváros 2200/8, Komádi 1558.
-A modell bemenete kizárólag a keresett HRSZ, az eredeti, utólagos jelölések
-nélküli tervkivágat, a terv saját teljes jelmagyarázatlapja és nagyított
-jelmintái. A helyi övezeti eredmény külön `control.json`; nem része a kérésnek.
-A kivágat helyét a korábbi helyi helyazonosítás szolgáltatja: ez a próba
-**a megtalált környezet értelmezését**, nem a teljes országos HRSZ-keresést méri.
-A modell a képen látható eredeti feliratokat természetesen olvashatja.
+A projekt kizárólag ingyenes megoldásokat használ. A korábbi OpenAI API-próba
+futtatása és a Streamlit opcionális fizetős adaptere **letiltva**, kulcs vagy
+régi engedélyező kapcsoló mellett is. Nincs API-kulcs-, előfizetés- vagy
+bankkártyaigény. A `vision_trial.py prepare` továbbra is csak helyi,
+forráslenyomattal ellenőrzött képbemenetek előkészítésére használható.
 
-A források friss ellenőrzése és az eredeti PDF-ek gyorsítótárba töltése:
+Az alkalmazásban válassz települést és HRSZ-t, majd az „Ingyenes helyi
+AI-vizsgálat” panelen válassz modellt. Ha szükséges, az „Ingyenes helyi modell
+telepítése” gomb letölti a nyilvános súlyokat és elkülönített CPU-futtatókörnyezetet
+készít. A „Tervrészlet és jelmagyarázat elemzése ingyenes AI-val” gomb indítja
+az elemzést. Ehhez nem kell Python-programot írni vagy térképet kézzel kivágni.
+A panel csak azonosított tervkörnyezet és ellenőrzött saját jelmagyarázat esetén
+indíthat képelemzést; ismeretlen telekhelyet nem talál ki.
 
-```bash
-python reference_checks.py --output work/reference-results.json
-python validation/check_sources.py work/reference-results.json --history-report validation/miskolc-legend-history.json --output work/source-check-results.json
-python vision_trial.py prepare --report work/reference-results.json --output work/vision-trial
-```
+Támogatott nyílt súlyú modellek:
 
-A `prepare` nem küld adatot, nem hív API-t. A forrás-PDF-ek SHA-256 egyezését,
-a hatályosság korábbi ellenőrzését, a saját jelmagyarázat kötését és a nyers
-kivágat egyezését ellenőrzi. `manifest.json` forrásokat, oldalakat, képméreteket,
-kép-/kéréslenyomatokat és költségbecslést tartalmaz; képek és `request.json`
-a három almappában. A `work/` Git által figyelmen kívül hagyott munkaterület;
-API-kulcsot ide vagy a repóba sem szabad fájlba írni.
+- [Qwen3-VL-2B-Instruct](https://huggingface.co/Qwen/Qwen3-VL-2B-Instruct):
+  Apache 2.0; 2,13 milliárd paraméter, kb. 4,3 GB BF16 súly. CPU-n is próbálható,
+  legalább 8 GB rendszermemória ajánlott a használt képmérethez.
+- [SmolVLM-500M-Instruct](https://huggingface.co/HuggingFaceTB/SmolVLM-500M-Instruct):
+  Apache 2.0; 507 millió paraméter, kb. 1 GB BF16 súly. Kisebb memóriaigény,
+  de az apró tervfeliratok felismerése kísérleti.
 
-A 2026-10-10-i környezetellenőrzésben nincs API-kulcs vagy konfigurált OpenAI
-kapcsolat. **Valódi AI-hívás nem történt.** Kulcs jelenléte sem bizonyít
-működő API-hozzáférést: ezt csak a tényleges, engedélyezett kérés eredménye
-igazolhatja. A ChatGPT-előfizetés önmagában nem API-hozzáférés.
+A telepítő rögzített modellrevíziót használ; futtatáskor a súlyok SHA-256
+lenyomatát ellenőrzi. A Hugging Face csak nyilvános modellfájlok letöltésére
+szolgál. A következtetés offline: `local_files_only=True`,
+`trust_remote_code=False`, `HF_HUB_OFFLINE=1`, `TRANSFORMERS_OFFLINE=1`.
+A telek és a tervképek nem kerülnek külső AI-szolgáltatóhoz. A modellek
+letöltött kártyája megőrzi a licencmegjelölést; a súlyokat nem tesszük GitHubra.
+A helyi futtatás meglévő gépi erőforrást és a letöltés hálózati forgalmat használ.
 
-Valódi futtatás csak a felhasználó külön pénzügyi és képküldési jóváhagyása,
-valamint biztonságos környezeti `OPENAI_API_KEY` beállítása után:
+A modell kizárólag az eredeti, utólagos kontrolljelölések nélküli tervrészletet,
+a saját teljes jelmagyarázatlapokat, a nagyított jelmintákat és a keresett HRSZ-t
+kapja. Nem kap elvárt övezetet, helyi OCR-eredményt vagy kontrollkódot.
+A kontroll csak a válasz után kerül összehasonlításra. A nyers válasz, képlenyo-
+matok, futásidő, memóriaigény és bizonytalanságok megmaradnak. Hibás HRSZ,
+rossz JSON-típus vagy csonka válasz nem válhat övezeti eredménnyé.
+**A modellvélemény nem ad A minősítést vagy teljes igazolt előíráslistát**, és
+nem módosítja a működő helyi OCR-/geometriai felismerést.
 
-```bash
-python vision_trial.py run work/vision-trial/miskolc --approve-paid-call --max-estimated-usd 0.01
-python vision_trial.py run work/vision-trial/tiszaujvaros --approve-paid-call --max-estimated-usd 0.01
-python vision_trial.py run work/vision-trial/komadi --approve-paid-call --max-estimated-usd 0.01
-```
-
-A kapcsoló a már megadott jóváhagyás technikai rögzítése; nem helyettesíti
-azt. A három parancs három külön hívás. Modell:
-`gpt-4.1-mini-2025-04-14`, Responses API, `store=false`, legfeljebb 1200
-kimeneti token, átirányítás és automatikus újrapróbálás nélkül. A `store=false`
-nem állítja az API minden szolgáltatói adatmegőrzésének hiányát.
-Egy már megkísérelt próbamappában a program nem indít újabb hívást.
-
-Az [ellenőrzött hivatalos modellár](https://developers.openai.com/api/docs/models/gpt-4.1-mini)
-$0.40/millió bemeneti és $1.60/millió kimeneti token. A három elkészített
-kép/case, képenként legfeljebb 1536 patch × 1.62, 4096 szöveg-/sématoken
-becsült tartalék és 1200 kimeneti token alapján **kb. $0.00655/telek,
-összesen $0.01964** a konzervatív becslés. Nem garantált számlázási plafon;
-a `--max-estimated-usd` becslési kapu, nem szolgáltatói költségkorlát.
-Adó/árfolyam, ismételt próbák és jövőbeli árváltozás nincs benne.
-
-A `result.json` megőrzi a független modellválaszt, a helyi kóddal való egyezést
-vagy eltérést, a bizonytalanságokat, a határ- és jelmagyarázat-érvelést,
-futásidőt, tokenhasználatot és a tokenekből számolt költséget. Hiba esetén
-nem szimulál választ vagy nulla költséget. Megállapítható, hogy a modell
-jobban olvassa-e az apró/kör alakú feliratokat, felismeri-e a hiányzó sarkokat,
-megkülönbözteti-e a saját jelmagyarázat szerinti vonalakat, és indokoltan
-visszautasít-e egy bizonytalan besorolást. A válaszokat az eredeti képeken
-embernek is ellenőriznie kell; a helyi eredménnyel való egyezés **nem
-pontossági mérőszám és nem jogi igazolás**. A három B kontrollhoz nincs
-függetlenül igazolt A referencia; három példa országos pontosságot sem mér.
-Az AI-próba soha nem ad A minősítést vagy igazolt építési előíráslistát.
+Az országos telek–tervlap megfeleltetés továbbra is külön feladat: a modell a
+már felismert környezet értelmezését ellenőrzi. Ismeretlen telekhelyhez még
+hivatalos vagy jogszerű, ellenőrizhető helyazonosítás kell. A saját jelmagyarázat
+és a hatályos HÉSZ ellenőrzése AI-válasz esetén is szükséges.
