@@ -56,6 +56,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--resume-attempts',type=int,default=3,help='Resume bounded OCR searches before recording a partial result.')
     parser.add_argument('--output', default='work/reference-results.json')
+    parser.add_argument('--case-index', type=int, choices=range(1, 7), help='Run one independent reference parcel (1-6).')
     parser.add_argument('--outlined', action='store_true',
                         help='Run bounded/resumable outlined-label recognition when needed.')
     parser.add_argument('--visual-images',help='Save source-bound illustrations for every localised case.')
@@ -68,7 +69,7 @@ def main():
               'legacy_outlined_flag': args.outlined,
               'code_sha256': {name:app.source_digest(Path(name).read_bytes())
                               for name in ('app.py','plan_labels.py','plan_localization.py','plan_ocr_worker.py','geopdf.py','plan_legend.py','plan_connections.py','plan_geometry_audit.py','zone_parameters.py','gis_sources.py','visual_plan.py','reference_checks.py')}, 'cases': []}
-    for place, hrsz in CASES:
+    for place, hrsz in ([CASES[args.case_index-1]] if args.case_index else CASES):
         print(place + ' ' + hrsz + ': hivatalos forráslekérés…', flush=True)
         def progress(page, pages, scanned, labels):
             print(f'  OCR: {page}/{pages} oldal; {scanned} feliratcsoport; {labels} jelölt', flush=True)
