@@ -641,7 +641,6 @@ def discover_njt_source(town, hrsz, selected_district=""):
         # exact-HRSZ hits in official annexes before generic title matches;
         # any candidate still needs the existing content/source validation.
         f'site:or.njt.hu "{exact_hrsz}" "{place}"',
-        f'site:ujpest.hu/rendeletek "{exact_hrsz}" "szabályozási"',
         f'site:njt.jog.gov.hu/jogszabaly "{place}" "építési szabályzat"',
         f'site:or.njt.hu/eli "{place}" "helyi építési szabályzat"',
         f'site:or.njt.hu "{place}" "kerületi építési szabályzat"',
