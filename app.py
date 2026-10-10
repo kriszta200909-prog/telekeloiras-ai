@@ -946,6 +946,67 @@ def parcel_zone_coverage(parcel_geojson, zone_features, crs):
     return out
 
 
+def parcel_crossing_impacts(parcel_geojson, zone_features, regulatory_lines, crs):
+    """Report independently sourced zoning intersections and planned road cuts.
+
+    Input regulatory lines must have a verified plan-legend role and share the
+    parcel's projected coordinate system. A line alone cannot establish which
+    side will be acquired: require a source-derived affected-area polygon.
+    """
+    from shapely.geometry import shape
+    from shapely.ops import unary_union
+    out={'zone_parts':[], 'planned_cuts':[], 'warnings':[], 'multi_zone':False}
+    if not isinstance(parcel_geojson,dict) or not crs:
+        out['warnings'].append('Nincs ellenőrzött telekgeometria.')
+        return out
+    try:
+        parcel=shape(parcel_geojson)
+        if not parcel.is_valid or parcel.is_empty or parcel.area<=0:
+            raise ValueError('Érvénytelen telekpoligon.')
+        for feature in zone_features or []:
+            if feature.get('crs')!=crs or not feature.get('code'):
+                out['warnings'].append('Eltérő koordinátarendszerű vagy jelöletlen övezet.')
+                continue
+            region=shape(feature['geometry'])
+            if not region.is_valid:
+                out['warnings'].append('Érvénytelen övezeti poligon.')
+                continue
+            part=parcel.intersection(region)
+            if part.area>0:
+                out['zone_parts'].append({'code':feature['code'],
+                    'area':part.area,'fraction':part.area/parcel.area,
+                    'geometry':part.__geo_interface__})
+        out['multi_zone']=len({part['code'] for part in out['zone_parts']})>1
+        for feature in regulatory_lines or []:
+            if feature.get('crs')!=crs or feature.get('status')!='planned' or feature.get('legend_verified') is not True:
+                continue
+            line=shape(feature['geometry'])
+            if line.geom_type not in ('LineString','MultiLineString') or not line.intersects(parcel):
+                continue
+            crossing=line.intersection(parcel)
+            if crossing.length<=0:continue
+            item={'line_geometry':crossing.__geo_interface__,
+                  'affected_area_verified':False,'affected_part':None,'remaining_part':None}
+            affected=feature.get('affected_area')
+            if affected:
+                area=shape(affected)
+                if area.is_valid and area.geom_type in ('Polygon','MultiPolygon'):
+                    cut=parcel.intersection(area)
+                    remaining=parcel.difference(cut)
+                    if cut.area>0 and remaining.area>0:
+                        item.update(affected_area_verified=True,
+                            affected_part={'area':cut.area,'geometry':cut.__geo_interface__},
+                            remaining_part={'area':remaining.area,'geometry':remaining.__geo_interface__})
+            if not item['affected_area_verified']:
+                out['warnings'].append('Tervezett szabályozási vonal metszi a telket, de a levágás oldala/területe nem igazolt.')
+            out['planned_cuts'].append(item)
+        if out['multi_zone']:
+            out['warnings'].append('Több övezet érinti a telket: mindegyik övezet és a HÉSZ közös szabályai vizsgálandók.')
+    except (ValueError,TypeError,KeyError,AttributeError) as exc:
+        out['warnings'].append('Metszetszámítás sikertelen: '+str(exc))
+    return out
+
+
 def identify_parcel_zones(parcel, zone_source, *, ksh_code, hrsz, edition):
     """First automatic polygon identification stage for verified source adapters.
 
@@ -982,13 +1043,20 @@ def identify_parcel_zones(parcel, zone_source, *, ksh_code, hrsz, edition):
     coverage = parcel_zone_coverage(parcel.get("geometry"), zone_source.get("features"),
                                     parcel.get("crs"))
     out.update(coverage)
+    out['crossings']=parcel_crossing_impacts(parcel.get('geometry'),
+        zone_source.get('features',[]),zone_source.get('regulatory_lines',[]),parcel.get('crs'))
+    if out['crossings']['planned_cuts']:
+        out['planned_regulation_intersection']=True
+        out['buildable_area_requires_legal_review']=True
+    if out['crossings']['multi_zone']:
+        out['multiple_zone_rules_required']=True
     if out["status"] in ("single_zone_spatial", "multiple_zones"):
         out["intersection_verified"] = True
         if out["status"] == "single_zone_spatial":
             out["zone"] = out["zones"][0]["code"]
         out["reason"] = "Teljes telekfedés, ellenőrzött bemeneti forrásbizonyítékokkal."
     else:
-        out["reason"] = "Hiányos, átfedő vagy érvénytelen övezeti geometria; nincs igazolt besorolás."
+        out["reason"] = ("Részleges, geometriailag azonosított övezeti érintettség; teljes besorolás nem igazolt." if out["status"] == "partial_coverage" else "Hiányos, átfedő vagy érvénytelen övezeti geometria; nincs igazolt besorolás.")
     return out
 
 
