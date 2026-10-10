@@ -1624,16 +1624,29 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
     """Headless integration path using the same loaders and adapters as the UI."""
     result={'place':place,'hrsz':normalize_hrsz(hrsz),'ksh':'','errors':[],
             'parcel_api':None,'plan_inputs':{},'plan_result':{},'identification':{},'evidence':[]}
+    # Budapest without a district must first be resolved from evidence
+    # concerning this exact HRSZ; never default to the XII. district.
+    resolved_place=place
+    if key_text(place)=='budapest':
+        district,district_evidence=discover_budapest_district(hrsz)
+        result['district_evidence']=district_evidence
+        if district:
+            resolved_place='Budapest '+district+'. kerület'
+            result['resolved_district']=district
+        else:
+            result['errors'].append('A budapesti kerület nem igazolt a pontos HRSZ alapján.')
     try:
-        result['ksh']=resolve_settlement_code(place)
+        if key_text(place)=='budapest' and not result.get('resolved_district'):
+            raise RuntimeError('Kerületazonosítás nélkül nem választunk önkényesen kataszteri településkódot.')
+        result['ksh']=resolve_settlement_code(resolved_place)
         result['parcel_api']=public_parcel_geometry(result['ksh'],hrsz)
     except ParcelGeometryUnavailable as exc:
         result['parcel_api']=exc.result
         result['errors'].append('Telekgeometria: '+str(exc))
     except Exception as exc:result['errors'].append('HRSZ/telek: '+str(exc))
-    meta=source_for_town(place)
+    meta=source_for_town(resolved_place) if result['ksh'] else None
     if meta is None:
-        meta,page=discover_njt_source(place,hrsz)
+        meta,page=discover_njt_source(resolved_place,hrsz) if result['ksh'] else ({},{})
     else:page=fetch_njt_page(meta['url'])
     if not meta:
         result['errors'].append('Nincs tartalmilag ellenőrzött NJT-forrás.')
