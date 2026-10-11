@@ -1868,12 +1868,15 @@ def build_partial_findings(result, meta, page, inputs):
     add(identification.get('zone'), 'geometry intersection', identification.get('intersection_verified',False))
     add(classification.get('zone'), 'visual/classification', classification.get('category')=='A')
     add(identification.get('candidate_zone'), 'unverified intersection')
-    add(plan.get('zone'), 'plan reading', plan.get('parcel_boundary_verified',False))
+    add(plan.get('zone'), 'plan reading', bool(plan.get('parcel_boundary_verified') and identification.get('intersection_verified')))
+    add(plan.get('candidate_zone'), 'plan candidate')
+    add(visual.get('zone'), 'visual candidate')
+    add((result.get('zone_rules') or {}).get('zone'), 'zone rules candidate')
     for item in visual.get('candidate_labels') or []:
         if isinstance(item,dict):
             add(item.get('code'), 'plan label', False)
-    law_url = (page or {}).get('url') or (meta or {}).get('url') or ''
-    plan_url = inputs.get('source_url') or ''
+    law_url = (page or {}).get('url') or (meta or {}).get('url') or result.get('legal_source_url') or ''
+    plan_url = inputs.get('source_url') or plan.get('source_url') or ''
     legal_verified = bool(result.get('legal_source_verified'))
     current_verified = bool(inputs.get('current_verified'))
     plan_verified = bool(inputs.get('source_valid'))
@@ -1905,7 +1908,7 @@ def build_partial_findings(result, meta, page, inputs):
         'needs_review':bool(warnings),
         'classification':classification.get('category','C'),
         'search_methods':result.get('search_methods',[]),
-        'errors':result.get('errors',[]),
+        'errors':list(result.get('errors') or []) + list(result.get('rules_errors') or []),
     }
 
 
