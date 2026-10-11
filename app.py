@@ -65,6 +65,7 @@ HESZ_INDEX = {
         # Do not pin a zone or historic PDF: discover the current annex
         # from the consolidated NJT page at run time.
         "plan_scope": "belterület",
+        "plan_annex": "4",
     },
     "komadi": {
         "municipality": "Komádi",
@@ -2934,11 +2935,23 @@ def try_auto_plan(attachments, legal_text="", source_meta=None, hrsz=""):
     # An invalid pinned source must not prevent examining the other *currently*
     # linked official NJT annexes. Never retry a rejected pin in the fallback.
     remaining = [row for row in attachments if row is not pinned]
+    # Prefer the governing HESZ annex, not an unrelated special-purpose plan.
+    # The source record is not a parcel-to-zone hint.
+    governing_annex=str(source_meta.get('plan_annex','')).strip()
+    if governing_annex:
+        matching=[row for row in remaining if re.match(
+            r'^'+re.escape(governing_annex)+r'\.\s*melleklet(?:\b|\s)',
+            key_text(row.get('Megnevezés','')))]
+        if matching:
+            remaining=matching+[row for row in remaining if row not in matching]
     checked = 0
     fallback_doc = None
     fallback_url = ''
     while remaining and checked < 20:
-        candidate = choose_plan_attachment(remaining, legal_text)
+        candidate = (remaining[0] if governing_annex and re.match(
+            r'^'+re.escape(governing_annex)+r'\.\s*melleklet(?:\b|\s)',
+            key_text(remaining[0].get('Megnevezés',''))) else
+            choose_plan_attachment(remaining, legal_text))
         if not candidate:
             # Generic annex filenames need content inspection too. Acceptance
             # below still requires an actual plan title; annex number is no proof.
