@@ -1,0 +1,80 @@
+name: Gyula 5611-45 independent live test
+on:
+  push:
+    branches: [codex/parcel-zone-identification]
+    paths: ['.github/workflows/gyula-live.yml']
+  workflow_dispatch:
+jobs:
+  gyula-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 85
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install OCR and application dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng tesseract-ocr-hun
+          python -m pip install -r requirements.txt numpy
+      - name: Run actual independent Gyula 5611/45 engine pipeline
+        env:
+          STREAMLIT_SERVER_HEADLESS: 'true'
+          OMP_THREAD_LIMIT: '1'
+        run: |
+          mkdir -p work/gyula-evidence
+          timeout --signal=TERM --kill-after=20s 4500s python -u - <<'PY' 2>&1 | tee work/gyula-evidence/engine.log
+          import datetime, hashlib, json, pathlib, traceback
+          import app
+          folder=pathlib.Path('work/gyula-evidence')
+          output={'started_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  'municipality':'Gyula','hrsz':'5611/45',
+                  'code_sha256':{p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+                                 for p in ('app.py','geopdf.py','visual_plan.py','plan_localization.py','plan_legend.py')}}
+          try:
+              print('ENGINE START Gyula 5611/45 (no prefilled zone)',flush=True)
+              def progress(page,pages,scanned,labels):
+                  print('OCR progress',page,pages,scanned,labels,flush=True)
+              result=app.inspect_official_parcel('Gyula','5611/45',outlined=True,on_progress=progress)
+              visual=result.get('visual') or {}
+              png=visual.pop('annotated_png',None)
+              if png:
+                  (folder/'plan-evidence.png').write_bytes(png)
+                  visual['illustration_file']='plan-evidence.png'
+              inputs=result.get('plan_inputs') or {}
+              path=pathlib.Path(inputs.get('path') or '/nonexistent')
+              if path.is_file():
+                  digest=hashlib.sha256(path.read_bytes()).hexdigest()
+                  if digest==inputs.get('source_hash'):
+                      import shutil
+                      shutil.copyfile(path,folder/'official-plan.pdf')
+                      print('Official plan SHA256',digest,flush=True)
+                  else: print('Official plan hash mismatch',digest,inputs.get('source_hash'),flush=True)
+              result.pop('parcel_api',None)
+              inputs.pop('path',None)
+              def clean(obj):
+                  if isinstance(obj,dict):
+                      obj.pop('png_base64',None)
+                      for v in obj.values():clean(v)
+                  elif isinstance(obj,list):
+                      for v in obj:clean(v)
+              clean(result)
+              output['engine_result']=result
+              for key in ('evidence','errors','plan_inputs','plan_result','visual','zone_rules','identification','classification'):
+                  print('ENGINE RESULT',key,json.dumps(result.get(key),ensure_ascii=False,default=str)[:15000],flush=True)
+          except BaseException as exc:
+              output['engine_exception']={'type':type(exc).__name__,'message':str(exc),'traceback':traceback.format_exc()}
+              print('ENGINE EXCEPTION',traceback.format_exc(),flush=True)
+          finally:
+              output['finished_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+              (folder/'engine-result.json').write_text(json.dumps(output,ensure_ascii=False,indent=2,default=str),encoding='utf-8')
+              print('ENGINE OUTPUT SAVED',flush=True)
+          PY
+          test ${PIPESTATUS[0]} -eq 0
+      - name: Upload full engine output, source PDF, image and errors
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gyula-5611-45-independent-engine-evidence
+          path: work/gyula-evidence/
+          if-no-files-found: warn
