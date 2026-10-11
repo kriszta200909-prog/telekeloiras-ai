@@ -483,6 +483,12 @@ def discover_legend(doc,*,source_url,source_hash,plan_url,plan_hash,edition,ksh,
         scanned+=1
         if on_progress:on_progress(scanned,len(doc),len(records))
         fitz.TOOLS.store_shrink(100)
+    # Semantic roles are bound to the exact source captions; a newer statutory
+    # symbol dictionary must never silently override a legacy plan's legend.
+    # Applicability is not established by the PDF publication date alone.
+    for record in records:
+        record['regulatory_element']=regulatory_element_class(record['label'],
+                                                              applicable_419=False)
     result={'identity':identity,'records':records,'cache_hit':False,'pages_scanned':scanned,
             'scan_complete':scanned==len(doc),
             'zone_style_verified':any(r['role']=='zone_boundary' and r['label_verified'] and r['styles'] for r in records)}
