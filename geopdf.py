@@ -119,9 +119,23 @@ def legend_layer_paths(page, profile, role, clip=None):
     cadastral term appears in the verified legend. This exception never maps
     a zoning or regulatory line by its layer name.
     """
-    from plan_legend import styles_for,matches_style,drawing_style
+    from plan_legend import styles_for,matches_style,drawing_style,regulatory_element_class
     from zone_parameters import compact
-    styles=styles_for(profile,role);paths=[]
+    # Enforce semantic isolation before extracting any geometric evidence.
+    # Source-legend labels determine roles, never stroke colour alone. Older
+    # cached profiles without regulatory_element remain supported.
+    allowed={'zone_boundary':'zoning','regulatory_line':'regulation',
+             'parcel_boundary':'cadastral_context',
+             'proposed_parcel_boundary':'proposed',
+             'landuse_boundary':'unclassified'}
+    if role in allowed and role!='landuse_boundary':
+        records=[row for row in (profile or {}).get('records',[])
+                 if row.get('role')==role and row.get('label_verified')
+                 and regulatory_element_class(row.get('label','')).get('function')==allowed[role]]
+        styles=[style for row in records for style in row.get('styles',[])]
+    else:
+        styles=styles_for(profile,role)
+    paths=[]
     # A native, verified cadastral layer remains usable even if legend
     # sampling cannot isolate its stroke (common in dense CAD PDF legends).
     # Do not generalise this exception to zoning/regulatory boundaries.
