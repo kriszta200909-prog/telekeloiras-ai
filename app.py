@@ -6411,6 +6411,31 @@ def run_investigation(town, hrsz, budapest_district, uploaded_plan,
     st.subheader('Automatikus azonosítás – négy külön bizonyítottsági állapot')
     st.dataframe(automatic_rows,hide_index=True,use_container_width=True)
     classification,rule_identification=visual_rule_identification(geometric_identification,visual)
+    # Show partial results even when no zone can be legally/geometrically proved.
+    partial = build_partial_findings(
+        {'identification':geometric_identification,'classification':classification,
+         'visual':visual,'plan_result':plan_zone,'legal_source_verified':source_valid,
+         'search_methods':parcel_search_method_evidence(parcel_api,plan_zone,
+             [{'page':h.get('page_number',0)+1,'method':h.get('method','')} for h in spatial.get('hits',[])],
+             ''),'errors':source_inventory.get('errors',[])},
+        meta or {},page,plan_inputs)
+    st.subheader('Részleges találatok és további ellenőrzések')
+    st.caption('A jelölt nem igazolt övezet. A forrás megtalálása nem bizonyítja a hatályosságot.')
+    if partial['legal_source']['url']:
+        st.write('HÉSZ-forrás: '+partial['legal_source']['url'])
+    if partial['regulatory_plan']['url']:
+        st.write('Szabályozási terv: '+partial['regulatory_plan']['url'])
+    if partial['zone_candidates']:
+        st.dataframe([{'Övezeti kód':c['zone'],
+            'Bizonyíték':c['origin'],
+            'Állapot':'Igazolt' if c['verified'] else 'Jelölt – ellenőrizendő'}
+            for c in partial['zone_candidates']],hide_index=True,use_container_width=True)
+    else:
+        st.info('Övezeti kód még nem található; a forrásokat és a részleges eredményeket megőrizzük.')
+    for warning in partial['warnings']:
+        st.warning(warning)
+    with st.expander('Részleges bizonyítékok részletes naplója'):
+        st.json(partial)
     st.subheader(classification['title'])
     if classification['zone']:st.write('Övezet: '+classification['zone'])
     if classification['category']=='B':
