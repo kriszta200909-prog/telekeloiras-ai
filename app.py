@@ -1913,6 +1913,10 @@ def build_partial_findings(result, meta, page, inputs):
         warnings.append('Tervlap területi alkalmazhatósága ellenőrizendő.')
     if candidates and not identification.get('intersection_verified'):
         warnings.append('Övezet és telek geometriai kapcsolata ellenőrizendő.')
+    if not candidates and classification.get('category','C') == 'C':
+        warnings.append('Övezeti besorolás nem azonosított; vizuális és geometriai ellenőrzés szükséges.')
+    if result.get('errors') or result.get('rules_errors'):
+        warnings.append('A feldolgozás egyes lépései sikertelenek; a részleges eredmények nem teljes körűek.')
     if not law_url:
         warnings.append('HÉSZ-forrás nem található; keresés folytatandó.')
     if not plan_url:
@@ -1928,6 +1932,13 @@ def build_partial_findings(result, meta, page, inputs):
         'needs_review':bool(warnings),
         'classification':classification.get('category','C'),
         'search_methods':result.get('search_methods',[]),
+        'visual_evidence': {'status':visual.get('status'),
+                            'reasons':visual.get('reasons',[]),
+                            'candidate_labels':visual.get('candidate_labels',[]),
+                            'label_hits':result.get('label_hits',[])},
+        'plan_evidence': {'hrsz_method':plan.get('hrsz_method'),
+                          'parcel_boundary_verified':plan.get('parcel_boundary_verified'),
+                          'source_selection_ambiguous':inputs.get('source_selection_ambiguous')},
         'errors':list(result.get('errors') or []) + list(result.get('rules_errors') or []),
     }
 
