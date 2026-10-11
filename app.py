@@ -674,6 +674,26 @@ def discover_njt_source(town, hrsz, selected_district=""):
                     candidates.append(u)
         except Exception as exc:
             search_audit.append({"query":q,"error":type(exc).__name__})
+    # An official NJT landing page may be indexed under the ordinance number,
+    # not the municipality name or the generic HÉSZ phrase. Search for
+    # municipality + legal text and preserve all candidate links across routes.
+    # This is generic for all settlements and does not encode parcel answers.
+    if not candidates:
+        for q in (
+            f'"{place}" "önkormányzati rendelet" "építési"',
+            f'"{place}" "helyi építési szabályzat" "2021"',
+            f'"{place}" "HÉSZ" "melléklet" "NJT"',
+            f'site:njt.jog.gov.hu/jogszabaly "{place}"',
+            f'site:or.njt.hu "{place}" "építési"',
+        ):
+            try:
+                links=_search_web(q)
+                search_audit.append({'query':q,'returned':len(links),'fallback':True})
+                for u in links:
+                    if is_official_njt_url(u) and u not in candidates:
+                        candidates.append(u)
+            except Exception as exc:
+                search_audit.append({'query':q,'error':type(exc).__name__,'fallback':True})
     # A failed search must not erase successful candidates from another engine.
     # Search queries are generic; no municipality or parcel zoning is embedded.
     # A kereső rangsora nem jogforrás: minden találatot külön ellenőrzünk.
