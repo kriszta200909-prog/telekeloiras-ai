@@ -296,6 +296,21 @@ def inspect_label_location(doc, spatial, profile, zone_pattern, hrsz, identity, 
     zone_paths=legend_layer_paths(page,profile,'zone_boundary',clip=clip*page.derotation_matrix)
     closed_faces=source_zone_polygons(zone_paths)
     closed_faces.extend(polygon_faces([p for p in zone_paths if p.get('fill') is None]))
+    # Zone boundaries may terminate on existing cadastral boundaries.
+    # Polygonizing zoning strokes alone loses those genuine closed regions.
+    # Use only actual source strokes; never bridge an endpoint or invent a
+    # parcel boundary from the HRSZ text rectangle.
+    cadastral_paths=legend_layer_paths(page,profile,'parcel_boundary',
+                                       clip=clip*page.derotation_matrix)
+    if zone_paths and cadastral_paths:
+        closed_faces.extend(polygon_faces(zone_paths+cadastral_paths))
+    # Identical rings can arise from both direct and combined polygonization.
+    # Deduplicate geometrically before deciding whether a label is ambiguous.
+    unique_faces={}
+    for face in closed_faces:
+        if face.is_valid and face.area>0:
+            unique_faces.setdefault(face.normalize().wkb_hex,face)
+    closed_faces=list(unique_faces.values())
     local_faces=[]
     for face in closed_faces:
         mapped=affine_transform(face,[m.a,m.c,m.b,m.d,m.e,m.f])
