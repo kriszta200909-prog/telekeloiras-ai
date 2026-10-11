@@ -1,0 +1,90 @@
+name: Nationwide previously examined parcels live rerun
+on:
+  push:
+    branches: [codex/parcel-zone-identification]
+    paths: ['.github/workflows/all-parcels-live.yml']
+  workflow_dispatch:
+jobs:
+  parcel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      max-parallel: 7
+      matrix:
+        include:
+          - {town: Gyula, hrsz: '5611/45', slug: gyula-5611-45}
+          - {town: Kondoros, hrsz: '1570', slug: kondoros-1570}
+          - {town: Tiszaújváros, hrsz: '2200/8', slug: tiszaujvaros-2200-8}
+          - {town: Miskolc, hrsz: '4755/11', slug: miskolc-4755-11}
+          - {town: Gersekarát, hrsz: '034/15', slug: gersekarat-034-15}
+          - {town: Komádi, hrsz: '1558', slug: komadi-1558}
+          - {town: Budapest XII. kerület, hrsz: '8448/46', slug: budapest-xii-8448-46}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install engine dependencies
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-hun tesseract-ocr-eng
+          pip install -q -r requirements.txt numpy
+      - name: Run live source discovery and complete available engine pipeline
+        env:
+          TOWN: ${{ matrix.town }}
+          HRSZ: ${{ matrix.hrsz }}
+          SLUG: ${{ matrix.slug }}
+          STREAMLIT_SERVER_HEADLESS: 'true'
+          OMP_THREAD_LIMIT: '1'
+        run: |
+          mkdir -p evidence
+          timeout --signal=TERM --kill-after=10s 3200s python -u - <<'PY' 2>&1 | tee evidence/engine.log
+          import os,json,traceback,datetime,pathlib,hashlib,shutil
+          import app
+          out=pathlib.Path('evidence')
+          town=os.environ['TOWN'];hrsz=os.environ['HRSZ']
+          record={'town':town,'hrsz':hrsz,'started_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),'commit':os.environ['GITHUB_SHA']}
+          try:
+              print('LIVE START',town,hrsz,flush=True)
+              def progress(*args):print('PROGRESS',repr(args),flush=True)
+              result=app.inspect_official_parcel(town,hrsz,outlined=True,on_progress=progress)
+              visual=result.get('visual') or {}
+              png=visual.pop('annotated_png',None)
+              if isinstance(png,bytes):
+                  (out/'annotated.png').write_bytes(png)
+                  visual['annotated_file']='annotated.png'
+              inputs=result.get('plan_inputs') or {}
+              sourcepath=pathlib.Path(inputs.get('path') or '/nonexistent')
+              if sourcepath.is_file():
+                  raw=sourcepath.read_bytes();digest=hashlib.sha256(raw).hexdigest()
+                  if digest==inputs.get('source_hash'):
+                      shutil.copyfile(sourcepath,out/'official-plan.pdf')
+                      print('PLAN SOURCE SAVED',digest,flush=True)
+                  else:print('PLAN HASH MISMATCH',digest,flush=True)
+              inputs.pop('path',None)
+              result.pop('parcel_api',None)
+              def clean(x):
+                  if isinstance(x,dict):
+                      for key in ('png_base64','preview','raw_image'):x.pop(key,None)
+                      for v in x.values():clean(v)
+                  elif isinstance(x,list):
+                      for v in x:clean(v)
+              clean(result)
+              record['engine_result']=result
+              for k in ('classification','evidence','errors','plan_inputs','plan_result','visual','identification','zone_rules','search_methods','label_hits'):
+                  print('RESULT',k,json.dumps(result.get(k),ensure_ascii=False,default=str)[:14000],flush=True)
+          except BaseException as e:
+              record['exception']={'type':type(e).__name__,'message':str(e),'traceback':traceback.format_exc()}
+              print('EXCEPTION',traceback.format_exc(),flush=True)
+          finally:
+              record['finished_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+              (out/'result.json').write_text(json.dumps(record,ensure_ascii=False,indent=2,default=str),encoding='utf-8')
+              print('RESULT SAVED',flush=True)
+          PY
+          test ${PIPESTATUS[0]} -eq 0
+      - name: Preserve result, log, official plan and image
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parcel-${{ matrix.slug }}-live-evidence
+          path: evidence/
+          if-no-files-found: warn
