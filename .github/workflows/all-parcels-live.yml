@@ -70,7 +70,7 @@ jobs:
                       for v in x:clean(v)
               clean(result)
               record['engine_result']=result
-              for k in ('classification','evidence','errors','plan_inputs','plan_result','visual','identification','zone_rules','search_methods','label_hits'):
+              for k in ('classification','evidence','errors','plan_inputs','plan_result','visual','identification','zone_rules','search_methods','label_hits','partial_findings'):
                   print('RESULT',k,json.dumps(result.get(k),ensure_ascii=False,default=str)[:14000],flush=True)
           except BaseException as e:
               record['exception']={'type':type(e).__name__,'message':str(e),'traceback':traceback.format_exc()}
@@ -81,6 +81,30 @@ jobs:
               print('RESULT SAVED',flush=True)
           PY
           test ${PIPESTATUS[0]} -eq 0
+      - name: Assert partial evidence is preserved and candidates are not promoted
+        if: always()
+        run: |
+          python - <<'PY'
+          import json,pathlib
+          p=pathlib.Path('evidence/result.json')
+          assert p.exists(), 'No result JSON'
+          record=json.loads(p.read_text(encoding='utf-8'))
+          assert not record.get('exception'), 'Engine exception: '+str(record.get('exception'))
+          result=record.get('engine_result') or {}
+          partial=result.get('partial_findings')
+          assert isinstance(partial,dict), 'Missing partial_findings'
+          for key in ('legal_source','regulatory_plan','zone_candidates','warnings','classification','errors','search_methods'):
+              assert key in partial, 'Missing partial evidence: '+key
+          for item in partial['zone_candidates']:
+              assert item.get('zone') and 'verified' in item and 'origin' in item, 'Candidate evidence incomplete'
+              if item['verified']:
+                  assert (result.get('identification') or {}).get('intersection_verified'), 'Unverified zone promoted'
+          if result.get('legal_source_url'):
+              assert partial['legal_source']['url'], 'Official source discarded'
+          print('PARTIAL EVIDENCE VERIFIED',record['town'],record['hrsz'],
+                'candidates',len(partial['zone_candidates']),
+                'warnings',len(partial['warnings']))
+          PY
       - name: Preserve result, log, official plan and image
         if: always()
         uses: actions/upload-artifact@v4
