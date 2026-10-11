@@ -2,7 +2,7 @@ name: Nationwide previously examined parcels live rerun
 on:
   push:
     branches: [codex/parcel-zone-identification]
-    paths: ['.github/workflows/all-parcels-live.yml']
+    paths: ['.github/workflows/all-parcels-live.yml', 'app.py']
   workflow_dispatch:
 jobs:
   parcel:
