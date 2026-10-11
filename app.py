@@ -1847,7 +1847,66 @@ def inspect_official_parcel(place, hrsz, *, outlined=False, on_progress=None):
     result['zone_rules']=automatic_zone_rule_evidence(meta,page,inputs,rule_identification)
     result['evidence']=automatic_evidence_rows(result['parcel_api'],inputs,result['identification'],
                                               rules_available=bool(inventory['rows']),visual=result['visual'])
+    # Preserve partial official-source and zone-candidate findings independently
+    # of the strict A/B/C legal/geometric verification decision.
+    # Never turn a candidate into a legally verified zoning classification.
+    result['partial_findings'] = build_partial_findings(result, meta, page, inputs)
     return result
+
+
+def build_partial_findings(result, meta, page, inputs):
+    """User-visible findings, including explicitly unverified partial evidence."""
+    candidates = []
+    def add(code, origin, verified=False):
+        code = str(code or '').strip()
+        if code and not any(row['zone'] == code for row in candidates):
+            candidates.append({'zone':code, 'origin':origin, 'verified':bool(verified)})
+    identification = result.get('identification') or {}
+    classification = result.get('classification') or {}
+    visual = result.get('visual') or {}
+    plan = result.get('plan_result') or {}
+    add(identification.get('zone'), 'geometry intersection', identification.get('intersection_verified',False))
+    add(classification.get('zone'), 'visual/classification', classification.get('category')=='A')
+    add(identification.get('candidate_zone'), 'unverified intersection')
+    add(plan.get('zone'), 'plan reading', plan.get('parcel_boundary_verified',False))
+    for item in visual.get('candidate_labels') or []:
+        if isinstance(item,dict):
+            add(item.get('code'), 'plan label', False)
+    law_url = (page or {}).get('url') or (meta or {}).get('url') or ''
+    plan_url = inputs.get('source_url') or ''
+    legal_verified = bool(result.get('legal_source_verified'))
+    current_verified = bool(inputs.get('current_verified'))
+    plan_verified = bool(inputs.get('source_valid'))
+    warnings = []
+    if law_url and not legal_verified:
+        warnings.append('HÉSZ-forrás ellenőrzendő.')
+    if law_url and not current_verified:
+        warnings.append('Hatályosság ellenőrizendő.')
+    if plan_url and not plan_verified:
+        warnings.append('Szabályozási terv forrása ellenőrizendő.')
+    if plan_url and not inputs.get('current_verified'):
+        warnings.append('Tervmelléklet hatályossága ellenőrizendő.')
+    if inputs.get('source_selection_ambiguous'):
+        warnings.append('Tervlap területi alkalmazhatósága ellenőrizendő.')
+    if candidates and not identification.get('intersection_verified'):
+        warnings.append('Övezet és telek geometriai kapcsolata ellenőrizendő.')
+    if not law_url:
+        warnings.append('HÉSZ-forrás nem található; keresés folytatandó.')
+    if not plan_url:
+        warnings.append('Szabályozási tervlap nem található; keresés folytatandó.')
+    return {
+        'legal_source': {'url':law_url,'title':(meta or {}).get('title',''),
+                         'verified':legal_verified,'current_verified':current_verified},
+        'regulatory_plan': {'url':plan_url,'verified':plan_verified,
+                            'current_verified':current_verified,
+                            'attachments':inputs.get('attachments',[])},
+        'zone_candidates':candidates,
+        'warnings':warnings,
+        'needs_review':bool(warnings),
+        'classification':classification.get('category','C'),
+        'search_methods':result.get('search_methods',[]),
+        'errors':result.get('errors',[]),
+    }
 
 
 def visual_rule_identification(identification, visual):
