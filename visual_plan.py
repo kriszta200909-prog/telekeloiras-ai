@@ -329,12 +329,28 @@ def inspect_label_location(doc, spatial, profile, zone_pattern, hrsz, identity, 
     if len(local_faces)==1 and len(topology_candidates)==1 and legend_bound:
         out.update(status='probable',zone=topology_candidates[0]['zone'],
                    zone_face_relationship='HRSZ és övezeti felirat ugyanabban a zárt vektoros övezeti poligonban')
+    # Keep independently observable evidence separate from legal proof.
+    # A visual B decision survives absent polygon coverage, but cannot
+    # supersede conflicting closed-face topology or source verification.
+    out['visual_evidence_channels']={
+        'hrsz':bool(hit.get('method')),
+        'native_or_ocr_zone_labels':bool(labels),
+        'own_legend_zone_boundary':legend_bound,
+        'source_vector_barriers':bool(barriers),
+        'local_closed_faces':bool(local_faces),
+        'visual_clear_rays':False,
+        'full_parcel_geometry':False,
+    }
     out['closed_zone_faces_at_hrsz']=len(local_faces)
     out['closed_zone_face_candidates']=topology_candidates
     # Small anchor patch means labelled location only, never invented parcel extent.
     patch=box(center.x-2,center.y-2,center.x+2,center.y+2)
     associations=supported_labels(rgb,(pix.x/scale,pix.y/scale),scale,patch,labels,styles,barriers)
     supported={r['code'] for r in associations if r['clear_paths']>=7}
+    out['visual_evidence_channels']['visual_clear_rays']=bool(supported)
+    out['visual_candidate_codes']=sorted(supported)
+    out['visual_candidate_status']='hypothesis_only'
+
     if legend_bound and len(supported)==1 and styles and not local_faces:
         out.update(status='probable',zone=next(iter(supported)))
     elif local_faces and not topology_candidates:
