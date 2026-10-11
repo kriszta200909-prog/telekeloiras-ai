@@ -144,7 +144,14 @@ def legend_layer_paths(page, profile, role, clip=None):
         for record in profile.get('records',[]):
             if record['role']==role and record.get('label_verified') and record['recognition']=='native':
                 term=compact(record['label'])
-                if term.endswith('hatar'):cadastral_names.add(term[:-5])
+                if term.endswith('hatar'):
+                    cadastral_names.add(term[:-5])
+                    # Hungarian CAD cadastral base layers commonly use
+                    # foldreszlet rather than telek. The source legend must
+                    # independently confirm an existing parcel boundary.
+                    if term in ('telekhatar','foldreszlethatar'):
+                        cadastral_names.update(('aszfoldreszlet','foldreszlet',
+                                                'asztelekhatar','telekhatar'))
     if not styles and not cadastral_names:
         return paths
     def collect(drawing):
