@@ -625,6 +625,60 @@ def discover_budapest_district(hrsz):
     return "", ""
 
 
+def municipal_hesz_njt_candidates(place, max_pages=10):
+    """Follow municipality planning pages to NJT ordinances, never trusting search snippets.
+
+    Search engines locate municipal sites; fetched HTML and links provide the
+    actual source trail. Final legal evidence still requires fetch_njt_page.
+    """
+    from collections import deque
+    seed_queries = (
+        f'"{place}" önkormányzat helyi építési szabályzat',
+        f'"{place}" településrendezési terv HÉSZ rendelet',
+    )
+    queue = deque()
+    for query in seed_queries:
+        try:
+            for link in _search_web(query)[:20]:
+                parsed=urllib.parse.urlsplit(link)
+                host=(parsed.hostname or '').lower()
+                if parsed.scheme=='https' and (host.endswith('.hu') or host=='hu') and not is_official_njt_url(link):
+                    queue.append((link,0))
+        except Exception:
+            continue
+    visited=set()
+    njt=[]
+    while queue and len(visited)<max_pages:
+        url,depth=queue.popleft()
+        if url in visited:
+            continue
+        parsed=urllib.parse.urlsplit(url)
+        if parsed.scheme!='https' or not (parsed.hostname or '').lower().endswith('.hu'):
+            continue
+        visited.add(url)
+        try:
+            raw,final,status,charset,typ=http_get(url,timeout=12)
+            if status!=200 or len(raw)>2500000 or 'html' not in typ.lower():
+                continue
+            parser=HTMLCollector()
+            parser.feed(raw.decode(charset or 'utf-8',errors='replace'))
+            for label,href in parser.links:
+                target=urljoin(final,href)
+                p=urllib.parse.urlsplit(target)
+                if p.scheme!='https':
+                    continue
+                if is_official_njt_url(target):
+                    if '/jogszabaly/' in p.path and target not in njt:
+                        njt.append(target)
+                elif depth<1 and (p.hostname or '').lower()==(urllib.parse.urlsplit(final).hostname or '').lower():
+                    hay=key_text(label+' '+p.path)
+                    if any(term in hay for term in ('hesz','epitesi','szabalyozasi','rendelet','telepulesrendezesi')):
+                        queue.append((target,depth+1))
+        except Exception:
+            continue
+    return njt
+
+
 def discover_njt_source(town, hrsz, selected_district=""):
     """Településhez automatikusan keres HÉSZ/KÉSZ NJT-jelöltet.
     A kereső csak felderít; a találatot fetch + tartalmi validáció követi.
@@ -694,6 +748,14 @@ def discover_njt_source(town, hrsz, selected_district=""):
                         candidates.append(u)
             except Exception as exc:
                 search_audit.append({'query':q,'error':type(exc).__name__,'fallback':True})
+    # Independent municipality-site discovery: follow actual HÉSZ pages and
+    # their NJT ordinance hyperlinks instead of relying on search snippets.
+    try:
+        for u in municipal_hesz_njt_candidates(place):
+            if u not in candidates:
+                candidates.append(u)
+    except Exception as exc:
+        search_audit.append({'method':'municipal_link_crawl','error':type(exc).__name__})
     # A failed search must not erase successful candidates from another engine.
     # Search queries are generic; no municipality or parcel zoning is embedded.
     # A kereső rangsora nem jogforrás: minden találatot külön ellenőrzünk.
