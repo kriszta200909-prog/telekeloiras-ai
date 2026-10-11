@@ -238,6 +238,22 @@ def sample_styles(page,rect):
             min(abs(bounds.x0-rect.x0),abs(bounds.x1-rect.x1))<2)
         if container or edge_fragment:continue
         if bounds.width>.5 or bounds.height>.5:styles.append(style)
+    # CAD exports often draw dotted zoning boundaries as separate sub-point
+    # vector paths (e.g. 0.24 x 0.36 PDF points). A size-only filter
+    # discards every sample and makes the legend unrecognisable. Accept tiny
+    # paths only as a repeated, source-matched symbol (>=3 distinct marks),
+    # not as an isolated speck or a colour-based default.
+    tiny={}
+    for drawing,bounds in drawings:
+        if bounds.width>.5 or bounds.height>.5:continue
+        style=drawing_style(drawing)
+        if style.get('primitive')!='short_dot_strokes' or style.get('fill') is not None:continue
+        key=json.dumps(style,sort_keys=True)
+        tiny.setdefault(key,[]).append((bounds,style))
+    for group in tiny.values():
+        if len(group)<3:continue
+        centres={(round((b.x0+b.x1)/2,2),round((b.y0+b.y1)/2,2)) for b,_ in group}
+        if len(centres)>=3:styles.append(group[0][1])
     return list({json.dumps(s,sort_keys=True):s for s in styles}.values())
 
 
