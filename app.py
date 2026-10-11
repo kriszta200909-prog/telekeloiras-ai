@@ -647,31 +647,39 @@ def discover_njt_source(town, hrsz, selected_district=""):
     # Use the same whitespace-only HRSZ normalization without relying on
     # another global symbol in the extracted execution scope.
     exact_hrsz = "".join(str(hrsz or "").split())
+    # Search is discovery only: untrusted search hits never become legal evidence.
+    # Try both unqualified and official-site queries: some engines ignore or
+    # poorly index site-restricted queries and legal document attachments.
     queries = [
-        # A municipality may have several separate KÉSZ documents. Prefer
-        # exact-HRSZ hits in official annexes before generic title matches;
-        # any candidate still needs the existing content/source validation.
-        f'site:or.njt.hu "{exact_hrsz}" "{place}"',
+        f'"{place}" "helyi építési szabályzat"',
+        f'"{place}" HÉSZ önkormányzati rendelet',
+        f'"{place}" "szabályozási terv" rendelet',
+        f'"{place}" "építési szabályzat" njt',
         f'site:njt.jog.gov.hu/jogszabaly "{place}" "építési szabályzat"',
-        f'site:or.njt.hu/eli "{place}" "helyi építési szabályzat"',
-        f'site:or.njt.hu "{place}" "kerületi építési szabályzat"',
         f'site:or.njt.hu "{place}" "helyi építési szabályzat"',
-        f'site:njt.jog.gov.hu "{place}" "kerületi építési szabályzat"',
-        f'site:njt.jog.gov.hu "{place}" "építési szabályzat"',
-        f'site:or.njt.hu "{place}" KÉSZ',
+        f'site:njt.jog.gov.hu "{place}" "szabályozási terv"',
         f'site:or.njt.hu "{place}" HÉSZ',
-        f'site:or.njt.hu "{place}" "szabályozási terv"',
+        f'"{exact_hrsz}" "{place}" "szabályozási terv"',
+        f'"{place}" HÉSZ módosítás melléklet',
+        f'"{place}" helyi építési szabályzat önkormányzat',
     ]
     candidates = []
+    search_audit = []
     for q in queries:
-        for u in _search_web(q):
-            if is_official_njt_url(u) and u not in candidates:
-                candidates.append(u)
-
+        try:
+            links = _search_web(q)
+            search_audit.append({"query":q,"returned":len(links)})
+            for u in links:
+                if is_official_njt_url(u) and u not in candidates:
+                    candidates.append(u)
+        except Exception as exc:
+            search_audit.append({"query":q,"error":type(exc).__name__})
+    # A failed search must not erase successful candidates from another engine.
+    # Search queries are generic; no municipality or parcel zoning is embedded.
     # A kereső rangsora nem jogforrás: minden találatot külön ellenőrzünk.
     # A település nevét a címben is keressük, ne csak a rendelet szövegében.
     town_terms = [key_text(place)] if district else [key_text(town)]
-    for u in candidates[:16]:
+    for u in candidates[:40]:
         page = fetch_njt_page(u)
         if not page.get("ok"):
             continue
