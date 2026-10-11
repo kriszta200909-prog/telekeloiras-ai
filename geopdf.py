@@ -129,9 +129,11 @@ def legend_layer_paths(page, profile, role, clip=None):
              'proposed_parcel_boundary':'proposed',
              'landuse_boundary':'unclassified'}
     if role in allowed and role!='landuse_boundary':
+        # Explicit source-legend role is authoritative. Historical plans may
+        # use labels that do not round-trip through the newer text classifier;
+        # do not discard independently verified legend strokes on that basis.
         records=[row for row in (profile or {}).get('records',[])
-                 if row.get('role')==role and row.get('label_verified')
-                 and regulatory_element_class(row.get('label','')).get('function')==allowed[role]]
+                 if row.get('role')==role and row.get('label_verified')]
         styles=[style for row in records for style in row.get('styles',[])]
     else:
         styles=styles_for(profile,role)
