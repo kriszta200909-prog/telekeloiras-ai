@@ -56,6 +56,45 @@ def role_for_label(text):
     return ''
 
 
+# 419/2021. (VII. 15.) Korm. rendelet 15. §, 6. melléklet:
+# These are semantic classes, NOT an automatic choice of a plan's symbols.
+# Under 78. § (1a) older HÉSZ amendments can retain earlier legends.
+LEGAL_SYMBOL_ROLES = {
+    'parcel_boundary': ('cadastral_context', 'existing'),
+    'proposed_parcel_boundary': ('proposed', 'J'),
+    'regulatory_line': ('regulation', 'K'),
+    'zone_boundary': ('zoning', 'K'),
+    'zone_code': ('zoning', 'K'),
+    'building_line': ('regulation', 'K'),
+    'restriction': ('other_legislation_or_local', 'M_or_K'),
+    'utility_line': ('informative_or_other_legislation', 'T_or_M'),
+}
+
+
+def regulatory_element_class(label, *, applicable_419=False):
+    """Classify a caption without transferring legal force across plan regimes.
+
+    The own source legend must still be visually matched to source strokes.
+    A role does not establish a parcel/zone intersection or legal priority.
+    """
+    role = role_for_label(label)
+    if not role:
+        return {'role': '', 'function': 'unknown', 'legal_status': 'unknown'}
+    function, status = LEGAL_SYMBOL_ROLES.get(role, ('unclassified', 'unknown'))
+    if role == 'regulatory_line':
+        phase = regulatory_line_status(label)
+    elif role == 'proposed_parcel_boundary':
+        phase = 'proposed'
+    elif role == 'parcel_boundary':
+        phase = 'existing'
+    else:
+        phase = 'unspecified'
+    return {'role': role, 'function': function,
+            'legal_status': status if applicable_419 else 'source_legend_required',
+            'phase': phase, 'normative_regime': '419/2021' if applicable_419 else 'unverified_or_legacy',
+            'intersection_verified': False}
+
+
 def regulatory_line_status(label):
     """Classify the plan's own legend wording; do not infer legal status from colour.
 
