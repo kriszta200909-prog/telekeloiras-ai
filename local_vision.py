@@ -43,7 +43,7 @@ def cpu_threads():
 def prompt(hrsz):
     # English improves instruction-following in the tiny model. No OCR/reference code.
     return (f'Inspect these official zoning-plan images. Find parcel number {hrsz}. '
-        'Image 1 is the full source plan sheet, image 2 is a wider parcel neighbourhood, image 3 is the unannotated parcel crop; remaining images contain the source legend. '
+        'Image 1 is the full source plan sheet, image 2 is a wider parcel neighbourhood, image 3 is the unannotated parcel crop; remaining images contain the plan's own official legend. '
         'Read the zone code belonging to the parcel, not just the nearest label. '
         'Use only this legend to distinguish parcel lines, zoning boundaries and restrictions. '
         'Do not invent connections across missing corners. If unreadable, use an empty zone. '
