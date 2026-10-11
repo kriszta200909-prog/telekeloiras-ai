@@ -1,0 +1,12 @@
+{
+  "checked_at_utc": "2026-10-10T13:36:31.945230+00:00",
+  "command": "python -m unittest discover",
+  "python": "3.12.14",
+  "tests_run": 171,
+  "elapsed_seconds": 9.31,
+  "failures": 0,
+  "errors": 0,
+  "result": "OK",
+  "log_sha256": "5c1148ad024941e1273cc72552468905af5da659663331c6a9db4701b26d0e61",
+  "note": "Teljes offline regressziós csomag, az eredeti 36 teszttel; HRSZ-pontosság, térképlapka-index, forráskivágat-ellenőrzés, bizonytalan ismétlődések, jelmagyarázati minták és Streamlit útvonalak. A valódi öttelekes forrásvizsgálat külön jegyzőkönyvben szerepel."
+}

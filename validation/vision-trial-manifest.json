@@ -1,0 +1,200 @@
+{
+  "status": "prepared_not_run",
+  "external_ai_requests": 0,
+  "model": "gpt-4.1-mini-2025-04-14",
+  "credential_present": false,
+  "api_access_verified": false,
+  "source_report_sha256": "c2cd7d3b41f04cd5cf4b361c0a32ea1443ef24ca0c13b7ebd916cfcabc55695d",
+  "cases": [
+    {
+      "place": "Miskolc",
+      "hrsz": "4755/11",
+      "folder": "miskolc",
+      "plan_source": {
+        "source_url": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
+        "source_hash": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc"
+      },
+      "pdf_page": 31,
+      "clip_pdf": [
+        236.9853515625,
+        392.5877685546875,
+        488.8841552734375,
+        601.4468383789062
+      ],
+      "legend_source": {
+        "source_url": "https://njt.jog.gov.hu/document/03/0366LL_EJR_83921015-Jelmagyarazat_modositasa.pdf",
+        "source_hash": "6d40152ff111712a5a139926e7c23e5acf6736106e6bc81d7277e2beb696f24a",
+        "plan_url": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
+        "plan_hash": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc",
+        "edition": "2026.09.26.",
+        "ksh": "30456",
+        "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
+      },
+      "legend_pages": [
+        1
+      ],
+      "files": [
+        "plan.png",
+        "legend-1.png",
+        "legend-detail.png"
+      ],
+      "image_sha256": [
+        "7c87670b7b5514eba5227e3283b0c2f7aeed6f9b5281a556e4a3ae50a36dca45",
+        "f7b1a851f7f860f77332cd379dde98c4d0ce665809dd560558f54e7f21ecb664",
+        "f864ed5c234249e15ba39f39376922c9cbd1041eeb0eaa9357289609c2b82738"
+      ],
+      "request_sha256": "5e85a160cd9224dbe91fc7b21e2113cea3b363ffe44bcaa2adc921dab73c2ef9",
+      "cost": {
+        "image_dimensions": [
+          [
+            1261,
+            1046
+          ],
+          [
+            1800,
+            1274
+          ],
+          [
+            1004,
+            879
+          ]
+        ],
+        "input_token_budget_estimate": 11566,
+        "output_token_limit": 1200,
+        "usd_estimate_upper": 0.006546,
+        "input_usd_per_million": 0.4,
+        "output_usd_per_million": 1.6,
+        "pricing_source": "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
+        "pricing_checked": "2026-10-10",
+        "assumptions": "Uncached standard API, no tools/retries; 4096 text/schema tokens plus maximum image patches. Estimate, not billing guarantee; taxes/FX excluded."
+      }
+    },
+    {
+      "place": "Tiszaújváros",
+      "hrsz": "2200/8",
+      "folder": "tiszaujvaros",
+      "plan_source": {
+        "source_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+        "source_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef"
+      },
+      "pdf_page": 35,
+      "clip_pdf": [
+        386.82098388671875,
+        0.0,
+        691.2009887695312,
+        265.4599609375
+      ],
+      "legend_source": {
+        "source_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+        "source_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+        "plan_url": "https://njt.jog.gov.hu/document/d9/d95fLL_EJR_81697536-rendelet_mell_klet-1.pdf",
+        "plan_hash": "dd81c298d2b12e85d21ea258f3dabae97525d72ead32134d1b8c363aa452d9ef",
+        "edition": "2024.10.10.",
+        "ksh": "28352",
+        "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
+      },
+      "legend_pages": [
+        2
+      ],
+      "files": [
+        "plan.png",
+        "legend-2.png",
+        "legend-detail.png"
+      ],
+      "image_sha256": [
+        "a3509dde592d5e9e0fe74f39c067f7c288c9762f69c35c5fef17dc07ae86d436",
+        "0baba804c3093cb0436b6c7ff0dc1abe437324c7ddf29fb9399d238b8658bfba",
+        "be4e4039a343bb810afcee587369b65a4da339c69d0ac2d483ad37d27e620a12"
+      ],
+      "request_sha256": "f486cb0e979fa951e1f072b65b69a873fab37270cfe42144678ce4d162a82488",
+      "cost": {
+        "image_dimensions": [
+          [
+            1523,
+            1328
+          ],
+          [
+            1800,
+            1273
+          ],
+          [
+            1498,
+            3393
+          ]
+        ],
+        "input_token_budget_estimate": 11566,
+        "output_token_limit": 1200,
+        "usd_estimate_upper": 0.006546,
+        "input_usd_per_million": 0.4,
+        "output_usd_per_million": 1.6,
+        "pricing_source": "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
+        "pricing_checked": "2026-10-10",
+        "assumptions": "Uncached standard API, no tools/retries; 4096 text/schema tokens plus maximum image patches. Estimate, not billing guarantee; taxes/FX excluded."
+      }
+    },
+    {
+      "place": "Komádi",
+      "hrsz": "1558",
+      "folder": "komadi",
+      "plan_source": {
+        "source_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+        "source_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041"
+      },
+      "pdf_page": 1,
+      "clip_pdf": [
+        1427.8199462890625,
+        1640.280029296875,
+        1733.93994140625,
+        1943.93994140625
+      ],
+      "legend_source": {
+        "source_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+        "source_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+        "plan_url": "https://njt.jog.gov.hu/document/29/29e9LL_EJR_109881483-tervlap_T_3_BELTERULETI_SZAB_2025_egyben.pdf",
+        "plan_hash": "15422b7898f58ab3763cbf2289e9b81b1aa4c548ecb5c8721df1e51800c9a041",
+        "edition": "2025.12.22.",
+        "ksh": "02167",
+        "implementation": "405bad1b68606225cdc07b7cfb45c457529bdae3dc58853ff3935e398ebb1e9a"
+      },
+      "legend_pages": [
+        1
+      ],
+      "files": [
+        "plan.png",
+        "legend-1.png",
+        "legend-detail.png"
+      ],
+      "image_sha256": [
+        "2b0f19a08067a9f6ca99c21a5a108f10110237479b51beddf91f5461808f3999",
+        "1f8b11bd7478ea9fa7442634764bae1dcd4b312d22298742bdda616e80f1da64",
+        "cdea4548355d0a7194e06121c6c80df0ea86dec7bcc6e76d8c13b736d23a0ae1"
+      ],
+      "request_sha256": "7868a988ed07f41c25fd5a718dbff3673faf1858eda9750f84832c6894a78d7d",
+      "cost": {
+        "image_dimensions": [
+          [
+            1531,
+            1519
+          ],
+          [
+            1800,
+            1200
+          ],
+          [
+            1120,
+            1980
+          ]
+        ],
+        "input_token_budget_estimate": 11566,
+        "output_token_limit": 1200,
+        "usd_estimate_upper": 0.006546,
+        "input_usd_per_million": 0.4,
+        "output_usd_per_million": 1.6,
+        "pricing_source": "https://developers.openai.com/api/docs/models/gpt-4.1-mini",
+        "pricing_checked": "2026-10-10",
+        "assumptions": "Uncached standard API, no tools/retries; 4096 text/schema tokens plus maximum image patches. Estimate, not billing guarantee; taxes/FX excluded."
+      }
+    }
+  ],
+  "total_usd_estimate_upper": 0.019638
+}

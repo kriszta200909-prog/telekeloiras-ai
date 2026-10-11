@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 from collections import defaultdict
 
+IMPLEMENTATION_HASH=__import__("hashlib").sha256(Path(__file__).read_bytes()).hexdigest()
+
 import fitz
 import numpy as np
 from PIL import Image, ImageOps
@@ -201,17 +203,24 @@ def outlined_hrsz_hits(doc,target,tessdata,max_seconds=180,on_progress=None):
     return verify_outlined_hrsz(doc,index,target,tessdata)
 
 
-def outlined_label_groups(page, padding=.2):
-    """Group nearby compact neutral filled paths using page geometry only."""
-    rects=[]
+def outlined_label_groups(page, padding=.2, _mode="both"):
+    """Group filled glyphs and stick fonts separately to preserve existing labels."""
+    rects=[];stroked_words=set()
     matrix=page.rotation_matrix
     def collect(drawing):
         fill=drawing.get('fill')
-        if not fill or max(fill)-min(fill)>.025 or max(fill)>.85:
+        stroke=drawing.get('color')
+        colour=fill if fill is not None else stroke
+        if colour is None or max(colour)-min(colour)>.025 or max(colour)>.85:
             return
         rect=fitz.Rect(drawing['rect'])*matrix
-        if .04<rect.width<7 and .04<rect.height<7:
+        # CAD stick fonts are stroked paths, often a whole word in one path.
+        # Long single cadastral segments are not text candidates.
+        stroked=(fill is None and len(drawing['items'])>=2 and
+                 .04<min(rect.width,rect.height)<7 and max(rect.width,rect.height)<30)
+        if ((_mode=="stroke" and stroked) or (_mode!="stroke" and .04<rect.width<7 and .04<rect.height<7 and fill is not None)):
             rects.append(tuple(rect))
+            if stroked and max(rect.width,rect.height)>=7:stroked_words.add(tuple(rect))
     page.get_cdrawings(callback=collect)
     parents=list(range(len(rects)))
     cells=defaultdict(list)
@@ -236,7 +245,7 @@ def outlined_label_groups(page, padding=.2):
     for i,rect in enumerate(rects): groups[root(i)].append(rect)
     results=[]
     for pieces in groups.values():
-        if len(pieces)<3: continue
+        if len(pieces)<3 and not any(piece in stroked_words for piece in pieces):continue
         points=np.array([((r[0]+r[2])/2,(r[1]+r[3])/2) for r in pieces])
         if len(points)>1:
             _,vectors=np.linalg.eigh(np.cov(points.T))
@@ -248,4 +257,5 @@ def outlined_label_groups(page, padding=.2):
                        max(r[2] for r in pieces),max(r[3] for r in pieces))
         if not (2<max(bbox.width,bbox.height)<45 and min(bbox.width,bbox.height)>.5): continue
         results.append({'rect':tuple(bbox),'angle':angle,'pieces':len(pieces)})
+    if _mode=="both":results.extend(outlined_label_groups(page,padding,_mode="stroke"))
     return results

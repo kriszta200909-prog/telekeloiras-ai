@@ -14,6 +14,16 @@ class PlanLabelTests(unittest.TestCase):
         worker.process=SimpleNamespace(stdin=io.StringIO(),stdout=io.StringIO('Native diagnostic\n'+'TELEK_OCR_RESULT:'+json.dumps({'words':[['034/15',20,30]]})+'\n'))
         self.assertEqual(worker.words(b'png','data'),[['034/15',20,30]])
 
+    def test_stick_font_word_is_eligible_without_three_filled_glyphs(self):
+        from plan_labels import outlined_label_groups
+        doc=fitz.open();p=doc.new_page();shape=p.new_shape()
+        shape.draw_polyline([(20,20),(22,24),(24,20),(26,24),(28,20),(30,24)])
+        shape.finish(color=(.5,.5,.5),width=.12);shape.commit()
+        p.draw_line((100,100),(200,200),color=(.5,.5,.5),width=.12)
+        groups=outlined_label_groups(p)
+        self.assertEqual(len(groups),1)
+        self.assertLess(fitz.Rect(groups[0]['rect']).x1,40)
+
     def test_spaced_suffix_is_not_parent_parcel(self):
         doc=fitz.open();page=doc.new_page()
         page.insert_text((30,40),'1558 /1 1558 - 2 1558 .3 (1558)')
@@ -137,7 +147,9 @@ app.main()
         doc=fitz.open();doc.new_page().insert_text((30,40),'1558')
         doc=fitz.open(stream=doc.tobytes(),filetype='pdf')
         complete={'labels':[],'complete':True,'scanned':1,'candidates':1,'pages':1}
-        with patch.object(app,'outlined_label_index',return_value=complete) as scan:
+        import tempfile
+        with tempfile.TemporaryDirectory() as folder, patch('tempfile.gettempdir',return_value=folder), \
+             patch.object(app,'outlined_label_index',return_value=complete) as scan:
             a=app.load_outlined_plan_labels(doc,'1558')
             b=app.load_outlined_plan_labels(doc,'1559')
             self.assertEqual(scan.call_count,1)

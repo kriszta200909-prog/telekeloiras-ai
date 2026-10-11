@@ -1,0 +1,64 @@
+{
+  "historical_legal_source": "https://njt.jog.gov.hu/jogszabaly/2022-38-SP-5Y1070.0",
+  "historical_edition": "2023.02.01.",
+  "historical_legal_sha256": "aa30d2ec32ae788ba0380f0360471b03a853025b30a0bb88bd5581654b2225cf",
+  "historical_legal_source_verified": true,
+  "historical_source_checks": {
+    "NJT-domain": true,
+    "település": true,
+    "építési szabályzat": true
+  },
+  "historical_legend_url": "https://njt.jog.gov.hu/document/80/8042LL_EJR_40048648-1_MELLEKLET.pdf",
+  "historical_legend_sha256": "eaa48491300e469d6670788bc66e1580a741644e4c703299be42b001f5185893",
+  "historical_record": {
+    "label": "Közúti k özle k e dési te rüle t - országos k özút, he ly i gy űjtőút",
+    "role": "road_area",
+    "rect": [
+      94.03265380859375,
+      263.12847900390625,
+      287.4611511230469,
+      290.69866943359375
+    ],
+    "recognition": "native",
+    "sample_rect": [
+      34.03265380859375,
+      258.9929504394531,
+      93.03265380859375,
+      294.8341979980469
+    ],
+    "styles": [
+      {
+        "kind": "path",
+        "stroke": null,
+        "fill": [
+          1.0,
+          0.7961,
+          0.3098
+        ],
+        "width": 0,
+        "dash": [],
+        "closed": false
+      }
+    ],
+    "label_verified": true,
+    "ambiguous_sample": false,
+    "PDF-oldal": 2,
+    "sample_side_basis": {
+      "side": "left",
+      "aligned_native_rows": 7
+    }
+  },
+  "current_legend_url": "https://njt.jog.gov.hu/document/03/0366LL_EJR_83921015-Jelmagyarazat_modositasa.pdf",
+  "current_legend_sha256": "6d40152ff111712a5a139926e7c23e5acf6736106e6bc81d7277e2beb696f24a",
+  "plan_url": "https://njt.jog.gov.hu/document/b4/b45dLL_EJR_127797597-Belteruleti_szabalyozasi_tervlapok_modositasa.pdf",
+  "plan_sha256": "187187fd5b5b86ed34bb8e797bb2ed143c9a065f27187e12fb1d88d094c5e4bc",
+  "plan_pdf_page": 31,
+  "observed_plan_fill": [
+    1.0,
+    0.796,
+    0.31
+  ],
+  "status": "Történeti rajzi jelváltozat forrása azonosított; aktív jelmagyarázati megfeleltetés és telekbesorolás nem igazolt",
+  "zone_verified": false,
+  "current_style_compatibility_verified": false
+}

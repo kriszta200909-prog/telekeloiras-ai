@@ -3,3 +3,7 @@ PyMuPDF>=1.24
 Pillow
 numpy>=1.24
 shapely>=2.0,<3
+pyproj>=3.6,<4
+
+fonttools>=4.50,<5
+pyshp>=2.3,<3
