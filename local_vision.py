@@ -43,7 +43,7 @@ def cpu_threads():
 def prompt(hrsz):
     # English improves instruction-following in the tiny model. No OCR/reference code.
     return (f'Inspect these official zoning-plan images. Find parcel number {hrsz}. '
-        'Image 1 is the unannotated plan crop; other images are its own official legend. '
+        'Image 1 is the full source plan sheet, image 2 is a wider parcel neighbourhood, image 3 is the unannotated parcel crop; remaining images contain the source legend. '
         'Read the zone code belonging to the parcel, not just the nearest label. '
         'Use only this legend to distinguish parcel lines, zoning boundaries and restrictions. '
         'Do not invent connections across missing corners. If unreadable, use an empty zone. '
@@ -76,7 +76,18 @@ def source_images(doc, visual, profile, cache):
     detail = add_source_legend({'annotated_png':raw},profile,cache)
     if not detail.get('legend_image_source_verified') or not detail.get('legend_png'):
         raise ValueError('Hiányzik az ellenőrzött saját jelmagyarázat képe.')
-    images=[raw]
+    # Multi-scale source reading: a single 300-point crop hides adjoining
+    # parcels, block shapes and zone labels. Supply the full original sheet
+    # and a wider unannotated neighbourhood before the fine detail. Neither
+    # image contains a suggested answer or an artificial parcel polygon.
+    full_scale=min(2.5,2000/max(page.rect.width,page.rect.height))
+    full_sheet=page.get_pixmap(matrix=fitz.Matrix(full_scale,full_scale),
+                              alpha=False).tobytes('png')
+    expanded=(clip+(-clip.width,-clip.height,clip.width,clip.height))&page.rect
+    wide_scale=min(3.5,2000/max(expanded.width,expanded.height))
+    wider=page.get_pixmap(matrix=fitz.Matrix(wide_scale,wide_scale),
+                          clip=expanded,alpha=False).tobytes('png')
+    images=[full_sheet,wider,raw]
     identity=profile['identity']
     path=Path(cache)/(hashlib.sha256(identity['source_url'].encode()).hexdigest()+'.pdf')
     with fitz.open(path) as legend:
